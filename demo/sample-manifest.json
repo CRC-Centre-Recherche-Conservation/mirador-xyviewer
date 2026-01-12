@@ -1,0 +1,156 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "https://example.org/iiif/sample-scientific/manifest",
+  "type": "Manifest",
+  "label": {
+    "en": ["Sample Scientific Manifest with Spectral Annotations"]
+  },
+  "metadata": [
+    {
+      "label": { "en": ["Creator"] },
+      "value": { "en": ["Scientific Research Lab"] }
+    },
+    {
+      "label": { "en": ["Date"] },
+      "value": { "en": ["2024"] }
+    }
+  ],
+  "items": [
+    {
+      "id": "https://example.org/iiif/sample-scientific/canvas/1",
+      "type": "Canvas",
+      "label": { "en": ["Sample Image with Annotations"] },
+      "width": 1000,
+      "height": 1000,
+      "items": [
+        {
+          "id": "https://example.org/iiif/sample-scientific/canvas/1/page",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://example.org/iiif/sample-scientific/canvas/1/page/image",
+              "type": "Annotation",
+              "motivation": "painting",
+              "body": {
+                "id": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/full/max/0/default.jpg",
+                "type": "Image",
+                "format": "image/jpeg"
+              },
+              "target": "https://example.org/iiif/sample-scientific/canvas/1"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "id": "https://example.org/iiif/sample-scientific/canvas/1/annotations",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://example.org/iiif/sample-scientific/annotation/1",
+              "type": "Annotation",
+              "motivation": "commenting",
+              "label": { "en": ["XRF Spectrum Analysis Point 1"] },
+              "metadata": [
+                {
+                  "label": { "en": ["Technique"] },
+                  "value": { "en": ["X-Ray Fluorescence"] }
+                },
+                {
+                  "label": { "en": ["Sample ID"] },
+                  "value": { "en": ["XRF-2024-001"] }
+                }
+              ],
+              "body": {
+                "id": "https://example.org/data/spectrum-001.csv",
+                "type": "Dataset",
+                "format": "text/csv",
+                "label": { "en": ["XRF Spectrum Point 1"] }
+              },
+              "target": {
+                "type": "SpecificResource",
+                "source": "https://example.org/iiif/sample-scientific/canvas/1",
+                "selector": {
+                  "type": "PointSelector",
+                  "x": 250,
+                  "y": 300
+                }
+              }
+            },
+            {
+              "id": "https://example.org/iiif/sample-scientific/annotation/2",
+              "type": "Annotation",
+              "motivation": "linking",
+              "label": { "en": ["Related Microscopy Campaign"] },
+              "body": {
+                "id": "https://example.org/iiif/microscopy-2024/manifest.json",
+                "type": "Manifest",
+                "format": "application/ld+json",
+                "label": { "en": ["Microscopy Campaign 2024"] }
+              },
+              "target": {
+                "type": "SpecificResource",
+                "source": "https://example.org/iiif/sample-scientific/canvas/1",
+                "selector": {
+                  "type": "FragmentSelector",
+                  "value": "xywh=400,400,200,200"
+                }
+              }
+            },
+            {
+              "id": "https://example.org/iiif/sample-scientific/annotation/3",
+              "type": "Annotation",
+              "motivation": "commenting",
+              "label": { "en": ["Analysis Note"] },
+              "body": {
+                "type": "TextualBody",
+                "value": "This region shows significant iron oxide deposits, consistent with historical pigment use in this period. Further analysis recommended.",
+                "format": "text/plain",
+                "language": "en"
+              },
+              "target": {
+                "type": "SpecificResource",
+                "source": "https://example.org/iiif/sample-scientific/canvas/1",
+                "selector": {
+                  "type": "FragmentSelector",
+                  "value": "xywh=600,200,150,150"
+                }
+              }
+            },
+            {
+              "id": "https://example.org/iiif/sample-scientific/annotation/4",
+              "type": "Annotation",
+              "motivation": "commenting",
+              "label": { "en": ["Raman Spectrum"] },
+              "metadata": [
+                {
+                  "label": { "en": ["Technique"] },
+                  "value": { "en": ["Raman Spectroscopy"] }
+                },
+                {
+                  "label": { "en": ["Laser Wavelength"] },
+                  "value": { "en": ["785 nm"] }
+                }
+              ],
+              "body": {
+                "id": "https://example.org/data/raman-001.tsv",
+                "type": "Dataset",
+                "format": "text/tab-separated-values",
+                "label": { "en": ["Raman Spectrum - Blue Pigment"] }
+              },
+              "target": {
+                "type": "SpecificResource",
+                "source": "https://example.org/iiif/sample-scientific/canvas/1",
+                "selector": {
+                  "type": "PointSelector",
+                  "x": 750,
+                  "y": 500
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
