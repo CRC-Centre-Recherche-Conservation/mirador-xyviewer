@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Box, Typography, Chip, Stack } from '@mui/material';
+import { Box, Typography, Link } from '@mui/material';
 import type { MetadataEntry, LocalizedString } from '../types/iiif';
 import { getLocalizedString } from '../utils/localization';
 import { escapeHtml } from '../utils/security';
@@ -14,55 +14,125 @@ export interface MetadataDisplayProps {
   label?: LocalizedString;
   /** Metadata entries */
   metadata?: MetadataEntry[];
-  /** Compact mode - shows metadata as chips */
+  /** Annotation ID (@id) */
+  annotationId?: string;
+  /** Compact mode - shows metadata inline */
   compact?: boolean;
+}
+
+/**
+ * Extract URL from a value string that may contain text and URL
+ * Format: "Text label (http://...)" or just "http://..."
+ */
+function extractUrlFromValue(value: string): { text: string; url: string | null } {
+  // Check if value contains a URL in parentheses: "Label (http://...)"
+  const urlInParensMatch = value.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
+  if (urlInParensMatch) {
+    return { text: urlInParensMatch[1].trim(), url: urlInParensMatch[2] };
+  }
+
+  // Check if the entire value is a URL
+  const urlMatch = value.match(/^(https?:\/\/\S+)$/);
+  if (urlMatch) {
+    return { text: value, url: urlMatch[1] };
+  }
+
+  return { text: value, url: null };
+}
+
+/**
+ * Check if a string is a valid URL
+ */
+function isValidUrl(str: string): boolean {
+  return /^https?:\/\//.test(str);
 }
 
 export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   label,
   metadata,
-  compact = false,
+  annotationId,
+  compact: _compact = false,
 }) => {
+  // _compact is kept for API compatibility but the layout is now unified
   const labelText = getLocalizedString(label);
 
-  if (!labelText && (!metadata || metadata.length === 0)) {
+  if (!labelText && (!metadata || metadata.length === 0) && !annotationId) {
     return null;
   }
 
-  if (compact) {
-    return (
-      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
-        {labelText && (
-          <Chip
-            label={escapeHtml(labelText)}
-            size="small"
-            color="primary"
-            variant="outlined"
-          />
-        )}
-        {metadata?.map((entry, index) => {
-          const entryLabel = getLocalizedString(entry.label);
-          const entryValue = getLocalizedString(entry.value);
-          return (
-            <Chip
-              key={`${entryLabel}-${index}`}
-              label={`${escapeHtml(entryLabel)}: ${escapeHtml(entryValue)}`}
-              size="small"
-              variant="outlined"
-            />
-          );
-        })}
-      </Stack>
-    );
-  }
+  /**
+   * Render a metadata value, converting URLs to clickable links
+   */
+  const renderValue = (value: string) => {
+    const { text, url } = extractUrlFromValue(value);
 
+    if (url) {
+      return (
+        <Link
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{
+            color: 'primary.main',
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' }
+          }}
+        >
+          {escapeHtml(text)}
+        </Link>
+      );
+    }
+
+    return escapeHtml(value);
+  };
+
+  // Both compact and non-compact modes now use the same improved layout
   return (
     <Box sx={{ mb: 1 }}>
+      {/* Label as prominent title */}
       {labelText && (
-        <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+        <Typography
+          variant="subtitle1"
+          fontWeight="bold"
+          sx={{
+            mb: 0.5,
+            color: 'primary.main',
+            fontSize: '1rem'
+          }}
+        >
           {escapeHtml(labelText)}
         </Typography>
       )}
+
+      {/* Annotation URI IIIF as clickable link */}
+      {annotationId && isValidUrl(annotationId) && (
+        <Box sx={{ mb: 0.5 }}>
+          <Typography
+            component="span"
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontStyle: 'italic' }}
+          >
+            Annotation URI IIIF:{' '}
+          </Typography>
+          <Link
+            href={annotationId}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              fontSize: '0.75rem',
+              fontStyle: 'italic',
+              color: 'text.secondary',
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline', color: 'primary.main' }
+            }}
+          >
+            {annotationId}
+          </Link>
+        </Box>
+      )}
+
+      {/* Metadata entries */}
       {metadata && metadata.length > 0 && (
         <Box component="dl" sx={{ m: 0 }}>
           {metadata.map((entry, index) => {
@@ -83,7 +153,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                   variant="body2"
                   sx={{ display: 'inline', m: 0 }}
                 >
-                  {escapeHtml(entryValue)}
+                  {renderValue(entryValue)}
                 </Typography>
               </Box>
             );
