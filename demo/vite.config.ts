@@ -8,6 +8,7 @@ import { resolve } from 'path';
  */
 export default defineConfig({
   root: resolve(__dirname),
+  publicDir: resolve(__dirname, 'public'),
   plugins: [react()],
   resolve: {
     alias: {
