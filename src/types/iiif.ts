@@ -53,6 +53,15 @@ export interface AnnotationTarget {
   selector?: unknown;
 }
 
+/** SeeAlso reference to external resources */
+export interface SeeAlsoEntry {
+  id: string;
+  type?: string;
+  label?: LocalizedString;
+  format?: string;
+  profile?: string;
+}
+
 /** IIIF v3 Annotation */
 export interface IIIFAnnotation {
   '@context'?: string | string[];
@@ -63,6 +72,7 @@ export interface IIIFAnnotation {
   target: AnnotationTarget | string;
   label?: LocalizedString;
   metadata?: MetadataEntry[];
+  seeAlso?: SeeAlsoEntry | SeeAlsoEntry[];
 }
 
 /** Type guards */

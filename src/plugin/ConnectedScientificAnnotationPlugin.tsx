@@ -160,6 +160,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         const label = resource?.label;
         const metadata = resource?.metadata;
         const annotationId = resource?.id;
+        const seeAlso = resource?.seeAlso;
 
         return (
           <Box
@@ -182,7 +183,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
             }}
           >
             {/* Metadata */}
-            <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} compact />
+            <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
 
             {/* Body renderer */}
             {body && (

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Box, Typography, Link } from '@mui/material';
-import type { MetadataEntry, LocalizedString } from '../types/iiif';
+import type { MetadataEntry, LocalizedString, SeeAlsoEntry } from '../types/iiif';
 import { getLocalizedString } from '../utils/localization';
 import { escapeHtml } from '../utils/security';
 
@@ -16,6 +16,8 @@ export interface MetadataDisplayProps {
   metadata?: MetadataEntry[];
   /** Annotation ID (@id) */
   annotationId?: string;
+  /** SeeAlso references */
+  seeAlso?: SeeAlsoEntry | SeeAlsoEntry[];
   /** Compact mode - shows metadata inline */
   compact?: boolean;
 }
@@ -51,12 +53,16 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   label,
   metadata,
   annotationId,
+  seeAlso,
   compact: _compact = false,
 }) => {
   // _compact is kept for API compatibility but the layout is now unified
   const labelText = getLocalizedString(label);
 
-  if (!labelText && (!metadata || metadata.length === 0) && !annotationId) {
+  // Normalize seeAlso to array
+  const seeAlsoList = seeAlso ? (Array.isArray(seeAlso) ? seeAlso : [seeAlso]) : [];
+
+  if (!labelText && (!metadata || metadata.length === 0) && !annotationId && seeAlsoList.length === 0) {
     return null;
   }
 
@@ -155,6 +161,49 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                 >
                   {renderValue(entryValue)}
                 </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
+
+      {/* SeeAlso references */}
+      {seeAlsoList.length > 0 && (
+        <Box sx={{ mt: 1 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontStyle: 'italic', display: 'block', mb: 0.5 }}
+          >
+            Linked resources :
+          </Typography>
+          {seeAlsoList.map((item, index) => {
+            const itemLabel = getLocalizedString(item.label) || item.type || 'Ressource liée';
+            return (
+              <Box key={item.id || index} sx={{ ml: 1, mb: 0.25 }}>
+                <Link
+                  href={item.id}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    fontSize: '0.85rem',
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  {escapeHtml(itemLabel)}
+                </Link>
+                {item.format && (
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ ml: 0.5 }}
+                  >
+                    ({item.format})
+                  </Typography>
+                )}
               </Box>
             );
           })}
