@@ -9,8 +9,9 @@ import Mirador from 'mirador';
 import { scientificAnnotationPlugin } from '../src';
 
 // Demo manifest with scientific annotations
-// In production, replace with your actual manifest URL
-const DEMO_MANIFEST = 'https://iiif.io/api/cookbook/recipe/0001-mvm-image/manifest.json';
+// Using local Avranches manuscript manifest (IIIF 3.0) with spectral analysis annotations
+// Served from public/ directory as static Vite endpoint
+const DEMO_MANIFEST = '/avranches-manifest-v3.json';
 
 /**
  * Initialize Mirador with the scientific annotation plugin
@@ -39,6 +40,8 @@ function initMirador() {
           // Enable annotations panel
           sideBarOpen: true,
           sideBarPanel: 'annotations',
+          // Enable annotation overlay display on canvas
+          highlightAllAnnotations: true,
         },
       ],
       // Mirador configuration
@@ -65,6 +68,20 @@ function initMirador() {
       // Annotation configuration
       annotations: {
         htmlSanitizationRuleSet: 'iiif',
+        // Include 'supplementing' motivation (used by scientific annotations)
+        // Default Mirador only shows: oa:commenting, oa:tagging, sc:painting, commenting, tagging
+        filteredMotivations: [
+          'oa:commenting',
+          'oa:tagging',
+          'sc:painting',
+          'commenting',
+          'tagging',
+          'supplementing',  // Required for IIIF v3 scientific annotations
+        ],
+      },
+      // OpenSeadragon configuration for CORS
+      osdConfig: {
+        crossOriginPolicy: 'Anonymous',
       },
     },
     // Pass the scientific annotation plugin
