@@ -10,7 +10,6 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { addWindow as miradorAddWindow } from 'mirador';
 import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
