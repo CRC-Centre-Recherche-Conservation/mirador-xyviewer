@@ -1,0 +1,1030 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "/annotations-canvas-91.json",
+  "type": "AnnotationPage",
+  "items": [
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/0effd258-82b6-450a-b136-ca355f83252f",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=2169,2232,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_003 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/1cc94ed8-08d8-4d5d-bc82-09a2c92cf1d5",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "FORS_003 - \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/0effd258-82b6-450a-b136-ca355f83252f",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/12206ab9-421a-4208-acd0-130432c5090e",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=2818,2118,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_007 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "type": "TextualBody",
+        "value": "FORS_007 - \"N\" initial f42r - BM Avranches MS 59",
+        "format": "text/plain",
+        "language": "fr"
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/12206ab9-421a-4208-acd0-130432c5090e",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/129a4d1e-1da0-4b04-82bb-66f77d8ef594",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=1842,3148,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_005 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/219c3b29-cc19-44f1-8915-8ac6d22c08ac",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "FORS_005 - \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/129a4d1e-1da0-4b04-82bb-66f77d8ef594",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/3dd79bdd-dc07-4400-82d0-cd14d80ef3e2",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=2446,2154,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "IR05 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/7b38d0d5-d3a6-47e0-a5d7-2828dcd311f3",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "IR05 - \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "IRTF (http://192.168.122.250:8000/rdm/concepts/3e8fbf96-68f4-3dc5-9e41-5d270940cddf)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/3dd79bdd-dc07-4400-82d0-cd14d80ef3e2",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/4cfd224e-93ed-45d4-b819-cbc8ea0eb539",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=1553,2020,1551,1278"
+        }
+      },
+      "label": {
+        "en": [
+          "maXRF_map12 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/manifest/ceaf19e3-e1c5-4638-af81-b79562d33787",
+        "type": "Manifest",
+        "format": "application/ld+json",
+        "label": {
+          "en": "maXRF - 20191119_MS59_f42_map12_100ms_260mic"
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Microfluorescence x (http://192.168.122.250:8000/rdm/concepts/9b85c40c-132d-3664-a869-e62fae06aa10)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2019-11-19 00:00:00+01:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Instrumental metadata"
+            ]
+          },
+          "value": {
+            "en": [
+              "<p>260 mic</p>\n\n<p>100 ms</p>\n"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/4cfd224e-93ed-45d4-b819-cbc8ea0eb539",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/5126e10e-dea4-4f4e-8b22-bf57f9edf420",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=1875,2848,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_002 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/3e46029e-6bda-470e-9f36-befe55a3a828",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "FORS_002 - \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/5126e10e-dea4-4f4e-8b22-bf57f9edf420",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/8e6260fa-bc76-4b24-97d7-76a2d0219237",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=3003,2378,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_006 - ink \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/d844f24b-e389-4a06-a5d4-67dadeccb706",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "FORS_006 - ink \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/8e6260fa-bc76-4b24-97d7-76a2d0219237",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/cb78ce11-db62-46fd-af05-eb1cd102ab3f",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=2037,2959,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_001 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/47a9e2ed-553d-4752-be77-06d88542a02d",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "FORS_001 - \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/cb78ce11-db62-46fd-af05-eb1cd102ab3f",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      "id": "http://192.168.122.250:8000/iiif/annotation/d3e506a5-9669-427c-a04d-9ec40bdfda5a",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/91",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=2022,3116,1,1"
+        }
+      },
+      "label": {
+        "en": [
+          "FORS_004 - \"N\" initial f42r - BM Avranches MS 59"
+        ]
+      },
+      "body": {
+        "id": "http://192.168.122.250:8000/files/7c12a1d8-d326-4d93-b43b-351f32e63440",
+        "type": "Dataset",
+        "format": "application/octet-stream",
+        "label": {
+          "en": [
+            "FORS_004 - \"N\" initial f42r - BM Avranches MS 59"
+          ]
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "fr": [
+              "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Project"
+            ]
+          },
+          "value": {
+            "en": [
+              "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Acquisition date"
+            ]
+          },
+          "value": {
+            "en": [
+              "2020-02-18T00:00:00.000-06:00"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Researchers"
+            ]
+          },
+          "value": {
+            "en": [
+              "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Component observed"
+            ]
+          },
+          "value": {
+            "en": [
+              "\"N\" initial f42r - BM Avranches MS 59 (http://192.168.122.250:8000/resources/a80f7a82-65b1-4df5-9ca9-a0a22cb99020)"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "http://192.168.122.250:8000/report/d3e506a5-9669-427c-a04d-9ec40bdfda5a",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "Detailed analysis report"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
