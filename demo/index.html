@@ -9,8 +9,8 @@
     - default-src 'self': Only allow resources from same origin by default
     - script-src: Allow self, unsafe-inline (required for Vite/MUI), unsafe-eval (dev tools)
     - style-src: Allow self, unsafe-inline (required for MUI/emotion CSS-in-JS)
-    - img-src: Allow self, data: URIs, https: for IIIF images
-    - connect-src: Allow self and specific IIIF domains for manifests/datasets
+    - img-src: Allow self, data: URIs, https: and http: for IIIF images (dev/local servers)
+    - connect-src: Allow self and IIIF domains for manifests/datasets
     - font-src: Allow self and data: for embedded fonts
 
     NOTE: frame-ancestors must be set via HTTP headers (not supported in meta tag)
@@ -19,8 +19,8 @@
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https: blob:;
-    connect-src 'self' https://iiif.unicaen.fr https://emmsm.unicaen.fr http://192.168.122.250:8000;
+    img-src 'self' data: https: http: blob:;
+    connect-src 'self' https: http:;
     font-src 'self' data:;
     base-uri 'self';
     form-action 'self';
