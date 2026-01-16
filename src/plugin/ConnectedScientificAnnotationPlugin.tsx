@@ -10,6 +10,8 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import { addWindow as miradorAddWindow } from 'mirador';
 import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
@@ -264,13 +266,9 @@ function mapDispatchToProps(dispatch: (action: unknown) => void) {
   return {
     dispatch,
     addWindow: (config: { manifestId: string }) => {
-      // Return action for dispatch
-      return {
-        type: 'mirador/ADD_WINDOW',
-        window: {
-          manifestId: config.manifestId,
-        },
-      };
+      // Use Mirador's addWindow action creator (thunk)
+      // The thunk expects manifestId to be passed directly in the config
+      return miradorAddWindow({ manifestId: config.manifestId });
     },
   };
 }
