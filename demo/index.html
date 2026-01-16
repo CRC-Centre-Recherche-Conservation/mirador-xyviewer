@@ -3,26 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <!--
     Content Security Policy for demo application
     - default-src 'self': Only allow resources from same origin by default
-    - script-src: Allow self, unsafe-inline (for Vite HMR), unsafe-eval (for dev tools)
-    - style-src: Allow self, unsafe-inline (for MUI/emotion CSS-in-JS)
+    - script-src: Allow self, unsafe-inline (required for Vite/MUI), unsafe-eval (dev tools)
+    - style-src: Allow self, unsafe-inline (required for MUI/emotion CSS-in-JS)
     - img-src: Allow self, data: URIs, https: for IIIF images
-    - connect-src: Allow self, https: for IIIF manifests and datasets
+    - connect-src: Allow self and specific IIIF domains for manifests/datasets
     - font-src: Allow self and data: for embedded fonts
-    - frame-ancestors 'none': Prevent clickjacking
 
-    NOTE: For production, remove 'unsafe-eval' and use nonces for inline scripts
+    NOTE: frame-ancestors must be set via HTTP headers (not supported in meta tag)
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https: blob:;
-    connect-src 'self' https:;
+    connect-src 'self' https://iiif.unicaen.fr https://emmsm.unicaen.fr http://192.168.122.250:8000;
     font-src 'self' data:;
-    frame-ancestors 'none';
     base-uri 'self';
     form-action 'self';
   ">
