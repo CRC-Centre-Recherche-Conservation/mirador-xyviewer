@@ -30,6 +30,36 @@ const viewer = Mirador.viewer({
 }, [scientificAnnotationPlugin]);
 ```
 
+## Important: Annotation Motivation Filter
+
+Mirador filters annotations by their `motivation` field. By default, it only displays:
+- `oa:commenting`, `oa:tagging`, `sc:painting`, `commenting`, `tagging`
+
+**Scientific annotations typically use `motivation: "supplementing"`**, which is not included by default. You must explicitly add it to your Mirador configuration:
+
+```typescript
+const viewer = Mirador.viewer({
+  id: 'mirador-container',
+  windows: [{
+    manifestId: 'https://example.org/manifest.json',
+    highlightAllAnnotations: true,  // Show annotation overlays on canvas
+  }],
+  annotations: {
+    htmlSanitizationRuleSet: 'iiif',
+    filteredMotivations: [
+      'oa:commenting',
+      'oa:tagging',
+      'sc:painting',
+      'commenting',
+      'tagging',
+      'supplementing',  // Required for IIIF v3 scientific annotations
+    ],
+  },
+}, [scientificAnnotationPlugin]);
+```
+
+Without this configuration, annotations will be loaded into the Redux store but will not appear in the sidebar or on the canvas.
+
 ## Annotation Body Types
 
 ### Case 1: Manifest Body
