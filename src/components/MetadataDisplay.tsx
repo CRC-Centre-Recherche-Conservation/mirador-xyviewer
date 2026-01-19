@@ -214,14 +214,14 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                 >
                   {displayLabel}
                 </Link>
-                {item.format && (
+                {item.type && (
                   <Typography
                     component="span"
                     variant="caption"
                     color="text.secondary"
                     sx={{ ml: 0.5 }}
                   >
-                    ({item.format})
+                    ({item.type})
                   </Typography>
                 )}
               </Box>
