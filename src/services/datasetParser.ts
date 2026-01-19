@@ -27,15 +27,51 @@ const X_COLUMN_PATTERNS = [
 /**
  * Detect the delimiter from content
  */
-function detectDelimiter(content: string): string {
-  const firstLine = content.split('\n')[0] || '';
+function detectDelimiter(content: string): string | null {
+  // Find first non-empty line
+  const lines = content.split('\n');
+  let firstLine = '';
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length > 0) {
+      firstLine = trimmed;
+      break;
+    }
+  }
+
+  if (!firstLine) return ',';
+
   const tabCount = (firstLine.match(/\t/g) || []).length;
   const commaCount = (firstLine.match(/,/g) || []).length;
   const semicolonCount = (firstLine.match(/;/g) || []).length;
 
-  if (tabCount > commaCount && tabCount > semicolonCount) return '\t';
-  if (semicolonCount > commaCount) return ';';
+  // Check for space-separated values (2+ spaces between values, or space between number-like patterns)
+  const hasMultipleSpaces = /\S\s{2,}\S/.test(firstLine);
+  const spaceSeparatedPattern = /[\d.]+\s+[\d.]+/.test(firstLine);
+  const isSpaceSeparated = hasMultipleSpaces || (spaceSeparatedPattern && tabCount === 0 && commaCount === 0 && semicolonCount === 0);
+
+  if (tabCount > 0 && tabCount >= commaCount && tabCount >= semicolonCount) return '\t';
+  if (semicolonCount > 0 && semicolonCount > commaCount) return ';';
+  if (commaCount > 0) return ',';
+  if (isSpaceSeparated) return null; // Signal to use space parsing
   return ',';
+}
+
+/**
+ * Pre-process content to normalize space-separated values
+ * Converts multiple spaces/whitespace to tabs for consistent parsing
+ */
+function normalizeSpaceSeparated(content: string): string {
+  return content
+    .split('\n')
+    .map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      // Replace any sequence of whitespace (spaces, tabs) with a single tab
+      return trimmed.replace(/\s+/g, '\t');
+    })
+    .filter(line => line.length > 0)
+    .join('\n');
 }
 
 /**
@@ -133,9 +169,23 @@ export function parseDataset(
   label: string,
   mimeType: string
 ): SpectrumData {
-  const delimiter = mimeType === 'text/tab-separated-values' ? '\t' : detectDelimiter(content);
+  let processedContent = content;
+  let delimiter: string;
 
-  const result = Papa.parse<string[]>(content, {
+  if (mimeType === 'text/tab-separated-values') {
+    delimiter = '\t';
+  } else {
+    const detectedDelimiter = detectDelimiter(content);
+    if (detectedDelimiter === null) {
+      // Space-separated: normalize to tabs
+      processedContent = normalizeSpaceSeparated(content);
+      delimiter = '\t';
+    } else {
+      delimiter = detectedDelimiter;
+    }
+  }
+
+  const result = Papa.parse<string[]>(processedContent, {
     delimiter,
     skipEmptyLines: true,
     dynamicTyping: false, // We'll handle conversion ourselves for better control
