@@ -55,7 +55,7 @@ export interface AnnotationTarget {
 
 /** SeeAlso reference to external resources */
 export interface SeeAlsoEntry {
-  id: string;
+  id: string | { url: string; url_label?: string };
   type?: string;
   label?: LocalizedString;
   format?: string;

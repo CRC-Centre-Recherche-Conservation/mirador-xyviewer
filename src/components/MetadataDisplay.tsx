@@ -177,11 +177,32 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             Linked resources :
           </Typography>
           {seeAlsoList.map((item, index) => {
-            const itemLabel = getLocalizedString(item.label) || item.type || 'Ressource liée';
+            // 1. Extraction de l'URL
+            let url = '';
+            if (typeof item.id === 'string') {
+              url = item.id; // Cas 1: id est une URL directe
+            } else if (typeof item.id === 'object' && item.id.url) {
+              url = item.id.url; // Cas 2: id est un objet avec une propriété url
+            }
+
+            // 2. Extraction du libellé à afficher
+            let displayLabel = '';
+            if (typeof item.id === 'object' && item.id.url_label) {
+              displayLabel = item.id.url_label; // Priorité à url_label si disponible
+            } else {
+              displayLabel = getLocalizedString(item.label) || item.type || 'Ressource liée'; // Fallback
+            }
+
+            // 3. Affichage conditionnel
+            if (!url) {
+              console.warn(`L'élément seeAlso à l'index ${index} n'a pas d'URL valide.`, item);
+              return null;
+            }
+
             return (
-              <Box key={item.id || index} sx={{ ml: 1, mb: 0.25 }}>
+              <Box key={url || index} sx={{ ml: 1, mb: 0.25 }}>
                 <Link
-                  href={item.id}
+                  href={url}
                   target="_blank"
                   rel="noopener noreferrer"
                   sx={{
@@ -191,7 +212,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                     '&:hover': { textDecoration: 'underline' }
                   }}
                 >
-                  {itemLabel}
+                  {displayLabel}
                 </Link>
                 {item.format && (
                   <Typography
