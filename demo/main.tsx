@@ -6,7 +6,7 @@
  */
 
 import Mirador from 'mirador';
-import { scientificAnnotationPlugin } from '../src';
+import { scientificAnnotationPlugin, annotationPostprocessor } from '../src';
 
 // Demo manifest with scientific annotations
 // Using local Avranches manuscript manifest (IIIF 3.0) with spectral analysis annotations
@@ -82,6 +82,10 @@ function initMirador() {
       // OpenSeadragon configuration for CORS
       osdConfig: {
         crossOriginPolicy: 'Anonymous',
+      },
+      // Transform point annotations (xywh with w=1,h=1) to visible SVG circles
+      requests: {
+        postprocessors: [annotationPostprocessor],
       },
     },
     // Pass the scientific annotation plugin

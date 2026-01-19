@@ -89,6 +89,9 @@ export {
   escapeHtml,
   sanitizeText,
   validateContentType,
+  annotationPostprocessor,
+  createAnnotationPostprocessor,
+  transformPointAnnotations,
 } from './utils';
 
 // Constants
