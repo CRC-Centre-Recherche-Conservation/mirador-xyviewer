@@ -8,7 +8,7 @@
  * - Handle selection/hover states
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { addWindow as miradorAddWindow } from 'mirador';
 import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
@@ -83,7 +83,27 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     hoveredAnnotationIds = [],
     selectAnnotation,
     deselectAnnotation,
+    hoverAnnotation,
   } = targetProps;
+
+  // Refs for scrolling to annotations
+  const annotationRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  // Handle hover on annotation to highlight SVG zone
+  const handleAnnotationHover = useCallback((annotationId: string | null) => {
+    if (!hoverAnnotation) return;
+    hoverAnnotation(windowId, annotationId ? [annotationId] : []);
+  }, [windowId, hoverAnnotation]);
+
+  // Scroll to selected annotation when selection changes (e.g., from clicking SVG on canvas)
+  useEffect(() => {
+    if (selectedAnnotationId) {
+      const element = annotationRefs.current.get(selectedAnnotationId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [selectedAnnotationId]);
 
   // Determine if we have any scientific annotations that need custom rendering
   const scientificAnnotationIds = useMemo(() => {
@@ -137,7 +157,13 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
             <MenuItem
               key={annotation.id}
               component="li"
+              ref={(el: HTMLLIElement | null) => {
+                if (el) annotationRefs.current.set(annotation.id, el);
+                else annotationRefs.current.delete(annotation.id);
+              }}
               onClick={() => handleAnnotationClick(annotation.id)}
+              onMouseEnter={() => handleAnnotationHover(annotation.id)}
+              onMouseLeave={() => handleAnnotationHover(null)}
               selected={isSelected}
               sx={{
                 bgcolor: isHovered && !isSelected ? 'action.hover' : undefined,
@@ -166,7 +192,13 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           <Box
             key={annotation.id}
             component="li"
+            ref={(el: HTMLLIElement | null) => {
+              if (el) annotationRefs.current.set(annotation.id, el);
+              else annotationRefs.current.delete(annotation.id);
+            }}
             onClick={() => handleAnnotationClick(annotation.id)}
+            onMouseEnter={() => handleAnnotationHover(annotation.id)}
+            onMouseLeave={() => handleAnnotationHover(null)}
             sx={{
               p: 1.5,
               cursor: 'pointer',
