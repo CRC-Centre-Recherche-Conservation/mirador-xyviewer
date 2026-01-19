@@ -10,7 +10,6 @@ import React, { useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
-import { sanitizeText } from '../utils/security';
 import type {
   AnnotationBody,
   IIIFAnnotation,
@@ -135,7 +134,7 @@ export const ScientificAnnotationPanel: React.FC<PluginWrapperProps> = ({
                 variant="body2"
                 sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
               >
-                {sanitizeText(annotation.content)}
+                {annotation.content}
               </Typography>
             </Box>
           );

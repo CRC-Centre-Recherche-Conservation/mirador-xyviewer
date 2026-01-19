@@ -7,7 +7,6 @@ import React from 'react';
 import { Box, Typography, Link } from '@mui/material';
 import type { MetadataEntry, LocalizedString, SeeAlsoEntry } from '../types/iiif';
 import { getLocalizedString } from '../utils/localization';
-import { escapeHtml } from '../utils/security';
 
 export interface MetadataDisplayProps {
   /** Label of the annotation */
@@ -84,12 +83,12 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             '&:hover': { textDecoration: 'underline' }
           }}
         >
-          {escapeHtml(text)}
+          {text}
         </Link>
       );
     }
 
-    return escapeHtml(value);
+    return value;
   };
 
   // Both compact and non-compact modes now use the same improved layout
@@ -106,7 +105,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             fontSize: '1rem'
           }}
         >
-          {escapeHtml(labelText)}
+          {labelText}
         </Typography>
       )}
 
@@ -152,7 +151,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                   color="text.secondary"
                   sx={{ display: 'inline' }}
                 >
-                  {escapeHtml(entryLabel)}:{' '}
+                  {entryLabel}:{' '}
                 </Typography>
                 <Typography
                   component="dd"
@@ -192,7 +191,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                     '&:hover': { textDecoration: 'underline' }
                   }}
                 >
-                  {escapeHtml(itemLabel)}
+                  {itemLabel}
                 </Link>
                 {item.format && (
                   <Typography

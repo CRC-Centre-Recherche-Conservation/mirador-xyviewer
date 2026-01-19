@@ -28,7 +28,6 @@ import type { SpectrumData, FetchStatus } from '../types/dataset';
 import { fetchDataset, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
 import { datasetCache } from '../services/datasetCache';
 import { getLocalizedString } from '../utils/localization';
-import { escapeHtml } from '../utils/security';
 import { SpectrumPlot } from './SpectrumPlot';
 
 export interface DatasetBodyProps {
@@ -143,7 +142,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       <Box sx={{ my: 1 }}>
         <Alert severity="warning" sx={{ py: 0.5 }}>
           <Typography variant="body2">
-            {escapeHtml(validation.error || 'Invalid dataset configuration')}
+            {validation.error || 'Invalid dataset configuration'}
           </Typography>
         </Alert>
       </Box>
@@ -162,7 +161,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
             startIcon={<ShowChartIcon />}
             sx={{ textTransform: 'none' }}
           >
-            Load {escapeHtml(displayLabel)}
+            Load {displayLabel}
           </Button>
         )}
 
@@ -186,7 +185,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
                 </IconButton>
               }
             >
-              <Typography variant="body2">{escapeHtml(error || 'Error')}</Typography>
+              <Typography variant="body2">{error || 'Error'}</Typography>
             </Alert>
           </Box>
         )}
@@ -201,7 +200,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
               endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               sx={{ textTransform: 'none', flexGrow: 1, justifyContent: 'flex-start' }}
             >
-              {escapeHtml(displayLabel)} ({data.points.length} points)
+              {displayLabel} ({data.points.length} points)
             </Button>
           </Box>
         )}
