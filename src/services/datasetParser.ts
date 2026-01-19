@@ -126,6 +126,17 @@ function downsample(points: DataPoint[], targetCount: number): DataPoint[] {
 }
 
 /**
+ * Check if a row contains non-numeric values (i.e., is a header/metadata row)
+ */
+function isNonNumericRow(row: string[]): boolean {
+  return row.some(cell => {
+    const trimmed = cell.trim();
+    if (trimmed === '') return false;
+    return isNaN(parseFloat(trimmed));
+  });
+}
+
+/**
  * Parse CSV/TSV content into spectrum data
  */
 export function parseDataset(
@@ -147,23 +158,34 @@ export function parseDataset(
   }
 
   const rows = result.data;
-  if (rows.length < 2) {
-    throw new Error('Dataset must contain at least a header and one data row');
+  if (rows.length < 1) {
+    throw new Error('Dataset is empty');
   }
 
-  // Detect if first row is a header
-  const firstRow = rows[0];
-  const hasHeader = firstRow.some(cell => isNaN(parseFloat(cell)));
+  // Find where numeric data starts by skipping any header/metadata rows
+  // Headers can be on line 1, 2, or 3 - skip all non-numeric rows at the beginning
+  let lastHeaderIndex = -1;
+  const maxHeaderCheck = Math.min(5, rows.length - 1); // Check up to 5 rows
 
+  for (let i = 0; i < maxHeaderCheck; i++) {
+    if (isNonNumericRow(rows[i])) {
+      lastHeaderIndex = i;
+    } else {
+      break; // Found first numeric row, stop
+    }
+  }
+
+  const dataStartIndex = lastHeaderIndex + 1;
   let headers: string[];
   let dataRows: string[][];
 
-  if (hasHeader) {
-    headers = firstRow.map(h => h.trim());
-    dataRows = rows.slice(1);
+  if (lastHeaderIndex >= 0) {
+    // Use the last header row for column names
+    headers = rows[lastHeaderIndex].map(h => h.trim());
+    dataRows = rows.slice(dataStartIndex);
   } else {
-    // Generate default headers
-    headers = firstRow.map((_, i) => `Column ${i + 1}`);
+    // No headers at all - all rows are data, use default column names
+    headers = rows[0].map((_, i) => `Column ${i + 1}`);
     dataRows = rows;
   }
 
