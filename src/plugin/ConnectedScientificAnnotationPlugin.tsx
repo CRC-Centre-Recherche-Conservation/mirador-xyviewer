@@ -39,6 +39,22 @@ function hasScientificBody(body: unknown): boolean {
 }
 
 /**
+ * Check if annotation has metadata that should be displayed
+ */
+function hasMetadata(annotation: IIIFAnnotation | undefined): boolean {
+  if (!annotation) return false;
+  return Array.isArray(annotation.metadata) && annotation.metadata.length > 0;
+}
+
+/**
+ * Check if annotation should use custom rendering (scientific body OR has metadata)
+ */
+function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boolean {
+  if (!annotation) return false;
+  return hasScientificBody(annotation.body) || hasMetadata(annotation);
+}
+
+/**
  * Plugin wrapper component props
  */
 interface PluginWrapperProps {
@@ -105,12 +121,13 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     }
   }, [selectedAnnotationId]);
 
-  // Determine if we have any scientific annotations that need custom rendering
-  const scientificAnnotationIds = useMemo(() => {
+  // Determine if we have any annotations that need custom rendering
+  // (scientific body OR has metadata)
+  const customRenderingIds = useMemo(() => {
     const ids = new Set<string>();
     annotations.forEach(ann => {
       const resource = annotationResources[ann.id];
-      if (resource && hasScientificBody(resource.body)) {
+      if (resource && shouldUseCustomRendering(resource)) {
         ids.add(ann.id);
       }
     });
@@ -138,7 +155,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   }, [windowId, canvasId, selectedAnnotationId, selectAnnotation, deselectAnnotation]);
 
   // If no scientific annotations, render original component
-  if (scientificAnnotationIds.size === 0) {
+  if (customRenderingIds.size === 0) {
     return <TargetComponent {...targetProps} />;
   }
 
@@ -147,7 +164,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
       {annotations.map((annotation) => {
         const resource = annotationResources[annotation.id];
-        const isScientific = scientificAnnotationIds.has(annotation.id);
+        const isScientific = customRenderingIds.has(annotation.id);
         const isSelected = selectedAnnotationId === annotation.id;
         const isHovered = hoveredAnnotationIds.includes(annotation.id);
 
