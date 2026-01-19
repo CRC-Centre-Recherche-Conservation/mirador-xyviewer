@@ -209,7 +209,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       {/* Collapsible plot area */}
       <Collapse in={expanded && status === 'success' && data !== null}>
         {data && (
-          <Box sx={{ mt: 1 }}>
+          <Box sx={{ mt: 1, width: '100%' }}>
             <SpectrumPlot
               data={data}
               visible={plotVisible}

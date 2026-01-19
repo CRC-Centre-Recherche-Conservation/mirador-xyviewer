@@ -24,20 +24,32 @@ export interface DataPoint {
   y: number;
 }
 
-/** Parsed spectrum data */
+/** A single Y series with its data points and label */
+export interface SeriesData {
+  /** Series label (column name) */
+  label: string;
+  /** Y values for this series */
+  yValues: number[];
+}
+
+/** Parsed spectrum data with support for multiple Y series */
 export interface SpectrumData {
   /** Unique identifier (usually the URL) */
   id: string;
   /** Display label */
   label: string;
-  /** The actual data points */
-  points: DataPoint[];
+  /** X values (shared by all series) */
+  xValues: number[];
   /** X-axis label (e.g., "Wavelength (nm)") */
   xLabel?: string;
-  /** Y-axis label (e.g., "Intensity") */
-  yLabel?: string;
+  /** Multiple Y series */
+  series: SeriesData[];
   /** Original MIME type */
   mimeType: string;
+  /** @deprecated Use xValues and series instead */
+  points: DataPoint[];
+  /** @deprecated Use series[0].label instead */
+  yLabel?: string;
 }
 
 /** Cache entry for datasets */
@@ -86,7 +98,10 @@ export interface PlotlyLayout {
   legend?: {
     x?: number;
     y?: number;
+    xanchor?: 'left' | 'center' | 'right' | 'auto';
+    yanchor?: 'top' | 'middle' | 'bottom' | 'auto';
     orientation?: 'h' | 'v';
+    bgcolor?: string;
   };
   autosize?: boolean;
   margin?: {

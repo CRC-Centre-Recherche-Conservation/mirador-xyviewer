@@ -4,7 +4,7 @@
  */
 
 import Papa from 'papaparse';
-import type { DataPoint, SpectrumData } from '../types/dataset';
+import type { DataPoint, SpectrumData, SeriesData } from '../types/dataset';
 import { MAX_DATA_POINTS } from '../types/dataset';
 
 /** Column name patterns for X axis */
@@ -23,18 +23,6 @@ const X_COLUMN_PATTERNS = [
   /^kev$/i,
 ];
 
-/** Column name patterns for Y axis */
-const Y_COLUMN_PATTERNS = [
-  /^y$/i,
-  /^intensity/i,
-  /^counts?$/i,
-  /^signal/i,
-  /^absorbance/i,
-  /^transmittance/i,
-  /^reflectance/i,
-  /^value/i,
-  /^amplitude/i,
-];
 
 /**
  * Detect the delimiter from content
@@ -189,49 +177,103 @@ export function parseDataset(
     dataRows = rows;
   }
 
-  // Find X and Y columns
+  // Find X column
   let xCol = findColumn(headers, X_COLUMN_PATTERNS);
-  let yCol = findColumn(headers, Y_COLUMN_PATTERNS);
+  if (xCol === -1) xCol = 0; // Default: first column is X
 
-  // Default: first column is X, second is Y
-  if (xCol === -1) xCol = 0;
-  if (yCol === -1) yCol = xCol === 0 ? 1 : 0;
-
-  // Ensure we have at least 2 columns
-  if (headers.length < 2) {
-    throw new Error('Dataset must contain at least two columns (X and Y)');
-  }
-
-  // Parse data points
-  const points: DataPoint[] = [];
-
-  for (const row of dataRows) {
-    const xVal = parseFloat(row[xCol]);
-    const yVal = parseFloat(row[yCol]);
-
-    if (!isNaN(xVal) && !isNaN(yVal) && isFinite(xVal) && isFinite(yVal)) {
-      points.push({ x: xVal, y: yVal });
+  // All other columns are Y series
+  const yColumns: number[] = [];
+  for (let i = 0; i < headers.length; i++) {
+    if (i !== xCol) {
+      yColumns.push(i);
     }
   }
 
-  if (points.length === 0) {
+  // Ensure we have at least 1 Y column
+  if (yColumns.length === 0) {
+    throw new Error('Dataset must contain at least two columns (X and Y)');
+  }
+
+  // Parse data - extract X values and Y values for each series
+  const rawData: { x: number; yValues: number[] }[] = [];
+
+  for (const row of dataRows) {
+    const xVal = parseFloat(row[xCol]);
+    if (isNaN(xVal) || !isFinite(xVal)) continue;
+
+    const yValues: number[] = [];
+    let hasValidY = false;
+
+    for (const yCol of yColumns) {
+      const yVal = parseFloat(row[yCol]);
+      if (!isNaN(yVal) && isFinite(yVal)) {
+        yValues.push(yVal);
+        hasValidY = true;
+      } else {
+        yValues.push(NaN); // Keep alignment
+      }
+    }
+
+    if (hasValidY) {
+      rawData.push({ x: xVal, yValues });
+    }
+  }
+
+  if (rawData.length === 0) {
     throw new Error('No valid numeric data points found in dataset');
   }
 
   // Sort by X value
-  points.sort((a, b) => a.x - b.x);
+  rawData.sort((a, b) => a.x - b.x);
+
+  // Extract X values
+  let xValues = rawData.map(d => d.x);
+
+  // Build series data
+  let series: SeriesData[] = yColumns.map((yCol, idx) => ({
+    label: headers[yCol],
+    yValues: rawData.map(d => d.yValues[idx]),
+  }));
+
+  // Build legacy points (using first Y series) for backward compatibility
+  let points: DataPoint[] = rawData.map((d) => ({
+    x: d.x,
+    y: d.yValues[0],
+  })).filter(p => !isNaN(p.y));
 
   // Downsample if necessary
-  const finalPoints = points.length > MAX_DATA_POINTS
-    ? downsample(points, MAX_DATA_POINTS)
-    : points;
+  if (xValues.length > MAX_DATA_POINTS) {
+    // Build points for downsampling algorithm
+    const tempPoints = rawData.map(d => ({ x: d.x, y: d.yValues[0] }));
+    const sampledPoints = downsample(tempPoints.filter(p => !isNaN(p.y)), MAX_DATA_POINTS);
+
+    // Get the indices of sampled points
+    const sampledXSet = new Set(sampledPoints.map(p => p.x));
+    const sampledIndices: number[] = [];
+    rawData.forEach((d, i) => {
+      if (sampledXSet.has(d.x)) {
+        sampledIndices.push(i);
+      }
+    });
+
+    // Apply same sampling to all series
+    xValues = sampledIndices.map(i => rawData[i].x);
+    series = series.map(s => ({
+      label: s.label,
+      yValues: sampledIndices.map(i => s.yValues[i]),
+    }));
+    points = sampledPoints;
+  }
 
   return {
     id,
     label,
-    points: finalPoints,
+    xValues,
     xLabel: headers[xCol],
-    yLabel: headers[yCol],
+    series,
     mimeType,
+    // Legacy fields for backward compatibility
+    points,
+    yLabel: series[0]?.label,
   };
 }
