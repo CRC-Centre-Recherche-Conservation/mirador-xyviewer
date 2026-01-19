@@ -39,8 +39,6 @@ export interface DatasetBodyProps {
   isActive?: boolean;
   /** Callback when spectrum data is loaded (for global plot controller) */
   onDataLoaded?: (id: string, data: SpectrumData) => void;
-  /** Callback when spectrum visibility toggles */
-  onVisibilityChange?: (id: string, visible: boolean) => void;
 }
 
 export const DatasetBody: React.FC<DatasetBodyProps> = ({
@@ -48,13 +46,11 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   annotationLabel,
   isActive = false,
   onDataLoaded,
-  onVisibilityChange,
 }) => {
   const [status, setStatus] = useState<FetchStatus>('idle');
   const [data, setData] = useState<SpectrumData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [plotVisible, setPlotVisible] = useState(true);
 
   const mountedRef = useRef(true);
   const urlRef = useRef(body.id);
@@ -127,14 +123,6 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   const toggleExpanded = useCallback(() => {
     setExpanded(prev => !prev);
   }, []);
-
-  const togglePlotVisibility = useCallback(() => {
-    setPlotVisible(prev => {
-      const newValue = !prev;
-      onVisibilityChange?.(body.id, newValue);
-      return newValue;
-    });
-  }, [body.id, onVisibilityChange]);
 
   // Render validation error
   if (!validation.valid) {
@@ -210,11 +198,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       <Collapse in={expanded && status === 'success' && data !== null}>
         {data && (
           <Box sx={{ mt: 1, width: '100%' }}>
-            <SpectrumPlot
-              data={data}
-              visible={plotVisible}
-              onVisibilityToggle={togglePlotVisibility}
-            />
+            <SpectrumPlot data={data} />
           </Box>
         )}
       </Collapse>

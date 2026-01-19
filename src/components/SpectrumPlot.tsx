@@ -3,11 +3,9 @@
  * Renders spectrum data using Plotly with support for multiple Y series
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
-import { Box, IconButton, Tooltip } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { Box } from '@mui/material';
 import type { SpectrumData, PlotlyTrace } from '../types/dataset';
 
 /** Color palette for multiple series */
@@ -27,10 +25,6 @@ const SERIES_COLORS = [
 export interface SpectrumPlotProps {
   /** Spectrum data to plot */
   data: SpectrumData;
-  /** Whether the plot trace is visible */
-  visible?: boolean;
-  /** Callback to toggle visibility */
-  onVisibilityToggle?: () => void;
   /** Plot height in pixels */
   height?: number;
   /** Custom trace color (used only for single series) */
@@ -39,8 +33,6 @@ export interface SpectrumPlotProps {
 
 export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   data,
-  visible = true,
-  onVisibilityToggle,
   height = 250,
   color,
 }) => {
@@ -54,7 +46,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
         type: 'scatter' as const,
         mode: 'lines' as const,
         name: series.label,
-        visible: visible,
+        visible: true,
         line: {
           color: data.series.length === 1
             ? (color || SERIES_COLORS[0])
@@ -71,13 +63,13 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
       type: 'scatter' as const,
       mode: 'lines' as const,
       name: data.label,
-      visible: visible,
+      visible: true,
       line: {
         color: color || SERIES_COLORS[0],
         width: 1.5,
       },
     }];
-  }, [data, visible, color]);
+  }, [data, color]);
 
   // Determine if we should show legend (only for multiple series)
   const showLegend = traces.length > 1;
@@ -85,12 +77,12 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   // Build Plotly layout - minimize margins to maximize plot area
   const layout = useMemo(() => ({
     xaxis: {
-      title: data.xLabel || 'X',
+      title: { text: data.xLabel || 'X' },
       autorange: true,
       automargin: true,
     },
     yaxis: {
-      title: data.series?.length === 1 ? data.series[0].label : (data.yLabel || 'Y'),
+      title: { text: data.series?.length === 1 ? data.series[0].label : (data.yLabel || 'Y') },
       autorange: true,
       automargin: true,
     },
@@ -128,33 +120,8 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     ] as ('select2d' | 'lasso2d' | 'autoScale2d')[],
   }), []);
 
-  const handleVisibilityClick = useCallback(() => {
-    onVisibilityToggle?.();
-  }, [onVisibilityToggle]);
-
   return (
-    <Box sx={{ position: 'relative', width: '100%' }}>
-      {/* Visibility toggle */}
-      {onVisibilityToggle && (
-        <Tooltip title={visible ? 'Hide trace' : 'Show trace'}>
-          <IconButton
-            size="small"
-            onClick={handleVisibilityClick}
-            sx={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              zIndex: 1,
-              bgcolor: 'background.paper',
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          >
-            {visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-          </IconButton>
-        </Tooltip>
-      )}
-
-      {/* Plotly chart - fills container width */}
+    <Box sx={{ width: '100%' }}>
       <Plot
         data={traces}
         layout={layout}
