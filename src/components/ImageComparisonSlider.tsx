@@ -29,17 +29,18 @@ export interface ImageComparisonSliderProps {
 }
 
 /**
- * Get IIIF image URL at specific size
+ * Get IIIF image URL at full/max size
+ * Uses 'max' for IIIF 2.1+ or 'full' for older versions
  */
-function getImageUrl(baseUrl: string, width: number = 800): string {
+function getImageUrl(baseUrl: string): string {
   // Check if it's already a IIIF Image API URL
   if (baseUrl.includes('/full/')) {
-    // Replace size parameter
-    return baseUrl.replace(/\/full\/[^/]+\//, `/full/${width},/`);
+    // Replace size parameter with 'max' to get native resolution without upscaling
+    return baseUrl.replace(/\/full\/[^/]+\//, '/full/max/');
   }
   // Try to construct IIIF URL
   if (baseUrl.includes('info.json')) {
-    return baseUrl.replace('/info.json', `/full/${width},/0/default.jpg`);
+    return baseUrl.replace('/info.json', '/full/max/0/default.jpg');
   }
   return baseUrl;
 }
