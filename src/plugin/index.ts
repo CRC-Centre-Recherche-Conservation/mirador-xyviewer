@@ -11,3 +11,8 @@ export {
   scientificAnnotationPlugin as basicScientificAnnotationPlugin,
   ScientificAnnotationPanel,
 } from './ScientificAnnotationPlugin';
+
+export {
+  imageComparisonPlugin,
+  ConnectedImageComparisonPlugin,
+} from './ImageComparisonPlugin';

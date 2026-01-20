@@ -17,7 +17,7 @@
  */
 
 // Main plugin export
-export { scientificAnnotationPlugin } from './plugin';
+export { scientificAnnotationPlugin, imageComparisonPlugin } from './plugin';
 export { scientificAnnotationPlugin as default } from './plugin';
 
 // Individual components for custom use
@@ -28,6 +28,7 @@ export {
   SpectrumPlot,
   AnnotationBodyRenderer,
   MetadataDisplay,
+  ImageComparisonSlider,
 } from './components';
 
 export type {
@@ -37,6 +38,8 @@ export type {
   SpectrumPlotProps,
   AnnotationBodyRendererProps,
   MetadataDisplayProps,
+  ImageComparisonSliderProps,
+  CanvasInfo,
 } from './components';
 
 // Services for advanced usage
