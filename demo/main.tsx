@@ -37,9 +37,9 @@ function initMirador() {
       windows: [
         {
           manifestId: DEMO_MANIFEST,
-          // Enable annotations panel
+          // Enable info panel (annotations panel requires mirador-annotations plugin)
           sideBarOpen: true,
-          sideBarPanel: 'annotations',
+          sideBarPanel: 'info',
           // Enable annotation overlay display on canvas
           highlightAllAnnotations: true,
         },
