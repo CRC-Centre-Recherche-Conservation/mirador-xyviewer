@@ -11,9 +11,7 @@ export default defineConfig({
         plugins: process.env.NODE_ENV === 'development' ? [] : [],
       },
     }),
-    dts({
-      insertTypesEntry: true,
-    }),
+    dts(),
   ],
   define: {
     // Enable Redux DevTools in development
