@@ -201,17 +201,6 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
         </IconButton>
       </Box>
 
-      {/* Slider control */}
-      <Box sx={{ px: 3, py: 1, borderBottom: 1, borderColor: 'divider' }}>
-        <Slider
-          value={sliderPosition}
-          onChange={handleSliderChange}
-          aria-label="Position du curseur de comparaison"
-          valueLabelDisplay="auto"
-          valueLabelFormat={(v) => `${v}%`}
-        />
-      </Box>
-
       {/* Image comparison area */}
       <Box
         ref={containerRef}
