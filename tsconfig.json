@@ -23,7 +23,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["react", "react-dom"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
