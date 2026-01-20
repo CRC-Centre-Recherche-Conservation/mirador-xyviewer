@@ -6,6 +6,7 @@
  */
 
 import Mirador from 'mirador';
+import { miradorImageToolsPlugin } from 'mirador-image-tools';
 import { scientificAnnotationPlugin, annotationPostprocessor } from '../src';
 
 // Demo manifest with scientific annotations
@@ -88,8 +89,8 @@ function initMirador() {
         postprocessors: [annotationPostprocessor],
       },
     },
-    // Pass the scientific annotation plugin
-    [scientificAnnotationPlugin]
+    // Pass the plugins (image tools + scientific annotation)
+    [...miradorImageToolsPlugin, scientificAnnotationPlugin]
   );
 
   // Expose to window for DevTools inspection
