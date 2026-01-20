@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Box, Slider, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Paper } from '@mui/material';
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Paper } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import CloseIcon from '@mui/icons-material/Close';
 import CompareIcon from '@mui/icons-material/Compare';
@@ -80,10 +80,6 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
 
   const handleRightChange = (event: SelectChangeEvent<string>) => {
     setRightCanvasId(event.target.value);
-  };
-
-  const handleSliderChange = (_event: Event, newValue: number | number[]) => {
-    setSliderPosition(newValue as number);
   };
 
   // Mouse/touch drag handling for the comparison divider
