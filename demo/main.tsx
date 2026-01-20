@@ -52,7 +52,7 @@ function initMirador() {
         allowTopMenuButton: true,
         allowWindowSideBar: true,
         sideBarOpenByDefault: true,
-        defaultSideBarPanel: 'annotations',
+        defaultSideBarPanel: 'info',
         panels: {
           annotations: true,
           info: true,
