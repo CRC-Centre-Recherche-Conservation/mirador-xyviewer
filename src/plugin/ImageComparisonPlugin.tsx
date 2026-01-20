@@ -291,12 +291,13 @@ const mapDispatchToProps = {
 /**
  * Connected plugin component
  */
-export const ConnectedImageComparisonPlugin = connect(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const ConnectedImageComparisonPlugin = (connect as any)(
   mapStateToProps,
   mapDispatchToProps,
   null,
   { forwardRef: true }
-)(ImageComparisonPluginComponent as React.ComponentType<ImageComparisonPluginProps>);
+)(ImageComparisonPluginComponent);
 
 /**
  * Plugin definition for Mirador

@@ -39,6 +39,8 @@ export interface DatasetBodyProps {
   isActive?: boolean;
   /** Callback when spectrum data is loaded (for global plot controller) */
   onDataLoaded?: (id: string, data: SpectrumData) => void;
+  /** Callback when spectrum visibility changes */
+  onVisibilityChange?: (id: string, visible: boolean) => void;
 }
 
 export const DatasetBody: React.FC<DatasetBodyProps> = ({
