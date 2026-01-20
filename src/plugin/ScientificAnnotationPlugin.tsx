@@ -19,25 +19,30 @@ import type { SpectrumData } from '../types/dataset';
 import type { MiradorPlugin } from '../types/mirador';
 
 /**
+ * Target component props
+ */
+interface TargetProps {
+  annotations?: Array<{
+    id: string;
+    content: string;
+    tags: string[];
+    targetId: string;
+    resource?: IIIFAnnotation;
+  }>;
+  windowId: string;
+  selectedAnnotationId?: string;
+  hoveredAnnotationIds?: string[];
+  [key: string]: unknown;
+}
+
+/**
  * Props received by the plugin wrapper
  */
 interface PluginWrapperProps {
   /** Original props from target component */
-  targetProps: {
-    annotations?: Array<{
-      id: string;
-      content: string;
-      tags: string[];
-      targetId: string;
-      resource?: IIIFAnnotation;
-    }>;
-    windowId: string;
-    selectedAnnotationId?: string;
-    hoveredAnnotationIds?: string[];
-    [key: string]: unknown;
-  };
+  targetProps: TargetProps;
   /** The original component being wrapped */
-  TargetComponent: React.ComponentType<unknown>;
+  TargetComponent: React.ComponentType<TargetProps>;
 }
 
 /**

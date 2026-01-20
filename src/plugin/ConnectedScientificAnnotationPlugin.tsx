@@ -17,10 +17,10 @@ import { MetadataDisplay } from '../components/MetadataDisplay';
 import type {
   AnnotationBody,
   IIIFAnnotation,
-  LocalizedString,
 } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
+import type { Dispatch, AnyAction } from 'redux';
 
 /**
  * Check if body is a scientific type (Manifest or Dataset)
@@ -57,24 +57,26 @@ function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boole
 /**
  * Plugin wrapper component props
  */
+interface TargetProps {
+  annotations?: Array<{
+    id: string;
+    content: string;
+    tags: string[];
+    targetId: string;
+  }>;
+  windowId: string;
+  canvasId?: string;
+  selectedAnnotationId?: string;
+  hoveredAnnotationIds?: string[];
+  selectAnnotation: (windowId: string, canvasId: string, annotationId: string) => void;
+  deselectAnnotation: (windowId: string, canvasId: string) => void;
+  hoverAnnotation: (windowId: string, annotationIds: string[]) => void;
+  containerRef?: React.RefObject<HTMLElement>;
+}
+
 interface PluginWrapperProps {
-  targetProps: {
-    annotations?: Array<{
-      id: string;
-      content: string;
-      tags: string[];
-      targetId: string;
-    }>;
-    windowId: string;
-    canvasId?: string;
-    selectedAnnotationId?: string;
-    hoveredAnnotationIds?: string[];
-    selectAnnotation: (windowId: string, canvasId: string, annotationId: string) => void;
-    deselectAnnotation: (windowId: string, canvasId: string) => void;
-    hoverAnnotation: (windowId: string, annotationIds: string[]) => void;
-    containerRef?: React.RefObject<HTMLElement>;
-  };
-  TargetComponent: React.ComponentType<unknown>;
+  targetProps: TargetProps;
+  TargetComponent: React.ComponentType<TargetProps>;
   // Connected props
   dispatch: (action: unknown) => void;
   addWindow: (config: { manifestId: string }) => unknown;
@@ -288,7 +290,7 @@ function mapStateToProps(state: MiradorState, { targetProps }: { targetProps: { 
 
   if (canvasId && state.annotations?.[canvasId]) {
     const canvasAnnotations = state.annotations[canvasId];
-    for (const [resourceId, resourceData] of Object.entries(canvasAnnotations)) {
+    for (const [_resourceId, resourceData] of Object.entries(canvasAnnotations)) {
       const data = resourceData as { json?: IIIFAnnotation };
       if (data?.json) {
         // Extract individual annotations from the annotation page
@@ -312,9 +314,9 @@ function mapStateToProps(state: MiradorState, { targetProps }: { targetProps: { 
 /**
  * Map dispatch to props - provide Mirador actions
  */
-function mapDispatchToProps(dispatch: (action: unknown) => void) {
+function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   return {
-    dispatch,
+    dispatch: dispatch as (action: unknown) => void,
     addWindow: (config: { manifestId: string }) => {
       // Use Mirador's addWindow action creator (thunk)
       // The thunk expects manifestId to be passed directly in the config

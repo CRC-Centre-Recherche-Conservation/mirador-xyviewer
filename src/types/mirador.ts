@@ -23,7 +23,6 @@ export interface MiradorActions {
   selectAnnotation: (windowId: string, canvasId: string, annotationId: string) => AnyAction;
   deselectAnnotation: (windowId: string, canvasId: string) => AnyAction;
   hoverAnnotation: (windowId: string, annotationIds: string[]) => AnyAction;
-  [key: string]: (...args: unknown[]) => AnyAction;
 }
 
 /** Mirador Redux store state (partial) */

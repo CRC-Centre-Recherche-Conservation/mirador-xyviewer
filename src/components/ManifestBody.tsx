@@ -33,7 +33,7 @@ export const ManifestBody: React.FC<ManifestBodyProps> = ({
   body,
   dispatch,
   addWindow,
-  annotationLabel,
+  annotationLabel: _annotationLabel,
 }) => {
   // Validate URL on render
   const isUrlValid = useMemo(() => isValidUrl(body.id), [body.id]);

@@ -19,3 +19,6 @@ export type { AnnotationBodyRendererProps } from './AnnotationBodyRenderer';
 
 export { MetadataDisplay } from './MetadataDisplay';
 export type { MetadataDisplayProps } from './MetadataDisplay';
+
+export { ImageComparisonSlider } from './ImageComparisonSlider';
+export type { ImageComparisonSliderProps, CanvasInfo } from './ImageComparisonSlider';

@@ -4,13 +4,25 @@
  */
 
 declare module 'mirador' {
-  import type { Dispatch, Store } from 'redux';
+  import type { Dispatch, Store, AnyAction } from 'redux';
 
   // Mirador addWindow thunk action creator
   export function addWindow(config: {
     manifestId: string;
     [key: string]: unknown;
   }): (dispatch: Dispatch, getState: () => unknown) => void;
+
+  // Mirador updateWindow action creator
+  export function updateWindow(
+    windowId: string,
+    payload: Record<string, unknown>
+  ): AnyAction;
+
+  // Mirador getViewer selector - returns OpenSeadragon viewer instance
+  export function getViewer(
+    state: unknown,
+    options: { windowId: string }
+  ): unknown;
 
   // Mirador viewer factory
   export function viewer(
