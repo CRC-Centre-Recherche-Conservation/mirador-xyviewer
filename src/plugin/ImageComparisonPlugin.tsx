@@ -216,13 +216,13 @@ const ImageComparisonPluginComponent = forwardRef<HTMLDivElement, ImageCompariso
     return (
       <Box ref={ref} sx={{ position: 'static' }}>
         {/* Comparison button */}
-        <Tooltip title="Comparer les images">
+        <Tooltip title="Compare images">
           <IconButton
             onClick={handleToggle}
             sx={{
               position: 'absolute',
-              top: 8,
-              left: 8,
+              bottom: 100,
+              right: 20,
               zIndex: 999,
               bgcolor: isOpen ? 'primary.main' : 'rgba(0,0,0,0.6)',
               color: 'white',
@@ -230,7 +230,7 @@ const ImageComparisonPluginComponent = forwardRef<HTMLDivElement, ImageCompariso
                 bgcolor: isOpen ? 'primary.dark' : 'rgba(0,0,0,0.8)',
               },
             }}
-            aria-label="Comparer les images"
+            aria-label="Compare images"
             aria-expanded={isOpen}
           >
             <CompareIcon />
