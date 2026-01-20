@@ -16,7 +16,6 @@ import {
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import WarningIcon from '@mui/icons-material/Warning';
 import type { ManifestBody as ManifestBodyType, LocalizedString } from '../types/iiif';
-import { getLocalizedString } from '../utils/localization';
 import { escapeHtml, isValidUrl } from '../utils/security';
 
 export interface ManifestBodyProps {
@@ -49,10 +48,8 @@ export const ManifestBody: React.FC<ManifestBodyProps> = ({
     dispatch(addWindow({ manifestId: body.id }));
   }, [dispatch, addWindow, body.id, isUrlValid]);
 
-  // Get display label (prefer body label, fall back to annotation label)
-  const displayLabel = getLocalizedString(body.label) ||
-    getLocalizedString(annotationLabel) ||
-    'Open related manifest';
+  // Fixed display label
+  const displayLabel = 'View IIIF Manifest';
 
   // Show warning for invalid URLs
   if (!isUrlValid) {
@@ -73,7 +70,7 @@ export const ManifestBody: React.FC<ManifestBodyProps> = ({
 
   return (
     <Box sx={{ my: 1 }}>
-      <Tooltip title={escapeHtml(body.id)} placement="top">
+      <Tooltip title={body.id} placement="top">
         <Button
           variant="outlined"
           size="small"
