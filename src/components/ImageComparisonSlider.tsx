@@ -253,7 +253,7 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
     return (
       <Paper sx={{ p: 2, m: 1 }}>
         <Typography color="text.secondary">
-          Au moins 2 images sont nécessaires pour la comparaison.
+          At least 2 images are required for comparison.
         </Typography>
       </Paper>
     );
@@ -289,15 +289,15 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
       >
         <CompareIcon color="primary" />
         <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-          Comparaison
+          Comparison
         </Typography>
 
         <FormControl size="small" sx={{ minWidth: 180, flex: 1 }}>
-          <InputLabel id={`${windowId}-left-label`}>Gauche</InputLabel>
+          <InputLabel id={`${windowId}-left-label`}>Left</InputLabel>
           <Select
             labelId={`${windowId}-left-label`}
             value={leftCanvasId}
-            label="Gauche"
+            label="Left"
             onChange={handleLeftChange}
             size="small"
           >
@@ -310,11 +310,11 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 180, flex: 1 }}>
-          <InputLabel id={`${windowId}-right-label`}>Droite</InputLabel>
+          <InputLabel id={`${windowId}-right-label`}>Right</InputLabel>
           <Select
             labelId={`${windowId}-right-label`}
             value={rightCanvasId}
-            label="Droite"
+            label="Right"
             onChange={handleRightChange}
             size="small"
           >
@@ -326,7 +326,7 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
           </Select>
         </FormControl>
 
-        <IconButton onClick={onClose} size="small" aria-label="Fermer">
+        <IconButton onClick={onClose} size="small" aria-label="Close">
           <CloseIcon />
         </IconButton>
       </Box>
@@ -353,7 +353,7 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
               color: 'white',
             }}
           >
-            <Typography>Chargement...</Typography>
+            <Typography>Loading...</Typography>
           </Box>
         )}
 
