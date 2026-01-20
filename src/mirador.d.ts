@@ -18,6 +18,12 @@ declare module 'mirador' {
     payload: Record<string, unknown>
   ): AnyAction;
 
+  // Mirador getViewer selector - returns OpenSeadragon viewer instance
+  export function getViewer(
+    state: unknown,
+    options: { windowId: string }
+  ): unknown;
+
   // Mirador viewer factory
   export function viewer(
     config: unknown,
