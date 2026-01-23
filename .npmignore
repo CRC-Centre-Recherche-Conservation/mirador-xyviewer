@@ -22,4 +22,4 @@ node_modules/
 package-lock.json
 
 # Maps (optional - remove these lines if you want source maps published)
-# *.map
+*.map
