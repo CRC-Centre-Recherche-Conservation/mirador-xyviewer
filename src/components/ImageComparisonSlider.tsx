@@ -150,7 +150,7 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
       constrainDuringPan: false,
       minZoomLevel: 0.1,
       maxZoomLevel: 30,
-      crossOriginPolicy: 'Anonymous',
+      crossOriginPolicy: 'Anonymous' as const,
       immediateRender: true,
       preload: true,
     };
