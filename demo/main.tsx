@@ -7,7 +7,7 @@
 
 import Mirador from 'mirador';
 import { miradorImageToolsPlugin } from 'mirador-image-tools';
-import { scientificAnnotationPlugin, imageComparisonPlugin, annotationPostprocessor } from '../src';
+import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, annotationPostprocessor } from '../src';
 
 // Demo manifest with scientific annotations
 // Using local Avranches manuscript manifest (IIIF 3.0) with spectral analysis annotations
@@ -89,8 +89,8 @@ function initMirador() {
         postprocessors: [annotationPostprocessor],
       },
     },
-    // Pass the plugins (image tools + scientific annotation + image comparison)
-    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin]
+    // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters)
+    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin]
   );
 
   // Expose to window for DevTools inspection
@@ -102,6 +102,7 @@ function initMirador() {
   // Log plugin initialization
   console.log('%c[XYViewer] Scientific annotation plugin loaded', 'color: #4CAF50; font-weight: bold');
   console.log('%c[XYViewer] Image comparison plugin loaded', 'color: #4CAF50; font-weight: bold');
+  console.log('%c[XYViewer] Metadata filters plugin loaded', 'color: #4CAF50; font-weight: bold');
   console.log('[XYViewer] Supported body types: Manifest, Dataset, TextualBody');
 
   return miradorInstance;
