@@ -1,0 +1,25 @@
+# Source files
+src/
+demo/
+docs/
+
+# Config files
+.github/
+.eslintrc.cjs
+tsconfig.json
+vite.config.ts
+
+# Development files
+node_modules/
+*.log
+.vite/
+
+# Git
+.git/
+.gitignore
+
+# Lock files
+package-lock.json
+
+# Maps (optional - remove these lines if you want source maps published)
+# *.map
