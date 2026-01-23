@@ -3,14 +3,12 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - 'tsconfig.json'
-      - 'vite.config.ts'
+  push:
+    branches: [main]
 
 jobs:
-  build:
+  test:
+    name: Test & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -30,6 +28,9 @@ jobs:
 
       - name: Run lint
         run: npm run lint
+
+      - name: Run tests
+        run: npm run test
 
       - name: Build the package
         run: npm run build
