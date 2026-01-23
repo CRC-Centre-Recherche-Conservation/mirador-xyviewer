@@ -290,7 +290,7 @@ function mapStateToProps(state: MiradorState, { targetProps }: { targetProps: { 
 
   if (canvasId && state.annotations?.[canvasId]) {
     const canvasAnnotations = state.annotations[canvasId];
-    for (const [_resourceId, resourceData] of Object.entries(canvasAnnotations)) {
+    for (const resourceData of Object.values(canvasAnnotations)) {
       const data = resourceData as { json?: IIIFAnnotation };
       if (data?.json) {
         // Extract individual annotations from the annotation page

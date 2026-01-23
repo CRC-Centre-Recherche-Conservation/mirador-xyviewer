@@ -145,10 +145,13 @@ async function performFetch(
   const chunks: Uint8Array[] = [];
   let totalSize = 0;
 
-  while (true) {
-    const { done, value } = await reader.read();
+  let done = false;
+  while (!done) {
+    const result = await reader.read();
+    done = result.done;
 
-    if (done) break;
+    if (done || !result.value) break;
+    const value = result.value;
 
     totalSize += value.length;
     if (totalSize > MAX_DATASET_SIZE) {
