@@ -23,7 +23,10 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules/.vite"
+    "clean": "rm -rf dist node_modules/.vite",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "@emotion/react": "^11.0.0",
@@ -49,6 +52,8 @@
     "@redux-devtools/extension": "^3.3.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20.10.0",
     "@types/openseadragon": "^5.0.1",
     "@types/papaparse": "^5.3.14",
@@ -58,7 +63,9 @@
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^8.56.0",
+    "jsdom": "^27.4.0",
     "mirador": "^4.0.0",
     "plotly.js": "^3.3.1",
     "react": "^19.0.0",
@@ -69,7 +76,8 @@
     "semantic-release": "^24.2.3",
     "typescript": "^5.3.0",
     "vite": "^7.3.1",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.18"
   },
   "repository": {
     "type": "git",
@@ -89,17 +97,32 @@
   ],
   "author": "Centre de la Recherche sur la Conservation (CRC) - Maxime Humeau",
   "license": "Apache-2.0",
+  "homepage": "https://crc-centre-recherche-conservation.github.io/mirador-xyviewer",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "release": {
-    "branches": ["main"],
+    "branches": [
+      "main"
+    ],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
       "@semantic-release/changelog",
       "@semantic-release/npm",
-      ["@semantic-release/git", {
-        "assets": ["package.json", "CHANGELOG.md"],
-        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-      }]
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "package.json",
+            "CHANGELOG.md"
+          ],
+          "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        }
+      ]
     ]
   }
 }
