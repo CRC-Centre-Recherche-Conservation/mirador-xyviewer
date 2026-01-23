@@ -6,14 +6,16 @@
  * - Dispatch addWindow actions for Manifest bodies
  * - Access annotation state
  * - Handle selection/hover states
+ * - Apply metadata filters
  */
 
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import { addWindow as miradorAddWindow } from 'mirador';
 import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
+import { filtersStore } from '../state/filtersStore';
 import type {
   AnnotationBody,
   IIIFAnnotation,
@@ -107,6 +109,22 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   // Refs for scrolling to annotations
   const annotationRefs = useRef<Map<string, HTMLElement>>(new Map());
 
+  // State for hidden annotations (from filters)
+  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(new Set());
+
+  // Subscribe to filter changes
+  useEffect(() => {
+    if (!windowId || !canvasId) return;
+    const unsubscribe = filtersStore.subscribe((event) => {
+      if (event.windowId === windowId && event.canvasId === canvasId && (event.type === 'update-hidden' || event.type === 'init')) {
+        setHiddenAnnotationIds(new Set(filtersStore.getHiddenAnnotationIds(windowId, canvasId)));
+      }
+    });
+    // Get initial hidden annotations
+    setHiddenAnnotationIds(new Set(filtersStore.getHiddenAnnotationIds(windowId, canvasId)));
+    return unsubscribe;
+  }, [windowId, canvasId]);
+
   // Handle hover on annotation to highlight SVG zone
   const handleAnnotationHover = useCallback((annotationId: string | null) => {
     if (!hoverAnnotation) return;
@@ -156,15 +174,20 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     }
   }, [windowId, canvasId, selectedAnnotationId, selectAnnotation, deselectAnnotation]);
 
-  // If no scientific annotations, render original component
-  if (customRenderingIds.size === 0) {
+  // Filter annotations based on filters
+  const visibleAnnotations = useMemo(() => {
+    return annotations.filter(ann => !hiddenAnnotationIds.has(ann.id));
+  }, [annotations, hiddenAnnotationIds]);
+
+  // If no scientific annotations and no hidden annotations, render original component
+  if (customRenderingIds.size === 0 && hiddenAnnotationIds.size === 0) {
     return <TargetComponent {...targetProps} />;
   }
 
   // Render mixed annotations - scientific ones custom, others default
   return (
     <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-      {annotations.map((annotation) => {
+      {visibleAnnotations.map((annotation) => {
         const resource = annotationResources[annotation.id];
         const isScientific = customRenderingIds.has(annotation.id);
         const isSelected = selectedAnnotationId === annotation.id;
