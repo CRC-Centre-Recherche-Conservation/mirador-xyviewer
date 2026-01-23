@@ -28,17 +28,23 @@ export default defineConfig({
       external: [
         'react',
         'react-dom',
+        'react-redux',
         'mirador',
         '@mui/material',
         '@emotion/react',
         '@emotion/styled',
+        'plotly.js',
+        'react-plotly.js',
       ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          'react-redux': 'ReactRedux',
           mirador: 'Mirador',
           '@mui/material': 'MaterialUI',
+          'plotly.js': 'Plotly',
+          'react-plotly.js': 'createPlotlyComponent',
         },
       },
     },
