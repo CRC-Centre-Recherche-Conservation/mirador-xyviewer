@@ -6,9 +6,10 @@ import { resolve } from 'path';
  * Vite config for demo application
  * Includes development server configuration with DevTools support
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: resolve(__dirname),
   publicDir: resolve(__dirname, 'public'),
+  base: mode === 'production' ? '/mirador-xyviewer/' : '/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -29,4 +30,4 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
-});
+}));

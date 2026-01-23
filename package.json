@@ -18,6 +18,7 @@
   "scripts": {
     "dev": "vite",
     "dev:demo": "vite --config demo/vite.config.ts",
+    "build:demo": "vite build --config demo/vite.config.ts --outDir ../demo-dist",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
