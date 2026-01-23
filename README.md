@@ -1,193 +1,90 @@
-# mirador-xyviewer
+# Mirador XY Viewer
 
-A Mirador 4 plugin for handling scientific IIIF annotations with spectrum visualization support.
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Mirador](https://img.shields.io/badge/Mirador-4.0-green.svg)](https://projectmirador.org/)
+[![IIIF](https://img.shields.io/badge/IIIF-v3-orange.svg)](https://iiif.io/)
+
+A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format. Developed by the [Centre de Recherche sur la Conservation (CRC)](https://crc.mnhn.fr/) for museum and heritage applications requiring spectral data visualization (XRF, Raman, FTIR, UV-Vis, etc.).
+
+- Document physicochemical analyses on artworks or heritage objects
+- Associate spectral data (XRF, Raman, FTIR, UV-Vis) with specific regions of high-resolution images
+- Need to visually compare different imaging modalities (visible light, UV, IR, X-ray)
+- Publish their analysis data following IIIF standards
 
 ## Features
 
-- **Manifest Links (Case 1)**: Clickable links that open related IIIF manifests in new Mirador windows
-- **Dataset Visualization (Case 2)**: Fetches and plots CSV/TSV spectral data using Plotly
-- **TextualBody Support (Case 3)**: Clean rendering of textual annotations
-- **Security**: Strict MIME type validation, URL sanitization, file size limits
-- **Performance**: Lazy loading, caching, AbortController cleanup, downsampling
+- **Spectrum Visualization**: Load and display CSV/TSV spectral data with Plotly
+- **Manifest Links**: Open related IIIF manifests in new windows
+- **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
+- **Point Annotations**: Automatic conversion of analysis points to visible markers
 
-## Installation
+## Quick Start
 
 ```bash
-npm install mirador-xyviewer
+npm install mirador mirador-xyviewer
 ```
-
-## Usage
 
 ```typescript
 import Mirador from 'mirador';
-import { scientificAnnotationPlugin } from 'mirador-xyviewer';
+import {
+  scientificAnnotationPlugin,
+  imageComparisonPlugin,
+  annotationPostprocessor
+} from 'mirador-xyviewer';
 
-const viewer = Mirador.viewer({
+Mirador.viewer({
   id: 'mirador-container',
-  windows: [{
-    manifestId: 'https://example.org/manifest.json',
-  }],
-}, [scientificAnnotationPlugin]);
-```
-
-## Important: Annotation Motivation Filter
-
-Mirador filters annotations by their `motivation` field. By default, it only displays:
-- `oa:commenting`, `oa:tagging`, `sc:painting`, `commenting`, `tagging`
-
-**Scientific annotations typically use `motivation: "supplementing"`**, which is not included by default. You must explicitly add it to your Mirador configuration:
-
-```typescript
-const viewer = Mirador.viewer({
-  id: 'mirador-container',
-  windows: [{
-    manifestId: 'https://example.org/manifest.json',
-    highlightAllAnnotations: true,  // Show annotation overlays on canvas
-  }],
+  windows: [{ manifestId: 'https://example.org/manifest.json' }],
   annotations: {
-    htmlSanitizationRuleSet: 'iiif',
     filteredMotivations: [
-      'oa:commenting',
-      'oa:tagging',
-      'sc:painting',
-      'commenting',
-      'tagging',
-      'supplementing',  // Required for IIIF v3 scientific annotations
+      'oa:commenting', 'oa:tagging', 'sc:painting',
+      'commenting', 'tagging', 'supplementing'
     ],
   },
-}, [scientificAnnotationPlugin]);
+  requests: {
+    postprocessors: [annotationPostprocessor],
+  },
+}, [scientificAnnotationPlugin, imageComparisonPlugin]);
 ```
 
-Without this configuration, annotations will be loaded into the Redux store but will not appear in the sidebar or on the canvas.
+## Documentation
 
-## Annotation Body Types
+| Guide | Description |
+|-------|-------------|
+| [IIIF Annotations](./docs/IIIF-ANNOTATIONS.md) | How to structure annotations for physicochemical data |
+| [Spectral Data Format](./docs/SPECTRAL-DATA-FORMAT.md) | CSV/TSV format specification |
+| [Mirador Configuration](./docs/MIRADOR-CONFIGURATION.md) | Full configuration options |
+| [Developer Guide](./docs/DEVELOPER-GUIDE.md) | Architecture and extension |
 
-### Case 1: Manifest Body
+## Demo
 
-Opens the linked manifest in a new Mirador window without fetching it manually.
+> **Note:** The local demo data is currently unavailable as the database has not been deployed yet. The demo manifest references external IIIF resources that require the backend infrastructure to be set up.
 
-```json
-{
-  "body": {
-    "id": "https://example.org/iiif/manifest.json",
-    "type": "Manifest",
-    "format": "application/ld+json",
-    "label": { "en": ["Related Analysis"] }
-  }
-}
-```
+For this demonstration, we are using the [ManuSpectrum](https://github.com/CRC-Centre-Recherche-Conservation/ManuSpectrum/) application, built on the Arches platform. Please note that ManuSpectrum is still under development and has not yet been deployed.
 
-### Case 2: Dataset Body
-
-Fetches and plots spectral data (CSV/TSV).
-
-```json
-{
-  "body": {
-    "id": "https://example.org/data/spectrum.csv",
-    "type": "Dataset",
-    "format": "text/csv",
-    "label": { "en": ["XRF Spectrum"] }
-  }
-}
-```
-
-**Allowed MIME types:**
-- `text/csv`
-- `text/plain`
-- `text/tab-separated-values`
-
-### Case 3: TextualBody
-
-Renders static text content.
-
-```json
-{
-  "body": {
-    "type": "TextualBody",
-    "value": "Analysis notes here...",
-    "format": "text/plain",
-    "language": "en"
-  }
-}
+```bash
+npm run dev:demo
 ```
 
 ## Development
 
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-
-### Setup
-
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev:demo
-
-# Build for production
-npm run build
-
-# Type check
-npm run typecheck
-
-# Lint
-npm run lint
+npm install          # Install dependencies
+npm run dev:demo     # Start dev server
+npm run build        # Build for production
+npm run typecheck    # Type checking
+npm run lint         # Lint
 ```
 
-### DevTools
+## License
 
-For debugging:
+Apache License 2.0 - see [LICENSE](LICENSE)
 
-1. Install [React DevTools](https://react.dev/learn/react-developer-tools) browser extension
-2. Install [Redux DevTools](https://github.com/reduxjs/redux-devtools) browser extension
-3. Open browser DevTools (F12) and navigate to React/Redux tabs
+## Author
 
-The Mirador instance is exposed at `window.miradorInstance` for console debugging.
+**Maxime Humeau** - [Centre de Recherche sur la Conservation (CRC)](https://crc.mnhn.fr/)
 
-## Architecture
+## Related Projects
 
-```
-src/
-├── components/          # React components
-│   ├── ManifestBody.tsx    # Case 1: Manifest links
-│   ├── DatasetBody.tsx     # Case 2: Dataset loading/plotting
-│   ├── TextualBody.tsx     # Case 3: Text rendering
-│   ├── SpectrumPlot.tsx    # Plotly wrapper
-│   └── MetadataDisplay.tsx # IIIF metadata rendering
-├── services/            # Data services
-│   ├── datasetCache.ts     # URL-based caching
-│   ├── datasetFetcher.ts   # Secure async fetching
-│   └── datasetParser.ts    # CSV/TSV parsing
-├── plugin/              # Mirador plugin
-│   └── ConnectedScientificAnnotationPlugin.tsx
-├── state/               # State management
-│   └── spectrumStore.ts    # Global spectrum state
-├── types/               # TypeScript definitions
-│   ├── iiif.ts             # IIIF types
-│   ├── mirador.ts          # Mirador types
-│   └── dataset.ts          # Dataset types
-└── utils/               # Utilities
-    ├── security.ts         # URL/HTML sanitization
-    └── localization.ts     # IIIF i18n helpers
-```
-
-## Security
-
-- Only `http://` and `https://` URLs are allowed
-- MIME types strictly validated against allowlist
-- Maximum file size: 5MB
-- HTML content is sanitized to prevent XSS
-- No auto-follow of `seeAlso` links
-
-## Performance
-
-- Datasets are loaded lazily on user interaction
-- Global cache with 30-minute TTL
-- AbortController cleanup on unmount
-- Large datasets (>10,000 points) are downsampled using LTTB algorithm
-- Plotly instances are reused
-
+- [Mirador](https://github.com/ProjectMirador/mirador) - IIIF image viewer
+- [mirador-image-tools](https://github.com/ProjectMirador/mirador-image-tools) - Image manipulation tools for Mirador
