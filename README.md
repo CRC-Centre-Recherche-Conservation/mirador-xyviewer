@@ -21,7 +21,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 ## Quick Start
 
 ```bash
-npm install mirador mirador-xyviewer
+npm install mirador mirador-xyviewer plotly.js react-plotly.js
 ```
 
 ```typescript
