@@ -17,6 +17,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Manifest Links**: Open related IIIF manifests in new windows
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
 - **Point Annotations**: Automatic conversion of analysis points to visible markers
+- **Metadata Filters**: Filter annotations by metadata values (technique, date, operator, etc.)
 
 ## Quick Start
 
@@ -29,6 +30,7 @@ import Mirador from 'mirador';
 import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,
+  metadataFiltersPlugin,
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -44,7 +46,11 @@ Mirador.viewer({
   requests: {
     postprocessors: [annotationPostprocessor],
   },
-}, [scientificAnnotationPlugin, imageComparisonPlugin]);
+}, [
+  scientificAnnotationPlugin,   // Spectrum visualization, manifest links
+  imageComparisonPlugin,        // Image comparison (optional)
+  metadataFiltersPlugin         // Metadata filters (optional)
+]);
 ```
 
 ## Documentation
@@ -54,6 +60,7 @@ Mirador.viewer({
 | [IIIF Annotations](./docs/IIIF-ANNOTATIONS.md) | How to structure annotations for physicochemical data |
 | [Spectral Data Format](./docs/SPECTRAL-DATA-FORMAT.md) | CSV/TSV format specification |
 | [Mirador Configuration](./docs/MIRADOR-CONFIGURATION.md) | Full configuration options |
+| [Metadata Filters](./docs/METADATA-FILTERS.md) | Filter annotations by metadata |
 | [Developer Guide](./docs/DEVELOPER-GUIDE.md) | Architecture and extension |
 
 ## Demo

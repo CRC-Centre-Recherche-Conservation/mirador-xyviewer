@@ -109,19 +109,24 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   // Refs for scrolling to annotations
   const annotationRefs = useRef<Map<string, HTMLElement>>(new Map());
 
-  // State for hidden annotations (from filters)
+  // State for hidden annotations (from filters - only when metadataFiltersPlugin is used)
   const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(new Set());
 
-  // Subscribe to filter changes
+  // Subscribe to filter changes (only applies when metadataFiltersPlugin initializes filters)
   useEffect(() => {
     if (!windowId || !canvasId) return;
     const unsubscribe = filtersStore.subscribe((event) => {
       if (event.windowId === windowId && event.canvasId === canvasId && (event.type === 'update-hidden' || event.type === 'init')) {
-        setHiddenAnnotationIds(new Set(filtersStore.getHiddenAnnotationIds(windowId, canvasId)));
+        // Only apply filters if they were explicitly initialized by metadataFiltersPlugin
+        if (filtersStore.hasFiltersInitialized(windowId, canvasId)) {
+          setHiddenAnnotationIds(new Set(filtersStore.getHiddenAnnotationIds(windowId, canvasId)));
+        }
       }
     });
-    // Get initial hidden annotations
-    setHiddenAnnotationIds(new Set(filtersStore.getHiddenAnnotationIds(windowId, canvasId)));
+    // Get initial hidden annotations only if filters are initialized
+    if (filtersStore.hasFiltersInitialized(windowId, canvasId)) {
+      setHiddenAnnotationIds(new Set(filtersStore.getHiddenAnnotationIds(windowId, canvasId)));
+    }
     return unsubscribe;
   }, [windowId, canvasId]);
 

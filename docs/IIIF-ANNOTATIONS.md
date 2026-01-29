@@ -166,6 +166,8 @@ External AnnotationPage file (`canvas1.json`):
 }
 ```
 
+> **Tip:** Metadata labels are used by the [Metadata Filters](./METADATA-FILTERS.md) plugin to create filter groups. Use consistent labels across annotations for effective filtering (e.g., always use "Technique" instead of mixing "Technique" and "Analysis Type").
+
 ## Body Types
 
 Mirador-xyviewer supports three body types:

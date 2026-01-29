@@ -210,6 +210,7 @@ import Mirador from 'mirador';
 import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,
+  metadataFiltersPlugin,
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -273,8 +274,12 @@ const viewer = Mirador.viewer(
       },
     },
   },
-  // Plugins
-  [scientificAnnotationPlugin, imageComparisonPlugin]
+  // Plugins (all are optional and independent)
+  [
+    scientificAnnotationPlugin,  // Spectrum visualization
+    imageComparisonPlugin,       // Image comparison (optional)
+    metadataFiltersPlugin        // Metadata filters (optional)
+  ]
 );
 
 // Expose for debugging
@@ -282,6 +287,14 @@ window.miradorInstance = viewer;
 ```
 
 ## Plugin-Specific Options
+
+Mirador-xyviewer provides three independent plugins that can be used separately or combined:
+
+| Plugin | Description |
+|--------|-------------|
+| `scientificAnnotationPlugin` | Spectrum visualization (CSV/TSV), manifest links, metadata display |
+| `imageComparisonPlugin` | Side-by-side image comparison with synchronized zoom/pan |
+| `metadataFiltersPlugin` | Filter annotations by metadata values |
 
 ### Using Only the Annotation Plugin
 
@@ -299,28 +312,48 @@ import { imageComparisonPlugin } from 'mirador-xyviewer';
 const viewer = Mirador.viewer(config, [imageComparisonPlugin]);
 ```
 
-### Using Both Plugins
+### Using Only the Metadata Filters Plugin
+
+```javascript
+import { metadataFiltersPlugin } from 'mirador-xyviewer';
+
+const viewer = Mirador.viewer(config, [metadataFiltersPlugin]);
+```
+
+### Combining Plugins
+
+All plugins are independent and can be combined as needed:
 
 ```javascript
 import {
   scientificAnnotationPlugin,
-  imageComparisonPlugin
+  imageComparisonPlugin,
+  metadataFiltersPlugin
 } from 'mirador-xyviewer';
 
+// Use all plugins
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
-  imageComparisonPlugin
+  imageComparisonPlugin,
+  metadataFiltersPlugin
+]);
+
+// Or pick only what you need
+const viewer = Mirador.viewer(config, [
+  scientificAnnotationPlugin,
+  metadataFiltersPlugin  // Filters without image comparison
 ]);
 ```
 
-### Combining with Other Plugins
+### Combining with Other Mirador Plugins
 
 ```javascript
-import { scientificAnnotationPlugin } from 'mirador-xyviewer';
+import { scientificAnnotationPlugin, metadataFiltersPlugin } from 'mirador-xyviewer';
 import miradorImageToolsPlugin from 'mirador-image-tools';
 
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
+  metadataFiltersPlugin,
   ...miradorImageToolsPlugin,  // Image manipulation tools
 ]);
 ```
