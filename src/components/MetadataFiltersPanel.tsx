@@ -87,13 +87,17 @@ const FilterValueItem: React.FC<{
               {value.displayText}
             </Typography>
             <Chip
-              label={value.count}
+              label={value.visibleCount !== value.count ? `${value.visibleCount}/${value.count}` : value.count}
               size="small"
               sx={{
                 height: 18,
                 fontSize: '0.7rem',
-                bgcolor: value.selected ? 'primary.light' : 'action.disabledBackground',
-                color: value.selected ? 'primary.contrastText' : 'text.secondary',
+                bgcolor: value.selected
+                  ? (value.visibleCount === 0 ? 'action.disabledBackground' : 'primary.light')
+                  : 'action.disabledBackground',
+                color: value.selected
+                  ? (value.visibleCount === 0 ? 'text.secondary' : 'primary.contrastText')
+                  : 'text.secondary',
               }}
             />
           </Box>
@@ -200,7 +204,13 @@ const FilterGroupItem: React.FC<{
       <Collapse in={expanded}>
         <Box sx={{ pl: 2, borderLeft: '2px solid', borderColor: 'divider', ml: 1.5, mt: 0.5 }}>
           {values
-            .sort((a, b) => b.count - a.count) // Sort by count descending
+            .sort((a, b) => {
+              // "None" always at the end
+              if (a.raw === '__none__') return 1;
+              if (b.raw === '__none__') return -1;
+              // Sort by count descending
+              return b.count - a.count;
+            })
             .map((value, index) => (
               <FilterValueItem
                 key={`${group.key}-${index}`}
