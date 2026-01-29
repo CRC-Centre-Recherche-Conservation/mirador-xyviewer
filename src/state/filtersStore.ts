@@ -18,8 +18,10 @@ export interface FilterValue {
   displayText: string;
   /** Associated URL if any */
   url?: string;
-  /** Count of annotations with this value */
+  /** Total count of annotations with this value */
   count: number;
+  /** Count of visible annotations with this value (after filtering) */
+  visibleCount: number;
   /** Whether this value is selected (checked) */
   selected: boolean;
 }
@@ -155,7 +157,7 @@ class FiltersStore {
     state.groups.clear();
     state.hiddenAnnotationIds.clear();
 
-    // Build filter groups from annotations
+    // First pass: Build filter groups from annotations
     for (const annotation of annotations) {
       if (!annotation.metadata) continue;
 
@@ -187,12 +189,56 @@ class FiltersStore {
             displayText: parsed.displayText,
             url: parsed.url,
             count: 0,
+            visibleCount: 0,
             selected: true, // All selected by default
           });
         }
 
         // Increment count
-        group.values.get(valueKey)!.count++;
+        const filterValue = group.values.get(valueKey)!;
+        filterValue.count++;
+        filterValue.visibleCount++; // Initially all are visible
+      }
+    }
+
+    // Second pass: Add "None" entries for annotations missing values in each group
+    const allGroupKeys = Array.from(state.groups.keys());
+
+    for (const annotation of annotations) {
+      // Get the label keys this annotation has
+      const annotationLabelKeys = new Set<string>();
+      if (annotation.metadata) {
+        for (const entry of annotation.metadata) {
+          const labelText = getLocalizedString(entry.label) || 'Unknown';
+          const labelKey = normalizeKey(labelText);
+          const valueText = getLocalizedString(entry.value) || '';
+          if (valueText) {
+            annotationLabelKeys.add(labelKey);
+          }
+        }
+      }
+
+      // For each group, check if annotation is missing a value
+      for (const labelKey of allGroupKeys) {
+        if (!annotationLabelKeys.has(labelKey)) {
+          const group = state.groups.get(labelKey)!;
+
+          // Create "None" value if it doesn't exist
+          if (!group.values.has('__none__')) {
+            group.values.set('__none__', {
+              raw: '__none__',
+              displayText: 'None',
+              count: 0,
+              visibleCount: 0,
+              selected: true,
+            });
+          }
+
+          // Increment count for "None"
+          const noneValue = group.values.get('__none__')!;
+          noneValue.count++;
+          noneValue.visibleCount++;
+        }
       }
     }
 
@@ -305,31 +351,95 @@ class FiltersStore {
     if (!state) return new Set();
 
     const hiddenIds = new Set<string>();
+    const allGroupKeys = Array.from(state.groups.keys());
+
+    // Reset all visible counts to 0
+    for (const group of state.groups.values()) {
+      for (const value of group.values.values()) {
+        value.visibleCount = 0;
+      }
+    }
 
     for (const annotation of annotations) {
-      if (!annotation.metadata) continue;
-
       let shouldHide = false;
 
+      // Get the label keys this annotation has
+      const annotationLabelKeys = new Set<string>();
+      if (annotation.metadata) {
+        for (const entry of annotation.metadata) {
+          const labelText = getLocalizedString(entry.label) || 'Unknown';
+          const labelKey = normalizeKey(labelText);
+          const valueText = getLocalizedString(entry.value) || '';
+          if (valueText) {
+            annotationLabelKeys.add(labelKey);
+          }
+        }
+      }
+
       // Check if annotation matches any deselected filter
-      for (const entry of annotation.metadata) {
-        const labelText = getLocalizedString(entry.label) || 'Unknown';
-        const labelKey = normalizeKey(labelText);
-        const valueText = getLocalizedString(entry.value) || '';
-        const valueKey = normalizeKey(valueText);
+      if (annotation.metadata) {
+        for (const entry of annotation.metadata) {
+          const labelText = getLocalizedString(entry.label) || 'Unknown';
+          const labelKey = normalizeKey(labelText);
+          const valueText = getLocalizedString(entry.value) || '';
+          const valueKey = normalizeKey(valueText);
 
-        const group = state.groups.get(labelKey);
-        if (!group) continue;
+          const group = state.groups.get(labelKey);
+          if (!group) continue;
 
-        const value = group.values.get(valueKey);
-        if (value && !value.selected) {
-          shouldHide = true;
-          break;
+          const value = group.values.get(valueKey);
+          if (value && !value.selected) {
+            shouldHide = true;
+            break;
+          }
+        }
+      }
+
+      // Check if annotation should be hidden because "None" is deselected for a group it's missing
+      if (!shouldHide) {
+        for (const labelKey of allGroupKeys) {
+          if (!annotationLabelKeys.has(labelKey)) {
+            const group = state.groups.get(labelKey)!;
+            const noneValue = group.values.get('__none__');
+            if (noneValue && !noneValue.selected) {
+              shouldHide = true;
+              break;
+            }
+          }
         }
       }
 
       if (shouldHide) {
         hiddenIds.add(annotation.id);
+      } else {
+        // Annotation is visible - increment visible counts for all its metadata values
+        if (annotation.metadata) {
+          for (const entry of annotation.metadata) {
+            const labelText = getLocalizedString(entry.label) || 'Unknown';
+            const labelKey = normalizeKey(labelText);
+            const valueText = getLocalizedString(entry.value) || '';
+            const valueKey = normalizeKey(valueText);
+
+            const group = state.groups.get(labelKey);
+            if (!group) continue;
+
+            const value = group.values.get(valueKey);
+            if (value) {
+              value.visibleCount++;
+            }
+          }
+        }
+
+        // Increment "None" visible counts for groups this annotation is missing
+        for (const labelKey of allGroupKeys) {
+          if (!annotationLabelKeys.has(labelKey)) {
+            const group = state.groups.get(labelKey)!;
+            const noneValue = group.values.get('__none__');
+            if (noneValue) {
+              noneValue.visibleCount++;
+            }
+          }
+        }
       }
     }
 
@@ -359,6 +469,7 @@ class FiltersStore {
     for (const group of state.groups.values()) {
       for (const value of group.values.values()) {
         value.selected = true;
+        value.visibleCount = value.count; // All visible when reset
       }
     }
     state.hiddenAnnotationIds.clear();
