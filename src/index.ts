@@ -17,7 +17,7 @@
  */
 
 // Main plugin export
-export { scientificAnnotationPlugin, imageComparisonPlugin } from './plugin';
+export { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin } from './plugin';
 export { scientificAnnotationPlugin as default } from './plugin';
 
 // Individual components for custom use
@@ -106,5 +106,13 @@ export {
 } from './types/dataset';
 
 // State management (for advanced usage)
-export { spectrumStore } from './state';
-export type { SpectrumEntry, SpectrumStoreEvent, SpectrumStoreListener } from './state';
+export { spectrumStore, filtersStore } from './state';
+export type {
+  SpectrumEntry,
+  SpectrumStoreEvent,
+  SpectrumStoreListener,
+  FilterGroup,
+  FilterValue,
+  FiltersStoreEvent,
+  FiltersStoreListener,
+} from './state';

@@ -22,3 +22,5 @@ export type { MetadataDisplayProps } from './MetadataDisplay';
 
 export { ImageComparisonSlider } from './ImageComparisonSlider';
 export type { ImageComparisonSliderProps, CanvasInfo } from './ImageComparisonSlider';
+
+export { MetadataFiltersPanel } from './MetadataFiltersPanel';

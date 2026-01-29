@@ -16,3 +16,8 @@ export {
   imageComparisonPlugin,
   ConnectedImageComparisonPlugin,
 } from './ImageComparisonPlugin';
+
+export {
+  metadataFiltersPlugin,
+  ConnectedMetadataFiltersPlugin,
+} from './MetadataFiltersPlugin';
