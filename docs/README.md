@@ -16,6 +16,7 @@ Welcome to the mirador-xyviewer documentation. This plugin enables visualization
 | Guide | Description |
 |-------|-------------|
 | [Mirador Configuration](./MIRADOR-CONFIGURATION.md) | How to configure Mirador to use the plugins |
+| [Metadata Filters](./METADATA-FILTERS.md) | Filter annotations by metadata values |
 | [Developer Guide](./DEVELOPER-GUIDE.md) | Architecture overview and extension guide |
 
 ## Quick Start
@@ -32,7 +33,8 @@ npm install mirador mirador-xyviewer
 import Mirador from 'mirador';
 import {
   scientificAnnotationPlugin,
-  imageComparisonPlugin,
+  imageComparisonPlugin,       // Optional: image comparison
+  metadataFiltersPlugin,       // Optional: annotation filtering
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -51,7 +53,11 @@ const viewer = Mirador.viewer({
   requests: {
     postprocessors: [annotationPostprocessor],
   },
-}, [scientificAnnotationPlugin, imageComparisonPlugin]);
+}, [
+  scientificAnnotationPlugin,  // Required: spectrum visualization
+  imageComparisonPlugin,       // Optional: image comparison
+  metadataFiltersPlugin        // Optional: metadata filters
+]);
 ```
 
 ### 3. Create Annotations
