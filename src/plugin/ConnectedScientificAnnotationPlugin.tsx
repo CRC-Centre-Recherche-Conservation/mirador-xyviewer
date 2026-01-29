@@ -70,8 +70,8 @@ interface TargetProps {
   canvasId?: string;
   selectedAnnotationId?: string;
   hoveredAnnotationIds?: string[];
-  selectAnnotation: (windowId: string, canvasId: string, annotationId: string) => void;
-  deselectAnnotation: (windowId: string, canvasId: string) => void;
+  selectAnnotation: (windowId: string, annotationId: string) => void;
+  deselectAnnotation: (windowId: string, annotationId: string) => void;
   hoverAnnotation: (windowId: string, annotationIds: string[]) => void;
   containerRef?: React.RefObject<HTMLElement>;
 }
@@ -168,16 +168,15 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     console.debug('[XYViewer] Visibility changed:', id, visible);
   }, []);
 
-  // Handle annotation click
+  // Handle annotation click - triggers selection which updates Redux state
+  // Note: Mirador's selectAnnotation takes (windowId, annotationId) - no canvasId needed
   const handleAnnotationClick = useCallback((annotationId: string) => {
-    if (!canvasId) return;
-
     if (selectedAnnotationId === annotationId) {
-      deselectAnnotation(windowId, canvasId);
+      deselectAnnotation(windowId, annotationId);
     } else {
-      selectAnnotation(windowId, canvasId, annotationId);
+      selectAnnotation(windowId, annotationId);
     }
-  }, [windowId, canvasId, selectedAnnotationId, selectAnnotation, deselectAnnotation]);
+  }, [windowId, selectedAnnotationId, selectAnnotation, deselectAnnotation]);
 
   // Filter annotations based on filters
   const visibleAnnotations = useMemo(() => {

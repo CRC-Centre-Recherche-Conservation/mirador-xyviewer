@@ -35,6 +35,7 @@ import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,       // Optional: image comparison
   metadataFiltersPlugin,       // Optional: annotation filtering
+  selectionHighlightPlugin,    // Optional: zoom + pulse on selection
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -56,7 +57,8 @@ const viewer = Mirador.viewer({
 }, [
   scientificAnnotationPlugin,  // Required: spectrum visualization
   imageComparisonPlugin,       // Optional: image comparison
-  metadataFiltersPlugin        // Optional: metadata filters
+  metadataFiltersPlugin,       // Optional: metadata filters
+  selectionHighlightPlugin     // Optional: zoom + pulse animation on selection
 ]);
 ```
 
