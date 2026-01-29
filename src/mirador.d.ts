@@ -18,6 +18,17 @@ declare module 'mirador' {
     payload: Record<string, unknown>
   ): AnyAction;
 
+  // Mirador updateViewport action creator - updates the viewport position/zoom
+  export function updateViewport(
+    windowId: string,
+    payload: {
+      x?: number;
+      y?: number;
+      zoom?: number;
+      bounds?: [number, number, number, number];
+    }
+  ): AnyAction;
+
   // Mirador getViewer selector - returns OpenSeadragon viewer instance
   export function getViewer(
     state: unknown,

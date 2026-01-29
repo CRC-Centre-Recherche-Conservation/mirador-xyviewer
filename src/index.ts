@@ -17,7 +17,7 @@
  */
 
 // Main plugin export
-export { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin } from './plugin';
+export { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin } from './plugin';
 export { scientificAnnotationPlugin as default } from './plugin';
 
 // Individual components for custom use

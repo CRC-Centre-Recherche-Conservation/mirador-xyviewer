@@ -21,3 +21,8 @@ export {
   metadataFiltersPlugin,
   ConnectedMetadataFiltersPlugin,
 } from './MetadataFiltersPlugin';
+
+export {
+  selectionHighlightPlugin,
+  ConnectedSelectionHighlightPlugin,
+} from './SelectionHighlightPlugin';
