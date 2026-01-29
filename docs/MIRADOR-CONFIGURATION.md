@@ -45,7 +45,8 @@ npm install mirador mirador-xyviewer
 import Mirador from 'mirador';
 import {
   scientificAnnotationPlugin,
-  imageComparisonPlugin
+  imageComparisonPlugin,
+  selectionHighlightPlugin
 } from 'mirador-xyviewer';
 
 const viewer = Mirador.viewer(
@@ -211,6 +212,7 @@ import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,
   metadataFiltersPlugin,
+  selectionHighlightPlugin,
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -278,7 +280,8 @@ const viewer = Mirador.viewer(
   [
     scientificAnnotationPlugin,  // Spectrum visualization
     imageComparisonPlugin,       // Image comparison (optional)
-    metadataFiltersPlugin        // Metadata filters (optional)
+    metadataFiltersPlugin,       // Metadata filters (optional)
+    selectionHighlightPlugin     // Selection highlight (optional)
   ]
 );
 
@@ -288,13 +291,14 @@ window.miradorInstance = viewer;
 
 ## Plugin-Specific Options
 
-Mirador-xyviewer provides three independent plugins that can be used separately or combined:
+Mirador-xyviewer provides four independent plugins that can be used separately or combined:
 
 | Plugin | Description |
 |--------|-------------|
 | `scientificAnnotationPlugin` | Spectrum visualization (CSV/TSV), manifest links, metadata display |
 | `imageComparisonPlugin` | Side-by-side image comparison with synchronized zoom/pan |
 | `metadataFiltersPlugin` | Filter annotations by metadata values |
+| `selectionHighlightPlugin` | Pulse animation to highlight selected annotations on the image |
 
 ### Using Only the Annotation Plugin
 
@@ -320,6 +324,16 @@ import { metadataFiltersPlugin } from 'mirador-xyviewer';
 const viewer = Mirador.viewer(config, [metadataFiltersPlugin]);
 ```
 
+### Using Only the Selection Highlight Plugin
+
+```javascript
+import { selectionHighlightPlugin } from 'mirador-xyviewer';
+
+const viewer = Mirador.viewer(config, [selectionHighlightPlugin]);
+```
+
+This plugin enhances annotation selection with a **pulse animation**: displays an animated pulse effect (orange rings) around the selected annotation for 2 seconds to help locate it on the image.
+
 ### Combining Plugins
 
 All plugins are independent and can be combined as needed:
@@ -328,20 +342,22 @@ All plugins are independent and can be combined as needed:
 import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,
-  metadataFiltersPlugin
+  metadataFiltersPlugin,
+  selectionHighlightPlugin
 } from 'mirador-xyviewer';
 
 // Use all plugins
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
   imageComparisonPlugin,
-  metadataFiltersPlugin
+  metadataFiltersPlugin,
+  selectionHighlightPlugin
 ]);
 
 // Or pick only what you need
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
-  metadataFiltersPlugin  // Filters without image comparison
+  selectionHighlightPlugin  // Spectrum + selection highlight
 ]);
 ```
 
