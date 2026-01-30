@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: true,
   },
+  // Remove console.log/debug in production (keep warn/error)
+  esbuild: {
+    pure: mode === 'production' ? ['console.log', 'console.debug'] : [],
+    drop: mode === 'production' ? ['debugger'] : [],
+  },
   // Define for Redux DevTools
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
