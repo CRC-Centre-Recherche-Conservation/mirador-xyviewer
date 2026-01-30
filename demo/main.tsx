@@ -12,7 +12,8 @@ import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugi
 // Demo manifest with scientific annotations
 // Using local Avranches manuscript manifest (IIIF 3.0) with spectral analysis annotations
 // Served from public/ directory as static Vite endpoint
-const DEMO_MANIFEST = '/avranches-manifest-v3.json';
+// Use Vite's BASE_URL to handle GitHub Pages deployment (e.g., /mirador-xyviewer/)
+const DEMO_MANIFEST = `${import.meta.env.BASE_URL}avranches-manifest-v3.json`;
 
 /**
  * Initialize Mirador with the scientific annotation plugin
