@@ -19,17 +19,21 @@ const DEMO_MANIFEST = `${import.meta.env.BASE_URL}avranches-manifest-v3.json`;
  * Initialize Mirador with the scientific annotation plugin
  */
 function initMirador() {
-  // Check for Redux DevTools extension
-  const devToolsAvailable = typeof window !== 'undefined' &&
-    (window as unknown as { __REDUX_DEVTOOLS_EXTENSION__?: unknown }).__REDUX_DEVTOOLS_EXTENSION__;
+  const isDev = import.meta.env.DEV;
 
-  if (devToolsAvailable) {
-    console.log('%c[XYViewer] Redux DevTools detected', 'color: #4CAF50; font-weight: bold');
-  } else {
-    console.log(
-      '%c[XYViewer] Install Redux DevTools for state debugging: https://github.com/reduxjs/redux-devtools',
-      'color: #FF9800'
-    );
+  // Check for Redux DevTools extension (dev only)
+  if (isDev) {
+    const devToolsAvailable = typeof window !== 'undefined' &&
+      (window as unknown as { __REDUX_DEVTOOLS_EXTENSION__?: unknown }).__REDUX_DEVTOOLS_EXTENSION__;
+
+    if (devToolsAvailable) {
+      console.log('%c[XYViewer] Redux DevTools detected', 'color: #4CAF50; font-weight: bold');
+    } else {
+      console.log(
+        '%c[XYViewer] Install Redux DevTools for state debugging: https://github.com/reduxjs/redux-devtools',
+        'color: #FF9800'
+      );
+    }
   }
 
   // Initialize Mirador with our plugin
@@ -94,18 +98,18 @@ function initMirador() {
     [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin]
   );
 
-  // Expose to window for DevTools inspection
-  if (typeof window !== 'undefined') {
+  // Expose to window for DevTools inspection (dev only)
+  if (isDev && typeof window !== 'undefined') {
     (window as unknown as { miradorInstance: typeof miradorInstance }).miradorInstance = miradorInstance;
     console.log('%c[XYViewer] Mirador instance available at window.miradorInstance', 'color: #2196F3');
-  }
 
-  // Log plugin initialization
-  console.log('%c[XYViewer] Scientific annotation plugin loaded', 'color: #4CAF50; font-weight: bold');
-  console.log('%c[XYViewer] Image comparison plugin loaded', 'color: #4CAF50; font-weight: bold');
-  console.log('%c[XYViewer] Metadata filters plugin loaded', 'color: #4CAF50; font-weight: bold');
-  console.log('%c[XYViewer] Selection highlight plugin loaded', 'color: #4CAF50; font-weight: bold');
-  console.log('[XYViewer] Supported body types: Manifest, Dataset, TextualBody');
+    // Log plugin initialization
+    console.log('%c[XYViewer] Scientific annotation plugin loaded', 'color: #4CAF50; font-weight: bold');
+    console.log('%c[XYViewer] Image comparison plugin loaded', 'color: #4CAF50; font-weight: bold');
+    console.log('%c[XYViewer] Metadata filters plugin loaded', 'color: #4CAF50; font-weight: bold');
+    console.log('%c[XYViewer] Selection highlight plugin loaded', 'color: #4CAF50; font-weight: bold');
+    console.log('[XYViewer] Supported body types: Manifest, Dataset, TextualBody');
+  }
 
   return miradorInstance;
 }
