@@ -52,7 +52,7 @@ Mirador.viewer({
   scientificAnnotationPlugin,   // Spectrum visualization, manifest links
   imageComparisonPlugin,        // Image comparison (optional)
   metadataFiltersPlugin,        // Metadata filters (optional)
-  selectionHighlightPlugin      // Selection highlight with zoom + pulse (optional)
+  selectionHighlightPlugin      // Selection highlight pulse (optional)
 ]);
 ```
 
