@@ -76,6 +76,45 @@ For this demonstration, we are using the [ManuSpectrum](https://github.com/CRC-C
 npm run dev:demo
 ```
 
+### Rewriting the demo backend URL
+
+The annotation JSON files under `demo/public/` reference a default backend at
+`http://192.168.122.250:8000`. To point the demo at another backend (e.g. a
+Cloudflare tunnel) without editing the files, pass flags to `dev:demo`:
+
+```bash
+# Replace the backend host on the fly
+npm run dev:demo --url=https://monkey-transcripts-particles-mixture.trycloudflare.com
+
+# Same, and insert an IIIF API version segment after /iiif/
+npm run dev:demo --url=https://example.trycloudflare.com --iiif-version=v3
+
+# Override the source URL being replaced (rarely needed)
+npm run dev:demo --source=http://other-host:8000 --url=https://...
+```
+
+Without any flag, the original URL is kept. Equivalent environment variables:
+`DEMO_API_URL`, `DEMO_IIIF_VERSION`, `DEMO_SOURCE_URL`. The rewrite happens in
+memory when Vite serves the JSON — source files in `demo/public/` are never
+modified.
+
+The default backend URL changes per run (each Cloudflare tunnel session gets a
+fresh hostname), so pass the current `--url` every time you start the demo.
+
+**How URLs are rewritten:** to work even when the backend does not send CORS
+headers, the rewrite is split:
+
+- Resources fetched via XHR (`/files/...` dataset bodies, `/iiifserver/...`
+  IIIF image tiles) are rewritten to a same-origin path
+  (`http://localhost:3000/__backend/...`) which Vite proxies to the target —
+  no CORS.
+- Everything else (annotation URI, `/resources/`, `/rdm/`, `/report/`) keeps
+  the real target URL, so the UI shows canonical addresses and link clicks
+  (top-level navigation, not CORS-restricted) work.
+
+If the backend exposes more fetched path prefixes, add them to
+`FETCHED_PREFIXES` in `demo/vite.config.ts`.
+
 ## Development
 
 ```bash
