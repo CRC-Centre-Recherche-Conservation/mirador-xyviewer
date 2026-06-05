@@ -231,12 +231,13 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
               pr: 1,
             }}
           >
-            <DialogTitle id={dialogTitleId} sx={{ py: 1, px: 2 }}>
-              <Typography variant="subtitle1" component="span" noWrap>
+            {/* flex:1 + minWidth:0 lets DialogTitle shrink so noWrap can ellipsize long labels. */}
+            <DialogTitle id={dialogTitleId} sx={{ py: 1, px: 2, flex: 1, minWidth: 0 }}>
+              <Typography variant="subtitle1" component="span" noWrap sx={{ display: 'block' }}>
                 {dialogTitle}
               </Typography>
             </DialogTitle>
-            <IconButton size="small" onClick={handleClose} aria-label="close">
+            <IconButton size="small" onClick={handleClose} aria-label="close" sx={{ flexShrink: 0 }}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
