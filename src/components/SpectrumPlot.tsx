@@ -45,7 +45,7 @@ export interface SpectrumPlotProps {
   height?: number;
   /** Custom trace color (used only for single series) */
   color?: string;
-  /** Show the "expand to modal" button overlay (default: true) */
+  /** Show the "expand to modal" button overlay (default: false; opt-in to avoid nesting Dialogs in unaware consumers) */
   enableExpand?: boolean;
 }
 
@@ -53,7 +53,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   data,
   height = 250,
   color,
-  enableExpand = true,
+  enableExpand = false,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContentEl, setModalContentEl] = useState<HTMLDivElement | null>(null);

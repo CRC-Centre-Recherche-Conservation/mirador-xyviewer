@@ -112,8 +112,13 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(screen.getByTestId('mock-plot')).toBeInTheDocument();
   });
 
-  it('adds a custom "expandPlot" modebar button by default', () => {
+  it('does NOT add the expand button by default (opt-in)', () => {
     render(<SpectrumPlot data={makeData()} />);
+    expect(getInlinePlotProps().config?.modeBarButtonsToAdd).toBeUndefined();
+  });
+
+  it('adds a custom "expandPlot" modebar button when enableExpand is true', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     const btn = getExpandButton(getInlinePlotProps());
     expect(btn).toBeDefined();
     expect(btn?.title).toBe('Open in larger view');
@@ -128,13 +133,13 @@ describe('SpectrumPlot — expand to modal', () => {
   });
 
   it('does not mount the dialog before the modebar button is clicked', () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     expect(screen.getAllByTestId('mock-plot')).toHaveLength(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('opens the dialog when the modebar click handler fires', () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     const btn = getExpandButton(getInlinePlotProps());
     expect(btn).toBeDefined();
 
@@ -152,6 +157,7 @@ describe('SpectrumPlot — expand to modal', () => {
     render(
       <SpectrumPlot
         data={makeData({ label: '', series: [{ label: 'Intensity (A.U.)', yValues: [1, 2] }] })}
+        enableExpand
       />,
     );
     act(() => {
@@ -161,7 +167,7 @@ describe('SpectrumPlot — expand to modal', () => {
   });
 
   it('closes the dialog via the close button', async () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
@@ -176,7 +182,7 @@ describe('SpectrumPlot — expand to modal', () => {
   });
 
   it('attaches a ResizeObserver while the dialog is open and disconnects on close', async () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
@@ -198,7 +204,7 @@ describe('SpectrumPlot — expand to modal', () => {
   });
 
   it('does not include the expand button on the modal plot itself', () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
@@ -215,7 +221,7 @@ describe('SpectrumPlot — expand to modal', () => {
         { label: 'B', yValues: [4, 3, 2, 1] },
       ],
     });
-    render(<SpectrumPlot data={data} />);
+    render(<SpectrumPlot data={data} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
