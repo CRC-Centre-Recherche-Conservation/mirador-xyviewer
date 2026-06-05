@@ -99,9 +99,10 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     }
 
     // Fallback to legacy single-series format
+    const points = data.points ?? [];
     return [{
-      x: data.points.map(p => p.x),
-      y: data.points.map(p => p.y),
+      x: points.map(p => p.x),
+      y: points.map(p => p.y),
       type: 'scatter' as const,
       mode: 'lines' as const,
       name: data.label,
