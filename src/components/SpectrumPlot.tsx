@@ -3,7 +3,7 @@
  * Renders spectrum data using Plotly with support for multiple Y series
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useId } from 'react';
 import Plot from 'react-plotly.js';
 import {
   Box,
@@ -58,6 +58,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContentEl, setModalContentEl] = useState<HTMLDivElement | null>(null);
   const [modalPlotHeight, setModalPlotHeight] = useState<number>(500);
+  const dialogTitleId = useId();
 
   const handleOpen = useCallback(() => setModalOpen(true), []);
   const handleClose = useCallback(() => setModalOpen(false), []);
@@ -203,6 +204,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
           open={modalOpen}
           onClose={handleClose}
           maxWidth={false}
+          aria-labelledby={dialogTitleId}
           slotProps={{
             paper: {
               sx: {
@@ -220,22 +222,24 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
             },
           }}
         >
-          <DialogTitle
+          {/* Header row: heading + close button as siblings (not nested in <h2>). */}
+          <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              py: 1,
-              px: 2,
+              pr: 1,
             }}
           >
-            <Typography variant="subtitle1" component="span" noWrap sx={{ pr: 1 }}>
-              {dialogTitle}
-            </Typography>
+            <DialogTitle id={dialogTitleId} sx={{ py: 1, px: 2 }}>
+              <Typography variant="subtitle1" component="span" noWrap>
+                {dialogTitle}
+              </Typography>
+            </DialogTitle>
             <IconButton size="small" onClick={handleClose} aria-label="close">
               <CloseIcon fontSize="small" />
             </IconButton>
-          </DialogTitle>
+          </Box>
           <DialogContent
             dividers
             sx={{ p: 1, flex: 1, overflow: 'hidden' }}

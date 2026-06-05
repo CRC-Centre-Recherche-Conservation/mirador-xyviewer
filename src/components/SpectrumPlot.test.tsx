@@ -287,6 +287,24 @@ describe('SpectrumPlot — expand to modal', () => {
     expect((inline.layout as { xaxis: { range?: [number, number] } }).xaxis.range).toBeUndefined();
   });
 
+  // Regression: close button used to be nested inside DialogTitle's <h2>,
+  // and the Dialog had no aria-labelledby linking to the title.
+  it('exposes a labelled dialog with the close button outside the heading', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+
+    const dialog = screen.getByRole('dialog');
+    const heading = within(dialog).getByRole('heading', { level: 2 });
+    expect(heading).toHaveTextContent('Test Spectrum');
+    // aria-labelledby must point to the heading's id (set via useId).
+    expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
+    // Close button must NOT be a descendant of the heading.
+    const closeBtn = within(dialog).getByRole('button', { name: /^close$/i });
+    expect(heading.contains(closeBtn)).toBe(false);
+  });
+
   // Regression: closing the modal used to fully unmount the Dialog, breaking
   // MUI's exit transition. With controlled `open`, re-opening after close must work.
   it('can reopen the modal after closing it', async () => {
