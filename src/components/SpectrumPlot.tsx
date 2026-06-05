@@ -212,8 +212,11 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
                 overflow: 'hidden',
                 width: '80vw',
                 height: '75vh',
-                minWidth: 480,
-                minHeight: 360,
+                // Clamp the minimums to the viewport so Paper never exceeds the screen
+                // (CSS min-* normally wins over max-*, which would push Paper off-screen
+                // on narrow phones / short landscape windows).
+                minWidth: 'min(480px, 98vw)',
+                minHeight: 'min(360px, 95vh)',
                 maxWidth: '98vw',
                 maxHeight: '95vh',
                 display: 'flex',
