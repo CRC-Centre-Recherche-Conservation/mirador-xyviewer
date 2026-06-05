@@ -83,12 +83,25 @@ const makeData = (overrides: Partial<SpectrumData> = {}): SpectrumData => ({
   ...overrides,
 });
 
-/** Find the most recent props passed to the inline Plot (i.e. the first one mounted). */
+/**
+ * Return the most recent props passed to the inline Plot.
+ *
+ * Walks plotCalls backwards: when enableExpand=true, the inline Plot is the
+ * one carrying `modeBarButtonsToAdd` (the modal uses baseConfig without it).
+ * When enableExpand=false only the inline Plot is ever rendered, so the last
+ * entry is the inline one.
+ *
+ * Returning the latest entry (not plotCalls[0]) makes the test sensitive to
+ * stale-closure regressions on re-renders.
+ */
 const getInlinePlotProps = (): PlotMockProps => {
-  // The inline plot is always the first call after a render; the modal Plot, if any, comes after.
-  const inline = plotCalls[0];
-  if (!inline) throw new Error('No Plot was rendered');
-  return inline;
+  for (let i = plotCalls.length - 1; i >= 0; i--) {
+    const call = plotCalls[i];
+    if (call.config?.modeBarButtonsToAdd) return call;
+  }
+  const last = plotCalls[plotCalls.length - 1];
+  if (!last) throw new Error('No Plot was rendered');
+  return last;
 };
 
 const getExpandButton = (props: PlotMockProps): ModeBarButtonShape | undefined => {
@@ -285,6 +298,30 @@ describe('SpectrumPlot — expand to modal', () => {
     // Simulate Plotly mutating the modal's layout — inline must remain pristine.
     (modal.layout as { xaxis: { range?: [number, number] } }).xaxis.range = [0, 100];
     expect((inline.layout as { xaxis: { range?: [number, number] } }).xaxis.range).toBeUndefined();
+  });
+
+  // Regression: render under React 19 StrictMode and exercise the full
+  // open → close cycle. Whether or not effects double-invoke here (the
+  // modal mounts through a MUI Portal), the invariant is the same: after
+  // a clean close, no ResizeObserver remains active.
+  it('does not leak a ResizeObserver under StrictMode', async () => {
+    render(
+      <React.StrictMode>
+        <SpectrumPlot data={makeData()} enableExpand />
+      </React.StrictMode>,
+    );
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+    await waitFor(() => {
+      expect(MockResizeObserver.instances.length).toBeGreaterThanOrEqual(1);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+    await waitFor(() => {
+      const active = MockResizeObserver.instances.filter((o) => !o.disconnected);
+      expect(active).toHaveLength(0);
+    });
   });
 
   // Regression: hard-coded English strings are now overridable via the `labels`
