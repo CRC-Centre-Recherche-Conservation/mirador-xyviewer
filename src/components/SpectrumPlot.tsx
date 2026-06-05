@@ -3,7 +3,7 @@
  * Renders spectrum data using Plotly with support for multiple Y series
  */
 
-import React, { useMemo, useState, useEffect, useCallback, useId } from 'react';
+import React, { useMemo, useState, useLayoutEffect, useCallback, useId } from 'react';
 import Plot from 'react-plotly.js';
 import {
   Box,
@@ -64,8 +64,11 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   const handleClose = useCallback(() => setModalOpen(false), []);
 
   // Track modal content size so the plot fills the resizable Paper.
-  // Callback ref via setState makes the effect re-run once the element mounts.
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) runs synchronously after DOM mutations but
+  // before browser paint, so the measured height is applied before the user
+  // sees the initial 500px default — preventing both the first-open flash and
+  // any stale height carried over from a previous resized session.
+  useLayoutEffect(() => {
     if (!modalContentEl) return;
 
     const sync = () => {
