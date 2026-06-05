@@ -38,10 +38,34 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      # npm audit fails the build on high/critical vulnerabilities.
-      # --omit=dev focuses on what ships to consumers, not local tooling.
+      # Runtime-deps vulnerability radar. Non-blocking because most CVEs surface
+      # in transitive deps pulled by Mirador (lodash, dompurify, immutable, ...)
+      # that we can't fix directly — Dependabot opens PRs when upstream patches
+      # become available, and CodeQL covers vulnerable usage in our own code.
       - name: Security audit (runtime deps)
         run: npm audit --audit-level=high --omit=dev
+        continue-on-error: true
+
+  # Surface dependency vulnerabilities introduced BY THIS PR (not historical).
+  # Posts a summary comment on the PR and fails only when the PR adds new
+  # high/critical CVEs — much fairer than gating on the whole transitive tree.
+  # Only runs on PRs; the action has no meaning on push events.
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
 
   build:
     name: Build package
