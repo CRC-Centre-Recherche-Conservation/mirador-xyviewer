@@ -2,11 +2,14 @@ name: CI
 
 on:
   pull_request:
+    branches: [main, dev]
+  # Also run on pushes to main so the CI badge in the README reflects main's state.
+  push:
     branches: [main]
 
 jobs:
   test:
-    name: Test & Build
+    name: Test, Lint & Coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -15,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -27,8 +30,37 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Run tests
-        run: npm run test
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # npm audit fails the build on high/critical vulnerabilities.
+      # --omit=dev focuses on what ships to consumers, not local tooling.
+      - name: Security audit (runtime deps)
+        run: npm audit --audit-level=high --omit=dev
+
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    # Build only on PRs targeting main, or on pushes to main itself.
+    if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build the package
         run: npm run build

@@ -1,5 +1,8 @@
 # Mirador XY Viewer
 
+[![CI](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/CRC-Centre-Recherche-Conservation/mirador-xyviewer/branch/main/graph/badge.svg)](https://codecov.io/gh/CRC-Centre-Recherche-Conservation/mirador-xyviewer)
+[![npm version](https://img.shields.io/npm/v/mirador-xyviewer.svg)](https://www.npmjs.com/package/mirador-xyviewer)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Mirador](https://img.shields.io/badge/Mirador-4.0-green.svg)](https://projectmirador.org/)
 [![IIIF](https://img.shields.io/badge/IIIF-v3-orange.svg)](https://iiif.io/)

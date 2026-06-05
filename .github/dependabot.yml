@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # npm dependencies — weekly bump PRs targeting dev (so they're reviewed
+  # before being merged up to main).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Paris
+    target-branch: dev
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      # Bundle minor/patch bumps to reduce PR noise.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions versions — keep workflows on supported action versions.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    target-branch: dev
+    labels:
+      - dependencies
+      - ci
