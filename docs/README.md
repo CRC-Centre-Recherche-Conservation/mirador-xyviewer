@@ -10,7 +10,7 @@ Welcome to the mirador-xyviewer documentation. This plugin enables visualization
 |-------|-------------|
 | [IIIF Annotations](./IIIF-ANNOTATIONS.md) | How to structure IIIF annotations for physicochemical data |
 | [Spectral Data Format](./SPECTRAL-DATA-FORMAT.md) | CSV/TSV format specification for spectral data |
-
+TEST 2
 ### For Developers / Integrators
 
 | Guide | Description |
