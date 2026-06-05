@@ -38,6 +38,28 @@ const SERIES_COLORS = [
   '#fbc02d', // yellow
 ];
 
+/** Labels overridable for i18n. Defaults are English; consumers can pass translated strings. */
+export interface SpectrumPlotLabels {
+  /** Tooltip of the "expand to modal" modebar button */
+  expandButton?: string;
+  /** aria-label of the dialog's close icon button */
+  closeButton?: string;
+  /** Fallback dialog title when data.label is empty and there is no single-series label */
+  defaultTitle?: string;
+  /** Fallback X axis title when data.xLabel is absent */
+  defaultXAxis?: string;
+  /** Fallback Y axis title when data.yLabel is absent (and series has more than one entry) */
+  defaultYAxis?: string;
+}
+
+const DEFAULT_LABELS: Required<SpectrumPlotLabels> = {
+  expandButton: 'Open in larger view',
+  closeButton: 'close',
+  defaultTitle: 'Spectrum',
+  defaultXAxis: 'X',
+  defaultYAxis: 'Y',
+};
+
 export interface SpectrumPlotProps {
   /** Spectrum data to plot */
   data: SpectrumData;
@@ -47,6 +69,8 @@ export interface SpectrumPlotProps {
   color?: string;
   /** Show the "expand to modal" button overlay (default: false; opt-in to avoid nesting Dialogs in unaware consumers) */
   enableExpand?: boolean;
+  /** Optional label overrides for i18n. Any missing field falls back to its English default. */
+  labels?: SpectrumPlotLabels;
 }
 
 export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
@@ -54,7 +78,9 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   height = 250,
   color,
   enableExpand = false,
+  labels,
 }) => {
+  const t = useMemo(() => ({ ...DEFAULT_LABELS, ...labels }), [labels]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContentEl, setModalContentEl] = useState<HTMLDivElement | null>(null);
   const [modalPlotHeight, setModalPlotHeight] = useState<number>(500);
@@ -124,12 +150,12 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   // Build Plotly layout - minimize margins to maximize plot area
   const layout = useMemo(() => ({
     xaxis: {
-      title: { text: data.xLabel || 'X' },
+      title: { text: data.xLabel || t.defaultXAxis },
       autorange: true,
       automargin: true,
     },
     yaxis: {
-      title: { text: data.series?.length === 1 ? data.series[0].label : (data.yLabel || 'Y') },
+      title: { text: data.series?.length === 1 ? data.series[0].label : (data.yLabel || t.defaultYAxis) },
       autorange: true,
       automargin: true,
     },
@@ -153,7 +179,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'rgba(0,0,0,0.02)',
-  }), [data.xLabel, data.yLabel, data.series, showLegend]);
+  }), [data.xLabel, data.yLabel, data.series, showLegend, t]);
 
   // Base Plotly config — used as-is inside the modal.
   const baseConfig = useMemo(() => ({
@@ -173,7 +199,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     if (!enableExpand) return baseConfig;
     const expandBtn = {
       name: 'expandPlot',
-      title: 'Open in larger view',
+      title: t.expandButton,
       icon: EXPAND_ICON,
       click: handleOpen,
     };
@@ -182,7 +208,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
       ...baseConfig,
       modeBarButtonsToAdd: [...baseButtons, expandBtn],
     };
-  }, [baseConfig, enableExpand, handleOpen]);
+  }, [baseConfig, enableExpand, handleOpen, t.expandButton]);
 
   // Clone traces/layout for the modal Plot. react-plotly.js mutates these
   // references on user interaction (zoom, pan, legend toggle), and sharing
@@ -191,7 +217,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   const modalTraces = useMemo(() => structuredClone(traces), [traces, modalOpen]);
   const modalLayout = useMemo(() => structuredClone(layout), [layout, modalOpen]);
 
-  const dialogTitle = data.label || (data.series?.length === 1 ? data.series[0].label : 'Spectrum');
+  const dialogTitle = data.label || (data.series?.length === 1 ? data.series[0].label : t.defaultTitle);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -244,7 +270,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
                 {dialogTitle}
               </Typography>
             </DialogTitle>
-            <IconButton size="small" onClick={handleClose} aria-label="close" sx={{ flexShrink: 0 }}>
+            <IconButton size="small" onClick={handleClose} aria-label={t.closeButton} sx={{ flexShrink: 0 }}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>

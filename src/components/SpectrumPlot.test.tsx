@@ -287,6 +287,28 @@ describe('SpectrumPlot — expand to modal', () => {
     expect((inline.layout as { xaxis: { range?: [number, number] } }).xaxis.range).toBeUndefined();
   });
 
+  // Regression: hard-coded English strings are now overridable via the `labels`
+  // prop, so callers can translate them without forking the component.
+  it('uses provided labels instead of English defaults', () => {
+    render(
+      <SpectrumPlot
+        data={makeData({ label: '', series: [] })}
+        enableExpand
+        labels={{
+          expandButton: 'Ouvrir en grand',
+          closeButton: 'fermer',
+          defaultTitle: 'Spectre',
+        }}
+      />,
+    );
+    const btn = getExpandButton(getInlinePlotProps());
+    expect(btn?.title).toBe('Ouvrir en grand');
+
+    act(() => { btn!.click!(); });
+    expect(screen.getByRole('button', { name: /^fermer$/i })).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText('Spectre')).toBeInTheDocument();
+  });
+
   // Regression: close button used to be nested inside DialogTitle's <h2>,
   // and the Dialog had no aria-labelledby linking to the title.
   it('exposes a labelled dialog with the close button outside the heading', () => {
