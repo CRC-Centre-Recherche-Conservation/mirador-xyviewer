@@ -168,18 +168,19 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   }), []);
 
   // Inline config adds the custom "expand" button to Plotly's modebar.
+  // Concat (not replace) so any future modeBarButtonsToAdd in baseConfig is preserved.
   const inlineConfig = useMemo(() => {
     if (!enableExpand) return baseConfig;
+    const expandBtn = {
+      name: 'expandPlot',
+      title: 'Open in larger view',
+      icon: EXPAND_ICON,
+      click: handleOpen,
+    };
+    const baseButtons = (baseConfig as { modeBarButtonsToAdd?: unknown[] }).modeBarButtonsToAdd ?? [];
     return {
       ...baseConfig,
-      modeBarButtonsToAdd: [
-        {
-          name: 'expandPlot',
-          title: 'Open in larger view',
-          icon: EXPAND_ICON,
-          click: handleOpen,
-        },
-      ],
+      modeBarButtonsToAdd: [...baseButtons, expandBtn],
     };
   }, [baseConfig, enableExpand, handleOpen]);
 
