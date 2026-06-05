@@ -203,7 +203,8 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
       icon: EXPAND_ICON,
       click: handleOpen,
     };
-    const baseButtons = (baseConfig as { modeBarButtonsToAdd?: unknown[] }).modeBarButtonsToAdd ?? [];
+    const baseButtons =
+      (baseConfig as { modeBarButtonsToAdd?: Array<typeof expandBtn> }).modeBarButtonsToAdd ?? [];
     return {
       ...baseConfig,
       modeBarButtonsToAdd: [...baseButtons, expandBtn],
