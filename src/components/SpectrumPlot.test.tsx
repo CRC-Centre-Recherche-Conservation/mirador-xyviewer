@@ -160,7 +160,7 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(within(screen.getByRole('dialog')).getByText('Intensity (A.U.)')).toBeInTheDocument();
   });
 
-  it('closes the dialog via the close button', () => {
+  it('closes the dialog via the close button', async () => {
     render(<SpectrumPlot data={makeData()} />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
@@ -168,7 +168,10 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Dialog uses MUI Fade transition; node is unmounted after the transition.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
     expect(screen.getAllByTestId('mock-plot')).toHaveLength(1);
   });
 
@@ -188,7 +191,10 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(observer.disconnected).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
-    expect(observer.disconnected).toBe(true);
+    // Disconnect happens during the MUI Fade exit + effect cleanup.
+    await waitFor(() => {
+      expect(observer.disconnected).toBe(true);
+    });
   });
 
   it('does not include the expand button on the modal plot itself', () => {

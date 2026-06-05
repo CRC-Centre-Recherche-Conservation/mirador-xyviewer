@@ -198,9 +198,9 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
         useResizeHandler
       />
 
-      {enableExpand && modalOpen && (
+      {enableExpand && (
         <Dialog
-          open
+          open={modalOpen}
           onClose={handleClose}
           maxWidth={false}
           slotProps={{
