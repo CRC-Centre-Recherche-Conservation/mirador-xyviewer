@@ -83,12 +83,25 @@ const makeData = (overrides: Partial<SpectrumData> = {}): SpectrumData => ({
   ...overrides,
 });
 
-/** Find the most recent props passed to the inline Plot (i.e. the first one mounted). */
+/**
+ * Return the most recent props passed to the inline Plot.
+ *
+ * Walks plotCalls backwards: when enableExpand=true, the inline Plot is the
+ * one carrying `modeBarButtonsToAdd` (the modal uses baseConfig without it).
+ * When enableExpand=false only the inline Plot is ever rendered, so the last
+ * entry is the inline one.
+ *
+ * Returning the latest entry (not plotCalls[0]) makes the test sensitive to
+ * stale-closure regressions on re-renders.
+ */
 const getInlinePlotProps = (): PlotMockProps => {
-  // The inline plot is always the first call after a render; the modal Plot, if any, comes after.
-  const inline = plotCalls[0];
-  if (!inline) throw new Error('No Plot was rendered');
-  return inline;
+  for (let i = plotCalls.length - 1; i >= 0; i--) {
+    const call = plotCalls[i];
+    if (call.config?.modeBarButtonsToAdd) return call;
+  }
+  const last = plotCalls[plotCalls.length - 1];
+  if (!last) throw new Error('No Plot was rendered');
+  return last;
 };
 
 const getExpandButton = (props: PlotMockProps): ModeBarButtonShape | undefined => {
@@ -112,8 +125,13 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(screen.getByTestId('mock-plot')).toBeInTheDocument();
   });
 
-  it('adds a custom "expandPlot" modebar button by default', () => {
+  it('does NOT add the expand button by default (opt-in)', () => {
     render(<SpectrumPlot data={makeData()} />);
+    expect(getInlinePlotProps().config?.modeBarButtonsToAdd).toBeUndefined();
+  });
+
+  it('adds a custom "expandPlot" modebar button when enableExpand is true', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     const btn = getExpandButton(getInlinePlotProps());
     expect(btn).toBeDefined();
     expect(btn?.title).toBe('Open in larger view');
@@ -128,13 +146,13 @@ describe('SpectrumPlot — expand to modal', () => {
   });
 
   it('does not mount the dialog before the modebar button is clicked', () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     expect(screen.getAllByTestId('mock-plot')).toHaveLength(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('opens the dialog when the modebar click handler fires', () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     const btn = getExpandButton(getInlinePlotProps());
     expect(btn).toBeDefined();
 
@@ -152,6 +170,7 @@ describe('SpectrumPlot — expand to modal', () => {
     render(
       <SpectrumPlot
         data={makeData({ label: '', series: [{ label: 'Intensity (A.U.)', yValues: [1, 2] }] })}
+        enableExpand
       />,
     );
     act(() => {
@@ -160,20 +179,23 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(within(screen.getByRole('dialog')).getByText('Intensity (A.U.)')).toBeInTheDocument();
   });
 
-  it('closes the dialog via the close button', () => {
-    render(<SpectrumPlot data={makeData()} />);
+  it('closes the dialog via the close button', async () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Dialog uses MUI Fade transition; node is unmounted after the transition.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
     expect(screen.getAllByTestId('mock-plot')).toHaveLength(1);
   });
 
   it('attaches a ResizeObserver while the dialog is open and disconnects on close', async () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
@@ -188,11 +210,14 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(observer.disconnected).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
-    expect(observer.disconnected).toBe(true);
+    // Disconnect happens during the MUI Fade exit + effect cleanup.
+    await waitFor(() => {
+      expect(observer.disconnected).toBe(true);
+    });
   });
 
   it('does not include the expand button on the modal plot itself', () => {
-    render(<SpectrumPlot data={makeData()} />);
+    render(<SpectrumPlot data={makeData()} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
@@ -209,7 +234,7 @@ describe('SpectrumPlot — expand to modal', () => {
         { label: 'B', yValues: [4, 3, 2, 1] },
       ],
     });
-    render(<SpectrumPlot data={data} />);
+    render(<SpectrumPlot data={data} enableExpand />);
     act(() => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
@@ -218,5 +243,144 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(plots).toHaveLength(2);
     expect(plots[0]).toHaveAttribute('data-trace-count', '2');
     expect(plots[1]).toHaveAttribute('data-trace-count', '2');
+  });
+
+  // Regression: empty xValues array was truthy and bypassed the legacy fallback,
+  // producing a silent empty chart instead of using data.points.
+  it('falls back to legacy points when xValues is an empty array', () => {
+    const data = makeData({
+      xValues: [],
+      series: [{ label: 'S', yValues: [99, 99, 99] }],
+      points: [
+        { x: 10, y: 1 },
+        { x: 20, y: 2 },
+        { x: 30, y: 3 },
+      ],
+    });
+    render(<SpectrumPlot data={data} />);
+    const traces = getInlinePlotProps().data as Array<{ x: number[]; y: number[] }>;
+    expect(traces).toHaveLength(1);
+    expect(traces[0].x).toEqual([10, 20, 30]);
+    expect(traces[0].y).toEqual([1, 2, 3]);
+  });
+
+  // Regression: untyped JS callers can pass SpectrumData without `points`;
+  // the legacy fallback used to crash with "Cannot read properties of undefined".
+  it('does not crash when both xValues and points are absent', () => {
+    const data = {
+      id: 'x',
+      label: 'L',
+      xValues: [],
+      series: [],
+      mimeType: 'text/csv',
+      // points intentionally omitted
+    } as unknown as SpectrumData;
+
+    expect(() => render(<SpectrumPlot data={data} />)).not.toThrow();
+    const traces = getInlinePlotProps().data as unknown[];
+    expect(traces).toHaveLength(1);
+  });
+
+  // Regression: react-plotly.js mutates the layout/data references on user
+  // interaction (zoom, pan, legend toggle). Sharing them between the inline
+  // and modal Plots leaked interaction state between the two.
+  it('passes distinct layout and data references to inline and modal plots', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+
+    const inline = plotCalls[0];
+    const modal = plotCalls[plotCalls.length - 1];
+    expect(modal.layout).not.toBe(inline.layout);
+    expect(modal.data).not.toBe(inline.data);
+
+    // Simulate Plotly mutating the modal's layout — inline must remain pristine.
+    (modal.layout as { xaxis: { range?: [number, number] } }).xaxis.range = [0, 100];
+    expect((inline.layout as { xaxis: { range?: [number, number] } }).xaxis.range).toBeUndefined();
+  });
+
+  // Regression: render under React 19 StrictMode and exercise the full
+  // open → close cycle. Whether or not effects double-invoke here (the
+  // modal mounts through a MUI Portal), the invariant is the same: after
+  // a clean close, no ResizeObserver remains active.
+  it('does not leak a ResizeObserver under StrictMode', async () => {
+    render(
+      <React.StrictMode>
+        <SpectrumPlot data={makeData()} enableExpand />
+      </React.StrictMode>,
+    );
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+    await waitFor(() => {
+      expect(MockResizeObserver.instances.length).toBeGreaterThanOrEqual(1);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+    await waitFor(() => {
+      const active = MockResizeObserver.instances.filter((o) => !o.disconnected);
+      expect(active).toHaveLength(0);
+    });
+  });
+
+  // Regression: hard-coded English strings are now overridable via the `labels`
+  // prop, so callers can translate them without forking the component.
+  it('uses provided labels instead of English defaults', () => {
+    render(
+      <SpectrumPlot
+        data={makeData({ label: '', series: [] })}
+        enableExpand
+        labels={{
+          expandButton: 'Ouvrir en grand',
+          closeButton: 'fermer',
+          defaultTitle: 'Spectre',
+        }}
+      />,
+    );
+    const btn = getExpandButton(getInlinePlotProps());
+    expect(btn?.title).toBe('Ouvrir en grand');
+
+    act(() => { btn!.click!(); });
+    expect(screen.getByRole('button', { name: /^fermer$/i })).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText('Spectre')).toBeInTheDocument();
+  });
+
+  // Regression: close button used to be nested inside DialogTitle's <h2>,
+  // and the Dialog had no aria-labelledby linking to the title.
+  it('exposes a labelled dialog with the close button outside the heading', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+
+    const dialog = screen.getByRole('dialog');
+    const heading = within(dialog).getByRole('heading', { level: 2 });
+    expect(heading).toHaveTextContent('Test Spectrum');
+    // aria-labelledby must point to the heading's id (set via useId).
+    expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
+    // Close button must NOT be a descendant of the heading.
+    const closeBtn = within(dialog).getByRole('button', { name: /^close$/i });
+    expect(heading.contains(closeBtn)).toBe(false);
+  });
+
+  // Regression: closing the modal used to fully unmount the Dialog, breaking
+  // MUI's exit transition. With controlled `open`, re-opening after close must work.
+  it('can reopen the modal after closing it', async () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

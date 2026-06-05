@@ -200,7 +200,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       <Collapse in={expanded && status === 'success' && data !== null}>
         {data && (
           <Box sx={{ mt: 1, width: '100%' }}>
-            <SpectrumPlot data={data} />
+            <SpectrumPlot data={data} enableExpand />
           </Box>
         )}
       </Collapse>

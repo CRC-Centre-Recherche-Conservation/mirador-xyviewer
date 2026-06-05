@@ -36,6 +36,7 @@ export type {
   DatasetBodyProps,
   TextualBodyProps,
   SpectrumPlotProps,
+  SpectrumPlotLabels,
   AnnotationBodyRendererProps,
   MetadataDisplayProps,
   ImageComparisonSliderProps,
