@@ -81,7 +81,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   // Build Plotly traces - one per Y series
   const traces: PlotlyTrace[] = useMemo(() => {
     // Use new multi-series format if available
-    if (data.series && data.series.length > 0 && data.xValues) {
+    if (data.series && data.series.length > 0 && data.xValues && data.xValues.length > 0) {
       return data.series.map((series, idx) => ({
         x: data.xValues,
         y: series.yValues,
