@@ -231,4 +231,79 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(plots[0]).toHaveAttribute('data-trace-count', '2');
     expect(plots[1]).toHaveAttribute('data-trace-count', '2');
   });
+
+  // Regression: empty xValues array was truthy and bypassed the legacy fallback,
+  // producing a silent empty chart instead of using data.points.
+  it('falls back to legacy points when xValues is an empty array', () => {
+    const data = makeData({
+      xValues: [],
+      series: [{ label: 'S', yValues: [99, 99, 99] }],
+      points: [
+        { x: 10, y: 1 },
+        { x: 20, y: 2 },
+        { x: 30, y: 3 },
+      ],
+    });
+    render(<SpectrumPlot data={data} />);
+    const traces = getInlinePlotProps().data as Array<{ x: number[]; y: number[] }>;
+    expect(traces).toHaveLength(1);
+    expect(traces[0].x).toEqual([10, 20, 30]);
+    expect(traces[0].y).toEqual([1, 2, 3]);
+  });
+
+  // Regression: untyped JS callers can pass SpectrumData without `points`;
+  // the legacy fallback used to crash with "Cannot read properties of undefined".
+  it('does not crash when both xValues and points are absent', () => {
+    const data = {
+      id: 'x',
+      label: 'L',
+      xValues: [],
+      series: [],
+      mimeType: 'text/csv',
+      // points intentionally omitted
+    } as unknown as SpectrumData;
+
+    expect(() => render(<SpectrumPlot data={data} />)).not.toThrow();
+    const traces = getInlinePlotProps().data as unknown[];
+    expect(traces).toHaveLength(1);
+  });
+
+  // Regression: react-plotly.js mutates the layout/data references on user
+  // interaction (zoom, pan, legend toggle). Sharing them between the inline
+  // and modal Plots leaked interaction state between the two.
+  it('passes distinct layout and data references to inline and modal plots', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+
+    const inline = plotCalls[0];
+    const modal = plotCalls[plotCalls.length - 1];
+    expect(modal.layout).not.toBe(inline.layout);
+    expect(modal.data).not.toBe(inline.data);
+
+    // Simulate Plotly mutating the modal's layout — inline must remain pristine.
+    (modal.layout as { xaxis: { range?: [number, number] } }).xaxis.range = [0, 100];
+    expect((inline.layout as { xaxis: { range?: [number, number] } }).xaxis.range).toBeUndefined();
+  });
+
+  // Regression: closing the modal used to fully unmount the Dialog, breaking
+  // MUI's exit transition. With controlled `open`, re-opening after close must work.
+  it('can reopen the modal after closing it', async () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    act(() => {
+      getExpandButton(getInlinePlotProps())!.click!();
+    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 });
