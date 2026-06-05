@@ -38,14 +38,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      # Runtime-deps vulnerability radar. Non-blocking because most CVEs surface
-      # in transitive deps pulled by Mirador (lodash, dompurify, immutable, ...)
-      # that we can't fix directly — Dependabot opens PRs when upstream patches
-      # become available, and CodeQL covers vulnerable usage in our own code.
-      - name: Security audit (runtime deps)
-        run: npm audit --audit-level=high --omit=dev
-        continue-on-error: true
-
   # Surface dependency vulnerabilities introduced BY THIS PR (not historical).
   # Posts a summary comment on the PR and fails only when the PR adds new
   # high/critical CVEs — much fairer than gating on the whole transitive tree.
