@@ -179,6 +179,13 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     };
   }, [baseConfig, enableExpand, handleOpen]);
 
+  // Clone traces/layout for the modal Plot. react-plotly.js mutates these
+  // references on user interaction (zoom, pan, legend toggle), and sharing
+  // them with the inline Plot would leak interaction state between the two.
+  // Re-cloning whenever the modal opens also ensures a fresh starting state.
+  const modalTraces = useMemo(() => structuredClone(traces), [traces, modalOpen]);
+  const modalLayout = useMemo(() => structuredClone(layout), [layout, modalOpen]);
+
   const dialogTitle = data.label || (data.series?.length === 1 ? data.series[0].label : 'Spectrum');
 
   return (
@@ -235,8 +242,8 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
           >
             <Box ref={setModalContentEl} sx={{ width: '100%', height: '100%' }}>
               <Plot
-                data={traces}
-                layout={layout}
+                data={modalTraces}
+                layout={modalLayout}
                 config={baseConfig}
                 style={{ width: '100%', height: modalPlotHeight }}
                 useResizeHandler
