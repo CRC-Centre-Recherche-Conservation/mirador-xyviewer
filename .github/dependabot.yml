@@ -30,3 +30,9 @@ updates:
     labels:
       - dependencies
       - ci
+    groups:
+      # Bundle minor/patch action bumps to reduce PR noise.
+      actions:
+        update-types:
+          - minor
+          - patch
