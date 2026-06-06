@@ -11,6 +11,9 @@ jobs:
   test:
     name: Test, Lint & Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -45,6 +48,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -62,6 +66,9 @@ jobs:
   build:
     name: Build package
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     # Build only on PRs targeting main, or on pushes to main itself.
     if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
     needs: test
