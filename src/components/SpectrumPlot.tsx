@@ -3,10 +3,26 @@
  * Renders spectrum data using Plotly with support for multiple Y series
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useLayoutEffect, useCallback, useId } from 'react';
 import Plot from 'react-plotly.js';
-import { Box } from '@mui/material';
+import {
+  Box,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Typography,
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import type { SpectrumData, PlotlyTrace } from '../types/dataset';
+
+// Material "open in full" icon path, Y-flipped for Plotly's modebar coord system.
+const EXPAND_ICON = {
+  width: 24,
+  height: 24,
+  path: 'M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10z',
+  transform: 'matrix(1 0 0 -1 0 24)',
+};
 
 /** Color palette for multiple series */
 const SERIES_COLORS = [
@@ -22,6 +38,28 @@ const SERIES_COLORS = [
   '#fbc02d', // yellow
 ];
 
+/** Labels overridable for i18n. Defaults are English; consumers can pass translated strings. */
+export interface SpectrumPlotLabels {
+  /** Tooltip of the "expand to modal" modebar button */
+  expandButton?: string;
+  /** aria-label of the dialog's close icon button */
+  closeButton?: string;
+  /** Fallback dialog title when data.label is empty and there is no single-series label */
+  defaultTitle?: string;
+  /** Fallback X axis title when data.xLabel is absent */
+  defaultXAxis?: string;
+  /** Fallback Y axis title when data.yLabel is absent (and series has more than one entry) */
+  defaultYAxis?: string;
+}
+
+const DEFAULT_LABELS: Required<SpectrumPlotLabels> = {
+  expandButton: 'Open in larger view',
+  closeButton: 'close',
+  defaultTitle: 'Spectrum',
+  defaultXAxis: 'X',
+  defaultYAxis: 'Y',
+};
+
 export interface SpectrumPlotProps {
   /** Spectrum data to plot */
   data: SpectrumData;
@@ -29,17 +67,51 @@ export interface SpectrumPlotProps {
   height?: number;
   /** Custom trace color (used only for single series) */
   color?: string;
+  /** Show the "expand to modal" button overlay (default: false; opt-in to avoid nesting Dialogs in unaware consumers) */
+  enableExpand?: boolean;
+  /** Optional label overrides for i18n. Any missing field falls back to its English default. */
+  labels?: SpectrumPlotLabels;
 }
 
 export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   data,
   height = 250,
   color,
+  enableExpand = false,
+  labels,
 }) => {
+  const t = useMemo(() => ({ ...DEFAULT_LABELS, ...labels }), [labels]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalContentEl, setModalContentEl] = useState<HTMLDivElement | null>(null);
+  const [modalPlotHeight, setModalPlotHeight] = useState<number>(500);
+  const dialogTitleId = useId();
+
+  const handleOpen = useCallback(() => setModalOpen(true), []);
+  const handleClose = useCallback(() => setModalOpen(false), []);
+
+  // Track modal content size so the plot fills the resizable Paper.
+  // useLayoutEffect (not useEffect) runs synchronously after DOM mutations but
+  // before browser paint, so the measured height is applied before the user
+  // sees the initial 500px default — preventing both the first-open flash and
+  // any stale height carried over from a previous resized session.
+  useLayoutEffect(() => {
+    if (!modalContentEl) return;
+
+    const sync = () => {
+      const h = modalContentEl.clientHeight;
+      if (h > 0) setModalPlotHeight(h);
+    };
+    sync();
+
+    const observer = new ResizeObserver(sync);
+    observer.observe(modalContentEl);
+    return () => observer.disconnect();
+  }, [modalContentEl]);
+
   // Build Plotly traces - one per Y series
   const traces: PlotlyTrace[] = useMemo(() => {
     // Use new multi-series format if available
-    if (data.series && data.series.length > 0 && data.xValues) {
+    if (data.series && data.series.length > 0 && data.xValues && data.xValues.length > 0) {
       return data.series.map((series, idx) => ({
         x: data.xValues,
         y: series.yValues,
@@ -57,9 +129,10 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     }
 
     // Fallback to legacy single-series format
+    const points = data.points ?? [];
     return [{
-      x: data.points.map(p => p.x),
-      y: data.points.map(p => p.y),
+      x: points.map(p => p.x),
+      y: points.map(p => p.y),
       type: 'scatter' as const,
       mode: 'lines' as const,
       name: data.label,
@@ -77,12 +150,12 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   // Build Plotly layout - minimize margins to maximize plot area
   const layout = useMemo(() => ({
     xaxis: {
-      title: { text: data.xLabel || 'X' },
+      title: { text: data.xLabel || t.defaultXAxis },
       autorange: true,
       automargin: true,
     },
     yaxis: {
-      title: { text: data.series?.length === 1 ? data.series[0].label : (data.yLabel || 'Y') },
+      title: { text: data.series?.length === 1 ? data.series[0].label : (data.yLabel || t.defaultYAxis) },
       autorange: true,
       automargin: true,
     },
@@ -106,10 +179,10 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'rgba(0,0,0,0.02)',
-  }), [data.xLabel, data.yLabel, data.series, showLegend]);
+  }), [data.xLabel, data.yLabel, data.series, showLegend, t]);
 
-  // Plotly config
-  const config = useMemo(() => ({
+  // Base Plotly config — used as-is inside the modal.
+  const baseConfig = useMemo(() => ({
     responsive: true,
     displayModeBar: true,
     displaylogo: false,
@@ -120,15 +193,104 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     ] as ('select2d' | 'lasso2d' | 'autoScale2d')[],
   }), []);
 
+  // Inline config adds the custom "expand" button to Plotly's modebar.
+  // Concat (not replace) so any future modeBarButtonsToAdd in baseConfig is preserved.
+  const inlineConfig = useMemo(() => {
+    if (!enableExpand) return baseConfig;
+    const expandBtn = {
+      name: 'expandPlot',
+      title: t.expandButton,
+      icon: EXPAND_ICON,
+      click: handleOpen,
+    };
+    const baseButtons =
+      (baseConfig as { modeBarButtonsToAdd?: Array<typeof expandBtn> }).modeBarButtonsToAdd ?? [];
+    return {
+      ...baseConfig,
+      modeBarButtonsToAdd: [...baseButtons, expandBtn],
+    };
+  }, [baseConfig, enableExpand, handleOpen, t.expandButton]);
+
+  // Clone traces/layout for the modal Plot. react-plotly.js mutates these
+  // references on user interaction (zoom, pan, legend toggle), and sharing
+  // them with the inline Plot would leak interaction state between the two.
+  // Re-cloning whenever the modal opens also ensures a fresh starting state.
+  const modalTraces = useMemo(() => structuredClone(traces), [traces, modalOpen]);
+  const modalLayout = useMemo(() => structuredClone(layout), [layout, modalOpen]);
+
+  const dialogTitle = data.label || (data.series?.length === 1 ? data.series[0].label : t.defaultTitle);
+
   return (
     <Box sx={{ width: '100%' }}>
       <Plot
         data={traces}
         layout={layout}
-        config={config}
+        config={inlineConfig}
         style={{ width: '100%', height }}
         useResizeHandler
       />
+
+      {enableExpand && (
+        <Dialog
+          open={modalOpen}
+          onClose={handleClose}
+          maxWidth={false}
+          aria-labelledby={dialogTitleId}
+          slotProps={{
+            paper: {
+              sx: {
+                resize: 'both',
+                overflow: 'hidden',
+                width: '80vw',
+                height: '75vh',
+                // Clamp the minimums to the viewport so Paper never exceeds the screen
+                // (CSS min-* normally wins over max-*, which would push Paper off-screen
+                // on narrow phones / short landscape windows).
+                minWidth: 'min(480px, 98vw)',
+                minHeight: 'min(360px, 95vh)',
+                maxWidth: '98vw',
+                maxHeight: '95vh',
+                display: 'flex',
+                flexDirection: 'column',
+              },
+            },
+          }}
+        >
+          {/* Header row: heading + close button as siblings (not nested in <h2>). */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              pr: 1,
+            }}
+          >
+            {/* flex:1 + minWidth:0 lets DialogTitle shrink so noWrap can ellipsize long labels. */}
+            <DialogTitle id={dialogTitleId} sx={{ py: 1, px: 2, flex: 1, minWidth: 0 }}>
+              <Typography variant="subtitle1" component="span" noWrap sx={{ display: 'block' }}>
+                {dialogTitle}
+              </Typography>
+            </DialogTitle>
+            <IconButton size="small" onClick={handleClose} aria-label={t.closeButton} sx={{ flexShrink: 0 }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <DialogContent
+            dividers
+            sx={{ p: 1, flex: 1, overflow: 'hidden' }}
+          >
+            <Box ref={setModalContentEl} sx={{ width: '100%', height: '100%' }}>
+              <Plot
+                data={modalTraces}
+                layout={modalLayout}
+                config={baseConfig}
+                style={{ width: '100%', height: modalPlotHeight }}
+                useResizeHandler
+              />
+            </Box>
+          </DialogContent>
+        </Dialog>
+      )}
     </Box>
   );
 };

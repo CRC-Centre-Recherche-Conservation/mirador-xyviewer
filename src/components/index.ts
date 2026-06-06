@@ -12,7 +12,7 @@ export { TextualBody } from './TextualBody';
 export type { TextualBodyProps } from './TextualBody';
 
 export { SpectrumPlot } from './SpectrumPlot';
-export type { SpectrumPlotProps } from './SpectrumPlot';
+export type { SpectrumPlotProps, SpectrumPlotLabels } from './SpectrumPlot';
 
 export { AnnotationBodyRenderer } from './AnnotationBodyRenderer';
 export type { AnnotationBodyRendererProps } from './AnnotationBodyRenderer';
