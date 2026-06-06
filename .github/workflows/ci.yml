@@ -48,7 +48,7 @@ jobs:
       # Upload coverage only once (latest Node version) to avoid duplicate reports.
       - name: Upload coverage reports to Codecov
         if: matrix.node-version == 22
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
