@@ -36,8 +36,9 @@ const DEFAULT_HEIGHT = 400;
 
 /**
  * Extract metadata from annotation resources for filtering
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractAnnotationsWithMetadata(
+export function extractAnnotationsWithMetadata(
   annotationResources: Record<string, IIIFAnnotation>
 ): Array<{
   id: string;
@@ -363,8 +364,9 @@ const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, MetadataFilter
 
 /**
  * Map Mirador state to props
+ * @internal Exposed for tests; not part of the public API.
  */
-function mapStateToProps(
+export function mapStateToProps(
   state: MiradorState,
   { windowId }: { windowId: string }
 ): Partial<MetadataFiltersPluginProps> {
