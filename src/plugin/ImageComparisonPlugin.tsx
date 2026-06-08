@@ -15,8 +15,9 @@ import { getLocalizedString } from '../utils/localization';
 
 /**
  * Extract image URL from IIIF canvas
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractImageUrl(canvas: IIIFCanvas): string | null {
+export function extractImageUrl(canvas: IIIFCanvas): string | null {
   // IIIF Presentation 3.0
   if (canvas.items) {
     for (const page of canvas.items) {
@@ -56,8 +57,9 @@ function extractImageUrl(canvas: IIIFCanvas): string | null {
 
 /**
  * Extract thumbnail URL from IIIF canvas
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractThumbnailUrl(canvas: IIIFCanvas): string | null {
+export function extractThumbnailUrl(canvas: IIIFCanvas): string | null {
   if (canvas.thumbnail) {
     if (typeof canvas.thumbnail === 'string') {
       return canvas.thumbnail;
@@ -100,8 +102,9 @@ interface IIIFManifest {
 
 /**
  * Extract canvases from manifest
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractCanvases(manifest: IIIFManifest | null | undefined): CanvasInfo[] {
+export function extractCanvases(manifest: IIIFManifest | null | undefined): CanvasInfo[] {
   if (!manifest) return [];
 
   const canvases: CanvasInfo[] = [];
@@ -147,8 +150,9 @@ function extractCanvases(manifest: IIIFManifest | null | undefined): CanvasInfo[
 
 /**
  * Get canvas label as string
+ * @internal Exposed for tests; not part of the public API.
  */
-function getCanvasLabel(label: LocalizedString | string | undefined, index: number): string {
+export function getCanvasLabel(label: LocalizedString | string | undefined, index: number): string {
   if (!label) return `Image ${index + 1}`;
   if (typeof label === 'string') return label;
   return getLocalizedString(label) || `Image ${index + 1}`;
