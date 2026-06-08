@@ -296,9 +296,6 @@ describe('SelectionHighlightPlugin', () => {
 
     it('should not exceed MAX_HIGHLIGHT_SIZE for large annotations', () => {
       // Even for a very large annotation, the highlight should be capped
-      const largeBounds: [number, number, number, number] = [0, 0, 1000, 1000];
-      const annotationSize = Math.max(largeBounds[2], largeBounds[3]);
-
       // The display size should still be capped at MAX_HIGHLIGHT_SIZE
       const displaySize = Math.min(MAX_HIGHLIGHT_SIZE, Math.max(MIN_HIGHLIGHT_SIZE, 80));
       expect(displaySize).toBeLessThanOrEqual(MAX_HIGHLIGHT_SIZE);

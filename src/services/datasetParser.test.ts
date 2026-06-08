@@ -89,7 +89,7 @@ describe('datasetParser', () => {
 
       for (const { header, data } of patterns) {
         const result = parseDataset(data, 'id', 'Label', 'text/csv');
-        expect(result.xLabel.toLowerCase()).toBe(header.toLowerCase());
+        expect(result.xLabel?.toLowerCase()).toBe(header.toLowerCase());
       }
     });
 
