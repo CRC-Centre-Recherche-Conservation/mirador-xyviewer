@@ -61,8 +61,9 @@ type FiltersStoreListener = (event: FiltersStoreEvent) => void;
 /**
  * Parse value to extract display text and URL
  * Format: "Display text (http://...)" or just "Display text"
+ * @internal Exposed for tests; not part of the public API.
  */
-function parseValueWithUrl(value: string): { displayText: string; url?: string } {
+export function parseValueWithUrl(value: string): { displayText: string; url?: string } {
   const urlMatch = value.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
   if (urlMatch) {
     return {
@@ -75,15 +76,17 @@ function parseValueWithUrl(value: string): { displayText: string; url?: string }
 
 /**
  * Normalize a label key for grouping
+ * @internal Exposed for tests; not part of the public API.
  */
-function normalizeKey(text: string): string {
+export function normalizeKey(text: string): string {
   return text.toLowerCase().trim().replace(/\s+/g, '_');
 }
 
 /**
  * Create a composite key from windowId and canvasId
+ * @internal Exposed for tests; not part of the public API.
  */
-function createKey(windowId: string, canvasId: string): string {
+export function createKey(windowId: string, canvasId: string): string {
   return `${windowId}::${canvasId}`;
 }
 
