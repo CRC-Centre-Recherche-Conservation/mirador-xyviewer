@@ -99,7 +99,7 @@
   "license": "Apache-2.0",
   "homepage": "https://crc-centre-recherche-conservation.github.io/mirador-xyviewer",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
