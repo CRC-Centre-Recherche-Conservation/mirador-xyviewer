@@ -50,10 +50,16 @@ class DatasetCacheService {
   setPendingRequest(url: string, promise: Promise<SpectrumData>): void {
     this.pendingRequests.set(url, promise);
 
-    // Clean up after request completes
-    promise.finally(() => {
-      this.pendingRequests.delete(url);
-    });
+    // Clean up after the request completes. The caller awaiting the original
+    // promise is responsible for its rejection; the .catch() here keeps this
+    // cleanup-only chain from surfacing an unhandled rejection on failed fetches.
+    promise
+      .finally(() => {
+        this.pendingRequests.delete(url);
+      })
+      .catch(() => {
+        /* handled by the awaiter of the original request */
+      });
   }
 
   /**
