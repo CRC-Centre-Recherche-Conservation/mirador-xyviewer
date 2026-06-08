@@ -34,7 +34,7 @@ interface AnnotationResource {
   targetId: string;
   // These are getters that return computed values
   fragmentSelector?: [number, number, number, number] | null;
-  svgSelector?: { value: string; type: string } | null;
+  svgSelector?: { value: string; type?: string } | null;
 }
 
 /**
@@ -101,8 +101,9 @@ interface PluginWrapperProps {
  * Returns [x, y, width, height] in canvas/image coordinates
  *
  * Note: fragmentSelector and svgSelector are getters in Mirador's AnnotationItem class
+ * @internal Exposed for tests; not part of the public API.
  */
-function getAnnotationBounds(resource: AnnotationResource): [number, number, number, number] | null {
+export function getAnnotationBounds(resource: AnnotationResource): [number, number, number, number] | null {
   // Try fragment selector first: [x, y, width, height]
   // The getter returns null if not present
   const fragment = resource.fragmentSelector;
@@ -140,8 +141,9 @@ function getAnnotationBounds(resource: AnnotationResource): [number, number, num
 
 /**
  * Get center point of bounds
+ * @internal Exposed for tests; not part of the public API.
  */
-function getBoundsCenter(bounds: [number, number, number, number]): { x: number; y: number } {
+export function getBoundsCenter(bounds: [number, number, number, number]): { x: number; y: number } {
   const [x, y, w, h] = bounds;
   return { x: x + w / 2, y: y + h / 2 };
 }
@@ -150,8 +152,9 @@ function getBoundsCenter(bounds: [number, number, number, number]): { x: number;
  * Find annotation resource by ID across all annotation lists
  * In Mirador, annotations is an array of AnnotationPage objects,
  * each with a `resources` property containing AnnotationItem objects
+ * @internal Exposed for tests; not part of the public API.
  */
-function findAnnotationResource(annotations: AnnotationList[], annotationId: string): AnnotationResource | null {
+export function findAnnotationResource(annotations: AnnotationList[], annotationId: string): AnnotationResource | null {
   if (!annotations || !Array.isArray(annotations)) {
     return null;
   }
