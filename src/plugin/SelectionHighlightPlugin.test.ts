@@ -1,4 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import {
+  getAnnotationBounds,
+  getBoundsCenter,
+  findAnnotationResource,
+} from './SelectionHighlightPlugin';
 
 /**
  * Tests for SelectionHighlightPlugin utility functions
@@ -8,8 +13,8 @@ import { describe, it, expect } from 'vitest';
  * pure utility functions.
  */
 
-// Re-implement the utility functions for testing (they are not exported from the plugin)
-// This ensures the logic is correct without needing to export internal functions
+// Internal helpers are imported from the plugin via @internal exports (no
+// re-implementation). The local IIIF-ish types below only type the test fixtures.
 
 interface AnnotationResource {
   id: string;
@@ -21,60 +26,6 @@ interface AnnotationResource {
 interface AnnotationList {
   id: string;
   resources: AnnotationResource[];
-}
-
-const DEFAULT_POINT_RADIUS = 12;
-
-/**
- * Extract coordinates from an annotation resource
- * Matches the implementation in SelectionHighlightPlugin.tsx
- */
-function getAnnotationBounds(resource: AnnotationResource): [number, number, number, number] | null {
-  // Try fragment selector first
-  const fragment = resource.fragmentSelector;
-  if (fragment && Array.isArray(fragment) && fragment.length === 4) {
-    return fragment as [number, number, number, number];
-  }
-
-  // Try SVG selector
-  const svg = resource.svgSelector;
-  if (svg && svg.value) {
-    const svgString = svg.value;
-    const moveMatch = svgString.match(/M\s*([\d.]+)\s+([\d.]+)/);
-    if (moveMatch) {
-      const x = parseFloat(moveMatch[1]);
-      const yMinusRadius = parseFloat(moveMatch[2]);
-      const arcMatch = svgString.match(/A\s*([\d.]+)\s+([\d.]+)/);
-      const radius = arcMatch ? parseFloat(arcMatch[1]) : DEFAULT_POINT_RADIUS;
-      const y = yMinusRadius + radius;
-      const size = radius * 2;
-      return [x - radius, y - radius, size, size];
-    }
-  }
-
-  return null;
-}
-
-/**
- * Get center point of bounds
- */
-function getBoundsCenter(bounds: [number, number, number, number]): { x: number; y: number } {
-  const [x, y, w, h] = bounds;
-  return { x: x + w / 2, y: y + h / 2 };
-}
-
-/**
- * Find annotation resource by ID
- */
-function findAnnotationResource(annotations: AnnotationList[], annotationId: string): AnnotationResource | null {
-  for (const list of annotations) {
-    for (const resource of list.resources) {
-      if (resource.id === annotationId) {
-        return resource;
-      }
-    }
-  }
-  return null;
 }
 
 // Constants matching the plugin
