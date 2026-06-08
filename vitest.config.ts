@@ -18,6 +18,15 @@ export default defineConfig({
         'src/**/index.ts',
         'src/test/**',
       ],
+      // Floor = measured − ~3 pts (v8 jitters run-to-run on async/branch code).
+      // Bumped each PR to lock in gains; capped at 70% (the agreed minimum) by PR5.
+      thresholds: {
+        statements: 40,
+        branches: 29,
+        functions: 35,
+        lines: 40,
+        autoUpdate: false,
+      },
     },
   },
   resolve: {
