@@ -21,10 +21,10 @@ export default defineConfig({
       // Floor = measured − ~3 pts (v8 jitters run-to-run on async/branch code).
       // Bumped each PR to lock in gains; capped at 70% (the agreed minimum) by PR5.
       thresholds: {
-        statements: 45,
-        branches: 35,
-        functions: 40,
-        lines: 45,
+        statements: 70,
+        branches: 65,
+        functions: 65,
+        lines: 70,
         autoUpdate: false,
       },
     },
