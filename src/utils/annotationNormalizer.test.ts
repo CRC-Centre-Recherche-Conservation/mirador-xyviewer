@@ -1,16 +1,20 @@
 /**
  * Tests for the IIIF annotation normalizer.
  *
- * Covers v3 passthrough, v2 → v3 conversion (annotation/body/target/seeAlso/
- * localized values), multi-body, duplicate-`@id` safety, mixed canvases,
- * robustness, and a v2/v3 round-trip equivalence assertion (§9.1 + §9.2).
+ * Covers the adapter registry (recognition + selection), Presentation 3 / 2
+ * field mapping (annotation/body/target/seeAlso/localized values), multi-body,
+ * duplicate-id safety, mixed containers, robustness, a v2/v3 round-trip
+ * equivalence assertion, and registry extensibility for a future format.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
-  detectAnnoVersion,
   v2ValueToLocalized,
   normalizeAnnotationList,
   normalizeAnnotationResources,
+  adapterFor,
+  registerAnnotationAdapter,
+  ANNOTATION_ADAPTERS,
+  type AnnotationAdapter,
 } from './annotationNormalizer';
 import { getLocalizedString } from './localization';
 import type { AnnotationBody, AnnotationTarget } from '../types/iiif';
@@ -18,24 +22,33 @@ import type { AnnotationBody, AnnotationTarget } from '../types/iiif';
 const firstBody = (body: AnnotationBody | AnnotationBody[]): AnnotationBody =>
   Array.isArray(body) ? body[0] : body;
 
-describe('detectAnnoVersion', () => {
-  it('detects v3 from items[]', () => {
-    expect(detectAnnoVersion({ items: [] })).toBe('v3');
+describe('adapterFor — registry recognition', () => {
+  it('selects the Presentation 3 adapter for items[] or AnnotationPage', () => {
+    expect(adapterFor({ items: [] })?.name).toBe('iiif-presentation-3');
+    expect(adapterFor({ type: 'AnnotationPage' })?.name).toBe('iiif-presentation-3');
   });
 
-  it('detects v2 from resources[] or sc:AnnotationList', () => {
-    expect(detectAnnoVersion({ resources: [] })).toBe('v2');
-    expect(detectAnnoVersion({ '@type': 'sc:AnnotationList' })).toBe('v2');
+  it('selects the Presentation 2 adapter for resources[] or sc:AnnotationList', () => {
+    expect(adapterFor({ resources: [] })?.name).toBe('iiif-presentation-2');
+    expect(adapterFor({ '@type': 'sc:AnnotationList' })?.name).toBe('iiif-presentation-2');
   });
 
-  it('detects a bare annotation by id vs @id', () => {
-    expect(detectAnnoVersion({ id: 'a', type: 'Annotation' })).toBe('v3');
-    expect(detectAnnoVersion({ '@id': 'a', '@type': 'oa:Annotation' })).toBe('v2');
+  it('prefers @context to declare the version (string or array)', () => {
+    // v2 list recognized by its Presentation 2 @context (the authoritative cue).
+    expect(adapterFor({ '@context': 'http://iiif.io/api/presentation/2/context.json' })?.name)
+      .toBe('iiif-presentation-2');
+    // v3 page recognized by the W3C Web Annotation @context.
+    expect(adapterFor({ '@context': 'http://www.w3.org/ns/anno.jsonld' })?.name)
+      .toBe('iiif-presentation-3');
+    // v3 recognized by the Presentation 3 @context, including the array form.
+    expect(adapterFor({ '@context': ['http://iiif.io/api/presentation/3/context.json'] })?.name)
+      .toBe('iiif-presentation-3');
   });
 
-  it('defaults to v3 for garbage', () => {
-    expect(detectAnnoVersion(null)).toBe('v3');
-    expect(detectAnnoVersion(42)).toBe('v3');
+  it('returns undefined for an unrecognized / non-object container', () => {
+    expect(adapterFor({ something: 'else' })).toBeUndefined();
+    expect(adapterFor(null)).toBeUndefined();
+    expect(adapterFor(42)).toBeUndefined();
   });
 });
 
@@ -405,5 +418,58 @@ describe('round-trip — v2 and equivalent v3 normalize to deep-equal (modulo id
     const fromV3 = normalizeAnnotationList(v3)[0] as unknown as Record<string, unknown>;
 
     expect(stripId(fromV2)).toEqual(stripId(fromV3));
+  });
+});
+
+describe('registry extensibility — a future IIIF format via registerAnnotationAdapter', () => {
+  afterEach(() => {
+    // Restore the registry so the prepended fake adapter does not pollute other tests.
+    ANNOTATION_ADAPTERS.shift();
+  });
+
+  it('reads a made-up Presentation 4 container into the normalized model with no code change', () => {
+    // A deliberately different wire shape: container `annotationCollection`, ids `iri`,
+    // bodies `resources2`, target `region`. None of these are known to the normalizer.
+    const presentation4Adapter: AnnotationAdapter = {
+      name: 'iiif-presentation-4-fake',
+      matches: (page) => Array.isArray(page.annotationCollection),
+      listAnnotations: (page) =>
+        Array.isArray(page.annotationCollection) ? page.annotationCollection : [],
+      id: (a) => (typeof a.iri === 'string' ? a.iri : undefined),
+      motivation: (a) => a.purpose,
+      bodies: (a) => (Array.isArray(a.resources2) ? a.resources2 : []),
+      target: (a) => a.region,
+      label: (a) => a.title,
+      metadata: () => undefined,
+      seeAlso: () => undefined,
+    };
+    registerAnnotationAdapter(presentation4Adapter);
+
+    // Prepended adapter wins.
+    expect(adapterFor({ annotationCollection: [] })?.name).toBe('iiif-presentation-4-fake');
+
+    const result = normalizeAnnotationList({
+      annotationCollection: [
+        {
+          iri: 'v4-anno-1',
+          purpose: 'commenting',
+          title: 'Future point',
+          resources2: [{ type: 'TextualBody', value: 'A point' }],
+          region: 'https://host/img.tif#xywh=10,20,1,1',
+        },
+      ],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('v4-anno-1');
+    expect(result[0].type).toBe('Annotation');
+    expect(result[0].motivation).toBe('commenting');
+    expect(getLocalizedString(result[0].label)).toBe('Future point');
+    expect(firstBody(result[0].body)).toMatchObject({ type: 'TextualBody', value: 'A point' });
+    expect(result[0].target).toMatchObject({
+      type: 'SpecificResource',
+      source: 'https://host/img.tif',
+      selector: { type: 'FragmentSelector', value: 'xywh=10,20,1,1' },
+    });
   });
 });

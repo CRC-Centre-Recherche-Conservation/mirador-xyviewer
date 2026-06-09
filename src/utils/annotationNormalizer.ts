@@ -1,15 +1,19 @@
 /**
  * IIIF annotation normalizer.
  *
- * The single module that knows about IIIF v2 wire shapes. It converts both v2
- * (`sc:AnnotationList` / `resources` / `@id` / `oa:Annotation` / `resource` /
- * `on`) and v3 (`AnnotationPage` / `items` / `id` / `body` / `target`) inputs
- * into the normalized (v3-shaped) `AnnotationV3` model. Everything downstream
- * only ever sees v3.
+ * The single module that knows about IIIF wire shapes. It converts any
+ * recognized IIIF annotation container into the normalized model — IIIF
+ * Presentation 3 / W3C Web Annotation (`AnnotationPage` / `items` / `id` /
+ * `body` / `target`), the canonical target. Everything downstream only ever
+ * sees this normalized model.
  *
- * Architecture: adapters READ fields uniformly per version; mappers TRANSLATE
- * v2 values into the normalized model. No `@id`/`@type`/`resource`/`on`/`sc:`/
- * `oa:`/`dctypes:`/`resources` knowledge lives outside this file.
+ * Architecture: version handling is open, not a closed `v2`/`v3` enum. An
+ * ordered REGISTRY of {@link AnnotationAdapter}s recognizes a container and
+ * READS its fields uniformly; mappers then TRANSLATE those raw values into the
+ * normalized model. Supporting a new IIIF version (or a vendor quirk) is a
+ * matter of appending/registering one more adapter — no branching is added
+ * anywhere else, and no `@id`/`@type`/`resource`/`on`/`sc:`/`oa:`/`dctypes:`/
+ * `resources` knowledge lives outside this file.
  */
 
 import type {
@@ -21,8 +25,6 @@ import type {
   MetadataEntry,
   SeeAlsoEntry,
 } from '../types/iiif';
-
-export type IIIFAnnoVersion = 'v2' | 'v3';
 
 /** Open dataset MIME types that imply a Dataset body even without an explicit `@type`. */
 const DATASET_MIMES = new Set([
@@ -44,22 +46,27 @@ const TEXTUAL_TYPES = new Set([
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null;
 
-/** Structural version detection (mirrors ImageComparisonPlugin's approach). */
-export function detectAnnoVersion(json: unknown): IIIFAnnoVersion {
-  if (!isObject(json)) return 'v3';
-  if (Array.isArray(json.items)) return 'v3';
-  if (Array.isArray(json.resources) || json['@type'] === 'sc:AnnotationList') return 'v2';
-  if ('id' in json) return 'v3';
-  if ('@id' in json) return 'v2';
-  return 'v3';
-}
-
 /* -------------------------------------------------------------------------- */
-/* Adapters — READ raw fields uniformly, do NOT translate                     */
+/* Adapter registry — open set of IIIF formats                                */
 /* -------------------------------------------------------------------------- */
 
-interface AnnotationAdapter {
-  listAnnotations(page: unknown): unknown[];
+/**
+ * Pluggable reader for one IIIF annotation format.
+ *
+ * An adapter does two version-specific things only: it RECOGNIZES a container
+ * ({@link matches}) and READS its raw fields uniformly. It performs NO
+ * translation — the version-agnostic mappers below turn the raw values into the
+ * normalized model. To support a new IIIF version, implement this interface and
+ * append it to {@link ANNOTATION_ADAPTERS} (or {@link registerAnnotationAdapter}).
+ */
+export interface AnnotationAdapter {
+  /** Stable id for diagnostics, e.g. 'iiif-presentation-3'. */
+  readonly name: string;
+  /** Recognize a container for this IIIF format — by `@context` (preferred), else structure. */
+  matches(page: Record<string, unknown>): boolean;
+  /** Raw annotation objects out of the container. */
+  listAnnotations(page: Record<string, unknown>): unknown[];
+  // Field readers (raw → raw, no translation).
   id(a: Record<string, unknown>): string | undefined;
   motivation(a: Record<string, unknown>): unknown;
   bodies(a: Record<string, unknown>): unknown[];
@@ -72,8 +79,30 @@ interface AnnotationAdapter {
 const toArray = (v: unknown): unknown[] =>
   v === undefined || v === null ? [] : Array.isArray(v) ? v : [v];
 
-const v3Adapter: AnnotationAdapter = {
-  listAnnotations: (page) => (isObject(page) && Array.isArray(page.items) ? page.items : []),
+/**
+ * True if the JSON-LD `@context` (a string or an array of strings) contains a
+ * fragment. Per IIIF, `@context` is the authoritative version declaration; the
+ * adapters use it first and fall back to structure only when it is absent.
+ */
+const contextIncludes = (page: Record<string, unknown>, fragment: string): boolean => {
+  const ctx = page['@context'];
+  if (typeof ctx === 'string') return ctx.includes(fragment);
+  return Array.isArray(ctx) && ctx.some((c) => typeof c === 'string' && c.includes(fragment));
+};
+
+/**
+ * IIIF Presentation 3 / W3C Web Annotation: `AnnotationPage` with `items`, each
+ * `Annotation` carrying `id` / `body` / `target` (the normalized model itself).
+ * Declared by the Presentation 3 or W3C Web Annotation `@context`.
+ */
+const presentation3Adapter: AnnotationAdapter = {
+  name: 'iiif-presentation-3',
+  matches: (page) =>
+    contextIncludes(page, '/presentation/3/') ||
+    contextIncludes(page, 'w3.org/ns/anno') ||
+    Array.isArray(page.items) ||
+    page.type === 'AnnotationPage',
+  listAnnotations: (page) => (Array.isArray(page.items) ? page.items : []),
   id: (a) => (typeof a.id === 'string' ? a.id : undefined),
   motivation: (a) => a.motivation,
   bodies: (a) => toArray(a.body),
@@ -83,8 +112,19 @@ const v3Adapter: AnnotationAdapter = {
   seeAlso: (a) => a.seeAlso,
 };
 
-const v2Adapter: AnnotationAdapter = {
-  listAnnotations: (page) => (isObject(page) && Array.isArray(page.resources) ? page.resources : []),
+/**
+ * IIIF Presentation 2 / Open Annotation: `sc:AnnotationList` with `resources`,
+ * each `oa:Annotation` carrying `@id` / `resource` / `on` (Open Annotation
+ * terms). Declared by the Presentation 2 `@context`. Translated to the Web
+ * Annotation model by the mappers below.
+ */
+const presentation2Adapter: AnnotationAdapter = {
+  name: 'iiif-presentation-2',
+  matches: (page) =>
+    contextIncludes(page, '/presentation/2/') ||
+    page['@type'] === 'sc:AnnotationList' ||
+    Array.isArray(page.resources),
+  listAnnotations: (page) => (Array.isArray(page.resources) ? page.resources : []),
   id: (a) => (typeof a['@id'] === 'string' ? a['@id'] : undefined),
   motivation: (a) => a.motivation,
   bodies: (a) => toArray(a.resource),
@@ -94,8 +134,21 @@ const v2Adapter: AnnotationAdapter = {
   seeAlso: (a) => a.seeAlso,
 };
 
-function adapterFor(json: unknown): AnnotationAdapter {
-  return detectAnnoVersion(json) === 'v2' ? v2Adapter : v3Adapter;
+/** Ordered registry — first match wins. Add a version by appending an adapter. */
+export const ANNOTATION_ADAPTERS: AnnotationAdapter[] = [
+  presentation3Adapter,
+  presentation2Adapter,
+];
+
+/** Register a new IIIF version adapter at runtime (prepended so it can take priority). */
+export function registerAnnotationAdapter(adapter: AnnotationAdapter): void {
+  ANNOTATION_ADAPTERS.unshift(adapter);
+}
+
+/** Pick the first registered adapter that recognizes this container, if any. */
+export function adapterFor(json: unknown): AnnotationAdapter | undefined {
+  if (!isObject(json)) return undefined;
+  return ANNOTATION_ADAPTERS.find((adapter) => adapter.matches(json));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -252,10 +305,12 @@ const asLocalized = (v: LocalizedString | string | undefined): LocalizedString =
 /* Public API                                                                 */
 /* -------------------------------------------------------------------------- */
 
-/** Normalize one raw page/list (v2 or v3) into a flat array of v3 annotations. */
+/** Normalize one raw page/list (any registered IIIF format) into a flat array of normalized annotations. */
 export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
   if (!isObject(json)) return [];
   const adapter = adapterFor(json);
+  // Unrecognized container shape → graceful empty result, never throws.
+  if (!adapter) return [];
 
   return adapter.listAnnotations(json).flatMap((raw) => {
     if (!isObject(raw)) return [];
