@@ -1,4 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import {
+  extractImageUrl,
+  extractThumbnailUrl,
+  extractCanvases,
+  getCanvasLabel,
+} from './ImageComparisonPlugin';
 
 /**
  * Tests for ImageComparisonPlugin utility functions
@@ -8,8 +14,9 @@ import { describe, it, expect } from 'vitest';
  * pure utility functions.
  */
 
-// Re-implement the utility functions for testing (they are not exported from the plugin)
-// This ensures the logic is correct without needing to export internal functions
+// Internal helpers are imported from the plugin via @internal exports (no
+// re-implementation) — see DEVELOPER-GUIDE "Testing Conventions". The local IIIF
+// types below only type the test fixtures.
 
 /** Localized string type */
 interface LocalizedString {
@@ -36,160 +43,6 @@ interface IIIFCanvas {
 interface IIIFManifest {
   items?: IIIFCanvas[];
   sequences?: Array<{ canvases?: IIIFCanvas[] }>;
-}
-
-/** Canvas info type */
-interface CanvasInfo {
-  id: string;
-  label: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-}
-
-/** Default language preference order */
-const DEFAULT_LANGUAGES = ['en', 'none', '@none'];
-
-/**
- * Get the best matching string from a LocalizedString
- */
-function getLocalizedString(
-  value: LocalizedString | string | undefined,
-  preferredLanguages: string[] = DEFAULT_LANGUAGES
-): string {
-  if (!value) return '';
-  if (typeof value === 'string') return value;
-
-  for (const lang of preferredLanguages) {
-    if (value[lang]?.length) {
-      return value[lang][0];
-    }
-  }
-
-  const keys = Object.keys(value);
-  if (keys.length > 0 && value[keys[0]]?.length) {
-    return value[keys[0]][0];
-  }
-
-  return '';
-}
-
-/**
- * Extract image URL from IIIF canvas
- */
-function extractImageUrl(canvas: IIIFCanvas): string | null {
-  // IIIF Presentation 3.0
-  if (canvas.items) {
-    for (const page of canvas.items) {
-      if (page.items) {
-        for (const annotation of page.items) {
-          if (annotation.body) {
-            const body = annotation.body;
-            if (typeof body === 'object' && 'id' in body) {
-              return body.id as string;
-            }
-            if (Array.isArray(body) && body[0]?.id) {
-              return body[0].id;
-            }
-          }
-        }
-      }
-    }
-  }
-  // IIIF Presentation 2.0
-  if (canvas.images) {
-    for (const image of canvas.images) {
-      if (image.resource) {
-        if (typeof image.resource === 'string') {
-          return image.resource;
-        }
-        if (image.resource['@id']) {
-          return image.resource['@id'];
-        }
-        if (image.resource.id) {
-          return image.resource.id;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Extract thumbnail URL from IIIF canvas
- */
-function extractThumbnailUrl(canvas: IIIFCanvas): string | null {
-  if (canvas.thumbnail) {
-    if (typeof canvas.thumbnail === 'string') {
-      return canvas.thumbnail;
-    }
-    if (Array.isArray(canvas.thumbnail) && canvas.thumbnail[0]) {
-      const thumb = canvas.thumbnail[0];
-      if (typeof thumb === 'string') {
-        return thumb;
-      }
-      return thumb.id || thumb['@id'] || null;
-    }
-    if (typeof canvas.thumbnail === 'object' && !Array.isArray(canvas.thumbnail)) {
-      return canvas.thumbnail.id || canvas.thumbnail['@id'] || null;
-    }
-  }
-  return null;
-}
-
-/**
- * Get canvas label as string
- */
-function getCanvasLabel(label: LocalizedString | string | undefined, index: number): string {
-  if (!label) return `Image ${index + 1}`;
-  if (typeof label === 'string') return label;
-  return getLocalizedString(label) || `Image ${index + 1}`;
-}
-
-/**
- * Extract canvases from manifest
- */
-function extractCanvases(manifest: IIIFManifest | null | undefined): CanvasInfo[] {
-  if (!manifest) return [];
-
-  const canvases: CanvasInfo[] = [];
-
-  // IIIF Presentation 3.0
-  if (manifest.items) {
-    manifest.items.forEach((canvas, index) => {
-      const id = canvas.id || canvas['@id'] || `canvas-${index}`;
-      const imageUrl = extractImageUrl(canvas);
-      if (imageUrl) {
-        canvases.push({
-          id,
-          label: getCanvasLabel(canvas.label, index),
-          imageUrl,
-          thumbnailUrl: extractThumbnailUrl(canvas) || undefined,
-        });
-      }
-    });
-  }
-
-  // IIIF Presentation 2.0
-  if (manifest.sequences) {
-    manifest.sequences.forEach((sequence) => {
-      if (sequence.canvases) {
-        sequence.canvases.forEach((canvas, index) => {
-          const id = canvas.id || canvas['@id'] || `canvas-${index}`;
-          const imageUrl = extractImageUrl(canvas);
-          if (imageUrl) {
-            canvases.push({
-              id,
-              label: getCanvasLabel(canvas.label, index),
-              imageUrl,
-              thumbnailUrl: extractThumbnailUrl(canvas) || undefined,
-            });
-          }
-        });
-      }
-    });
-  }
-
-  return canvases;
 }
 
 describe('ImageComparisonPlugin', () => {
