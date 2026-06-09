@@ -5,7 +5,16 @@
  *
  * Also handles annotations with multiple targets by expanding them into
  * separate annotations (Mirador only supports single target per annotation).
+ *
+ * Version-agnostic: whatever IIIF annotation container arrives (any format the
+ * normalizer's adapter registry recognizes) is read into the internal model via
+ * `normalizeAnnotationList`, then the display pipeline (merge → expand → point→
+ * circle) runs on that model. The pipeline itself is version-blind, so a new
+ * IIIF version is supported by registering an adapter in `annotationNormalizer`
+ * — nothing here changes (see plan §4.7 / §3.1).
  */
+
+import { normalizeAnnotationList } from './annotationNormalizer';
 
 /** Default radius for point markers in pixels */
 const DEFAULT_POINT_RADIUS = 12;
@@ -192,33 +201,31 @@ export function transformPointAnnotations(
   annotationPage: Record<string, unknown>,
   radius: number = DEFAULT_POINT_RADIUS
 ): Record<string, unknown> {
-  const items = annotationPage.items as Record<string, unknown>[] | undefined;
+  // Read whatever IIIF version this container is into the internal model
+  // (version-agnostic: dispatched through the normalizer's adapter registry).
+  const items = normalizeAnnotationList(annotationPage);
 
-  if (!items || !Array.isArray(items)) return annotationPage;
+  // Unknown/empty shape → leave the page untouched.
+  if (!items.length) return annotationPage;
 
-  // First pass: merge annotations with duplicate IDs (same ID, different targets)
-  // This handles backend APIs that send multiple annotations for multi-location analyses
-  const mergedItems = mergeAnnotationsByIds(items);
+  // Existing display pipeline, version-blind: merge same-id → expand
+  // multi-target → point→circle. These operate purely on the internal model.
+  const merged = mergeAnnotationsByIds(items as unknown as Record<string, unknown>[]);
+  const expanded = merged.flatMap(expandMultiTargetAnnotation);
+  expanded.forEach((annotation) => transformAnnotationSelector(annotation, radius));
 
-  // Second pass: expand multi-target annotations into separate annotations
-  const expandedItems: Record<string, unknown>[] = [];
-  mergedItems.forEach((annotation) => {
-    const expanded = expandMultiTargetAnnotation(annotation);
-    expandedItems.push(...expanded);
-  });
+  annotationPage.items = expanded;
+  annotationPage.type = 'AnnotationPage';
+  // Drop non-canonical container keys so Mirador sees a clean v3 page (no-ops if absent).
+  delete annotationPage.resources;
+  delete annotationPage['@type'];
+  delete annotationPage['@context'];
+  delete annotationPage['@id'];
 
-  // Third pass: transform point annotations to SVG circles
-  expandedItems.forEach((annotation) => {
-    transformAnnotationSelector(annotation, radius);
-  });
-
-  // Replace items with processed list
-  annotationPage.items = expandedItems;
-
-  // Log transformation summary
-  if (mergedItems.length < items.length || expandedItems.length !== mergedItems.length) {
+  // Log transformation summary when merge/expand changed the count.
+  if (merged.length < items.length || expanded.length !== merged.length) {
     console.debug(
-      `[AnnotationTransformer] Processed annotations: ${items.length} → ${mergedItems.length} (merged) → ${expandedItems.length} (expanded)`
+      `[AnnotationTransformer] Processed annotations: ${items.length} → ${merged.length} (merged) → ${expanded.length} (expanded)`
     );
   }
 
