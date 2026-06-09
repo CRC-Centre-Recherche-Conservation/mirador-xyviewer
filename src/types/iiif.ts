@@ -1,17 +1,52 @@
 /**
- * IIIF Presentation API v3 Types for Scientific Annotations
+ * IIIF Presentation API Types for Scientific Annotations
+ *
+ * This file models BOTH IIIF Presentation v2 (2.0 / 2.1) and v3 wire shapes,
+ * normalized to the unversioned (v3-aliased) model at the loader/postprocessor
+ * boundaries (`src/utils/annotationNormalizer.ts`).
+ *
+ * Naming convention: each concept has explicit `…V2` (raw v2 wire) and `…V3`
+ * (raw v3 wire) types sharing the same base noun; the bare/unversioned name is
+ * the normalized model and is an alias to the V3 shape. Everything downstream
+ * (renderers, type guards, metadata display, localization) only ever sees the
+ * unversioned/v3 shapes.
  */
 
-/** Localized string as per IIIF v3 */
+/* -------------------------------------------------------------------------- */
+/* Localized strings                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** Localized string as per IIIF v3 (also the normalized model). */
 export interface LocalizedString {
   [language: string]: string[];
 }
 
-/** Metadata entry for IIIF resources */
-export interface MetadataEntry {
+/** Raw v2 localized value: plain string or JSON-LD value form (single/array). */
+export type LocalizedStringV2 =
+  | string
+  | { '@value': string; '@language'?: string }
+  | Array<{ '@value': string; '@language'?: string }>;
+
+/* -------------------------------------------------------------------------- */
+/* Metadata                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Metadata entry (normalized model == v3). */
+export interface MetadataEntryV3 {
   label: LocalizedString;
   value: LocalizedString;
 }
+export type MetadataEntry = MetadataEntryV3;
+
+/** Raw v2 metadata entry. */
+export interface MetadataEntryV2 {
+  label: LocalizedStringV2;
+  value: LocalizedStringV2;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Body                                                                       */
+/* -------------------------------------------------------------------------- */
 
 /** Base body interface */
 interface BaseBody {
@@ -42,28 +77,72 @@ export interface TextualBody extends BaseBody {
   language?: string;
 }
 
-/** Union type for all supported body types */
-export type AnnotationBody = ManifestBody | DatasetBody | TextualBody;
+/** Union of all supported body types (normalized model == v3). */
+export type AnnotationBodyV3 = ManifestBody | DatasetBody | TextualBody;
+export type AnnotationBody = AnnotationBodyV3;
 
-/** Annotation target (simplified) */
-export interface AnnotationTarget {
+/** Raw v2 annotation body (the `resource` field; arrays handled by the mapper). */
+export interface AnnotationBodyV2 {
+  '@id'?: string;
+  '@type'?: string;
+  format?: string;
+  /** Inline text content (`cnt:ContentAsText`); such resources may have no `@id`. */
+  chars?: string;
+  language?: string;
+  label?: LocalizedStringV2;
+  [key: string]: unknown;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Target                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/** Annotation target (normalized model == v3). */
+export interface AnnotationTargetV3 {
   id?: string;
   type?: string;
   source?: string;
   selector?: unknown;
 }
+export type AnnotationTarget = AnnotationTargetV3;
 
-/** SeeAlso reference to external resources */
-export interface SeeAlsoEntry {
+/** Raw v2 target (the `on` field): a fragment string or a specific-resource object. */
+export type AnnotationTargetV2 =
+  | string
+  | {
+      full?: string;
+      selector?: { '@type'?: string; type?: string; value?: string; chars?: string };
+    };
+
+/* -------------------------------------------------------------------------- */
+/* seeAlso                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/** SeeAlso reference (normalized model == v3). */
+export interface SeeAlsoEntryV3 {
   id: string | { url: string; url_label?: string };
   type?: string;
   label?: LocalizedString;
   format?: string;
   profile?: string;
 }
+export type SeeAlsoEntry = SeeAlsoEntryV3;
 
-/** IIIF v3 Annotation */
-export interface IIIFAnnotation {
+/** Raw v2 seeAlso entry. Note `@id` may be a plain URL string OR an object. */
+export interface SeeAlsoEntryV2 {
+  '@id': string | { url: string; url_label?: string };
+  '@type'?: string;
+  label?: LocalizedStringV2;
+  format?: string;
+  profile?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Annotation                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** IIIF v3 annotation (normalized model). */
+export interface AnnotationV3 {
   '@context'?: string | string[];
   id: string;
   type: 'Annotation';
@@ -74,8 +153,49 @@ export interface IIIFAnnotation {
   metadata?: MetadataEntry[];
   seeAlso?: SeeAlsoEntry | SeeAlsoEntry[];
 }
+export type IIIFAnnotation = AnnotationV3;
 
-/** Type guards */
+/** Raw v2 `oa:Annotation`. */
+export interface AnnotationV2 {
+  '@context'?: string | string[];
+  '@id'?: string;
+  '@type'?: 'oa:Annotation' | string;
+  motivation?: string | string[];
+  /** Single body object or an array of bodies. */
+  resource?: AnnotationBodyV2 | AnnotationBodyV2[];
+  /** Target: a `<canvasId>#xywh=…` string, a specific-resource object, or an array. */
+  on?: AnnotationTargetV2 | AnnotationTargetV2[];
+  label?: LocalizedStringV2;
+  metadata?: MetadataEntryV2[];
+  seeAlso?: SeeAlsoEntryV2 | SeeAlsoEntryV2[];
+  [key: string]: unknown;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Containers (IIIF names them differently per version)                       */
+/* -------------------------------------------------------------------------- */
+
+/** v2 container: `sc:AnnotationList` (resources), vs v3 `AnnotationPage` (items). */
+export interface AnnotationListV2 {
+  '@type'?: 'sc:AnnotationList';
+  '@id'?: string;
+  '@context'?: string | string[];
+  label?: LocalizedStringV2;
+  resources: AnnotationV2[];
+  within?: unknown;
+}
+
+/** v3 container: `AnnotationPage` (items), vs v2 `sc:AnnotationList` (resources). */
+export interface AnnotationPageV3 {
+  id?: string;
+  type?: 'AnnotationPage';
+  items: AnnotationV3[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Type guards / helpers (normalized model only)                              */
+/* -------------------------------------------------------------------------- */
+
 export function isManifestBody(body: AnnotationBody): body is ManifestBody {
   return body.type === 'Manifest';
 }
