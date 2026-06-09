@@ -1,0 +1,281 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "http://192.168.122.250:8000/iiif/v2/annotation-collection/b168ffbb-2783-41d8-8eed-14bc6be0679e/page-34",
+  "@type": "sc:AnnotationList",
+  "label": "Analyses page 34",
+  "resources": [
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/19548b04-e8c0-4892-afa7-c9afa0d7d875",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0034.tif#xywh=709,1592,1,1",
+      "label": "X04 - parchment f13v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/87cab609-218b-459f-ba1f-ee7ffce24dd1",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "X04 - parchment f13v - BM Avranches MS 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Fluorescence X portable (http://192.168.122.250:8000/rdm/concepts/a2e4b31a-53fa-3d8c-8aa6-f5b8b2564629)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2020-02-07 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "Parchment - f13v - BM Avranches MS 59 (http://192.168.122.250:8000/resources/d34148e6-614f-4bd0-96c1-1f3affa1cba1)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/19548b04-e8c0-4892-afa7-c9afa0d7d875",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/24a6e338-d0d2-409b-9ffb-e2aa8509ab13",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0034.tif#xywh=1301,1428,1,1",
+      "label": "X02 - red ink f13v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/20805fb3-b646-42fe-adb1-11c4c799fe2a",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "X02 - red ink f13v - BM Avranches MS 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Fluorescence X portable (http://192.168.122.250:8000/rdm/concepts/a2e4b31a-53fa-3d8c-8aa6-f5b8b2564629)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2020-02-07 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "Red Ink - f13v - BM Avranches MS 59 (http://192.168.122.250:8000/resources/19b7dca1-5c9e-49a7-b7d9-14c7188aeb6a)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/24a6e338-d0d2-409b-9ffb-e2aa8509ab13",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/5f344e91-8889-4c68-996d-e63a5b6498e7",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0034.tif#xywh=2707,499,1140,1244",
+      "label": "maXRF - \"C\" initial - f13v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/manifest/e875894c-6464-4a65-9be5-a23757e9e468",
+        "@type": "sc:Manifest",
+        "format": "application/ld+json",
+        "label": "maXRF 20200217_MS59_f13V_260mic_100ms"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Microfluorescence x (http://192.168.122.250:8000/rdm/concepts/9b85c40c-132d-3664-a869-e62fae06aa10)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2020-02-17 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "\"C\" initial - f13v - BM Avranches MS 59  (http://192.168.122.250:8000/resources/3c329b43-022a-41b7-b354-7d2ddecc4c40)"
+        },
+        {
+          "label": "Instrumental metadata",
+          "value": "<p>260 mic</p>\n\n<p>100 ms</p>\n"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/5f344e91-8889-4c68-996d-e63a5b6498e7",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/7e6ae735-f990-466c-b07b-6315eb89058e",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0034.tif#xywh=2847,1270,1,1",
+      "label": "FORS_016 -  \"C\" initial f13v - Avranches BM Ms 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/d070851b-ef99-40b7-a0f5-fe5d262d070e",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "FORS_016 -  \"C\" initial f13v - Avranches BM Ms 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2019-12-03 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "\"C\" initial - f13v - BM Avranches MS 59  (http://192.168.122.250:8000/resources/3c329b43-022a-41b7-b354-7d2ddecc4c40)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/7e6ae735-f990-466c-b07b-6315eb89058e",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/880adf50-b925-470e-8f91-dc77d9bfca07",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0034.tif#xywh=2879,1312,1,1",
+      "label": "X01 -  \"C\" initial f13v - BM Avranches Ms 59 ",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/d5bf9536-03b9-4f9a-a090-bde128d43886",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "X01 -  \"C\" initial f13v - BM Avranches Ms 59 "
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Fluorescence X portable (http://192.168.122.250:8000/rdm/concepts/a2e4b31a-53fa-3d8c-8aa6-f5b8b2564629)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2020-02-07 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "\"C\" initial - f13v - BM Avranches MS 59  (http://192.168.122.250:8000/resources/3c329b43-022a-41b7-b354-7d2ddecc4c40)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/880adf50-b925-470e-8f91-dc77d9bfca07",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/cfc12b64-2efa-4327-872b-77874f3e97f3",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0034.tif#xywh=1613,1200,1,1",
+      "label": "X03 - red ink f13v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/46650396-cc06-4a8d-9522-56f33ffb128a",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "X03 - red ink f13v - BM Avranches MS 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Fluorescence X portable (http://192.168.122.250:8000/rdm/concepts/a2e4b31a-53fa-3d8c-8aa6-f5b8b2564629)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2025-02-07 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "Red Ink - f13v - BM Avranches MS 59 (http://192.168.122.250:8000/resources/19b7dca1-5c9e-49a7-b7d9-14c7188aeb6a)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/cfc12b64-2efa-4327-872b-77874f3e97f3",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    }
+  ],
+  "within": {
+    "@id": "http://192.168.122.250:8000/iiif/v2/annotation-collection/b168ffbb-2783-41d8-8eed-14bc6be0679e",
+    "@type": "sc:Layer",
+    "label": "Analyses pour b168ffbb-2783-41d8-8eed-14bc6be0679e"
+  }
+}
