@@ -26,15 +26,17 @@ import type { Dispatch, AnyAction } from 'redux';
 
 /**
  * Check if body is a scientific type (Manifest or Dataset)
+ * @internal Exposed for tests; not part of the public API.
  */
-function isScientificBodyType(type: string | undefined): boolean {
+export function isScientificBodyType(type: string | undefined): boolean {
   return type === 'Manifest' || type === 'Dataset';
 }
 
 /**
  * Check if annotation has scientific body
+ * @internal Exposed for tests; not part of the public API.
  */
-function hasScientificBody(body: unknown): boolean {
+export function hasScientificBody(body: unknown): boolean {
   if (!body) return false;
   const bodies = Array.isArray(body) ? body : [body];
   return bodies.some(b => isScientificBodyType((b as AnnotationBody).type));
@@ -42,16 +44,18 @@ function hasScientificBody(body: unknown): boolean {
 
 /**
  * Check if annotation has metadata that should be displayed
+ * @internal Exposed for tests; not part of the public API.
  */
-function hasMetadata(annotation: IIIFAnnotation | undefined): boolean {
+export function hasMetadata(annotation: IIIFAnnotation | undefined): boolean {
   if (!annotation) return false;
   return Array.isArray(annotation.metadata) && annotation.metadata.length > 0;
 }
 
 /**
  * Check if annotation should use custom rendering (scientific body OR has metadata)
+ * @internal Exposed for tests; not part of the public API.
  */
-function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boolean {
+export function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boolean {
   if (!annotation) return false;
   return hasScientificBody(annotation.body) || hasMetadata(annotation);
 }
@@ -304,8 +308,9 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 
 /**
  * Map state to props - extract annotation resources from Mirador state
+ * @internal Exposed for tests; not part of the public API.
  */
-function mapStateToProps(state: MiradorState, { targetProps }: { targetProps: { windowId: string } }) {
+export function mapStateToProps(state: MiradorState, { targetProps }: { targetProps: { windowId: string } }) {
   const { windowId } = targetProps;
 
   // Get window to find canvas

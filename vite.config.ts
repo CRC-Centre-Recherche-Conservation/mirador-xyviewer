@@ -11,7 +11,7 @@ export default defineConfig({
         plugins: process.env.NODE_ENV === 'development' ? [] : [],
       },
     }),
-    dts(),
+    dts({ tsconfigPath: './tsconfig.build.json' }),
   ],
   define: {
     // Enable Redux DevTools in development

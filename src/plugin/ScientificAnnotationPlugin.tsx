@@ -47,30 +47,34 @@ interface PluginWrapperProps {
 
 /**
  * Extract annotation body from resource
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractBody(resource: IIIFAnnotation | undefined): AnnotationBody | AnnotationBody[] | null {
+export function extractBody(resource: IIIFAnnotation | undefined): AnnotationBody | AnnotationBody[] | null {
   if (!resource?.body) return null;
   return resource.body as AnnotationBody | AnnotationBody[];
 }
 
 /**
  * Extract label from resource
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractLabel(resource: IIIFAnnotation | undefined): LocalizedString | undefined {
+export function extractLabel(resource: IIIFAnnotation | undefined): LocalizedString | undefined {
   return resource?.label;
 }
 
 /**
  * Extract metadata from resource
+ * @internal Exposed for tests; not part of the public API.
  */
-function extractMetadata(resource: IIIFAnnotation | undefined) {
+export function extractMetadata(resource: IIIFAnnotation | undefined) {
   return resource?.metadata;
 }
 
 /**
  * Check if annotation has a scientific body type
+ * @internal Exposed for tests; not part of the public API.
  */
-function hasScientificBody(resource: IIIFAnnotation | undefined): boolean {
+export function hasScientificBody(resource: IIIFAnnotation | undefined): boolean {
   if (!resource?.body) return false;
 
   const bodies = Array.isArray(resource.body) ? resource.body : [resource.body];

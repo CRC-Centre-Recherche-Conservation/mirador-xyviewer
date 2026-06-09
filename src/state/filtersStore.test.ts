@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { parseValueWithUrl, normalizeKey, createKey } from './filtersStore';
 
 /**
  * Tests for filtersStore
@@ -10,25 +11,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
  * - "None" value handling for missing metadata
  */
 
-// Re-implement utility functions for testing (they are not exported)
-function parseValueWithUrl(value: string): { displayText: string; url?: string } {
-  const urlMatch = value.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
-  if (urlMatch) {
-    return {
-      displayText: urlMatch[1].trim(),
-      url: urlMatch[2],
-    };
-  }
-  return { displayText: value };
-}
-
-function normalizeKey(text: string): string {
-  return text.toLowerCase().trim().replace(/\s+/g, '_');
-}
-
-function createKey(windowId: string, canvasId: string): string {
-  return `${windowId}::${canvasId}`;
-}
+// Internal helpers (parseValueWithUrl, normalizeKey, createKey) are imported from the
+// source module via its @internal exports — no re-implementation, so these tests stay
+// bound to the real logic. See DEVELOPER-GUIDE "Testing Conventions".
 
 describe('filtersStore utility functions', () => {
   describe('parseValueWithUrl', () => {

@@ -5,6 +5,12 @@ import {
   createAnnotationPostprocessor,
 } from './annotationTransformer';
 
+// transformPointAnnotations returns dynamically-shaped IIIF data (Record<string, unknown>);
+// the assertions below reach into nested runtime target/selector fields, so the result is
+// treated as loosely typed here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TransformedPage = any;
+
 describe('annotationTransformer', () => {
   describe('transformPointAnnotations', () => {
     it('should transform point annotations to SVG circles', () => {
@@ -26,7 +32,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items[0].target.selector.type).toBe('SvgSelector');
       expect(result.items[0].target.selector.value).toContain('<svg');
@@ -51,7 +57,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items[0].target.selector.type).toBe('FragmentSelector');
       expect(result.items[0].target.selector.value).toBe('xywh=100,200,50,50');
@@ -74,7 +80,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items[0].target.selector.type).toBe('SvgSelector');
     });
@@ -96,7 +102,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage, 20);
+      const result = transformPointAnnotations(annotationPage, 20) as TransformedPage;
 
       // Check that SVG contains the custom radius
       expect(result.items[0].target.selector.value).toContain('A 20 20');
@@ -113,7 +119,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items[0].target).toBe('http://example.com/image.jpg');
     });
@@ -131,7 +137,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items[0].target.selector).toBeUndefined();
     });
@@ -141,7 +147,7 @@ describe('annotationTransformer', () => {
         type: 'AnnotationPage',
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result).toEqual(annotationPage);
     });
@@ -152,7 +158,7 @@ describe('annotationTransformer', () => {
         items: 'not an array',
       };
 
-      const result = transformPointAnnotations(annotationPage as unknown);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items).toBe('not an array');
     });
@@ -180,7 +186,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       // Should be expanded into 2 annotations with unique IDs
       expect(result.items).toHaveLength(2);
@@ -204,7 +210,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items).toHaveLength(3);
       expect(result.items[0].id).toBe('anno-1#target-0');
@@ -226,7 +232,7 @@ describe('annotationTransformer', () => {
         ],
       };
 
-      const result = transformPointAnnotations(annotationPage);
+      const result = transformPointAnnotations(annotationPage) as TransformedPage;
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe('anno-1');

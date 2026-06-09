@@ -550,6 +550,17 @@ Components use `react-i18next`. Add translations:
 
 ## Testing
 
+### Testing Conventions
+
+- **Co-location**: a test sits next to its source — `Foo.ts` ↔ `Foo.test.ts`. No `__tests__/` directory.
+- **No helper re-implementation**: never copy a source function into a test. If a helper isn't exported, export it with an `@internal` JSDoc tag and import it. `@internal` exports are stripped from the published `.d.ts` via `tsconfig.build.json` (`stripInternal: true`), so they don't leak into the public API.
+- **Pattern A (pure logic)**: utils, stores, type guards — test the public API directly, no mocks.
+- **Pattern A′ (async/streaming)**: e.g. `datasetFetcher` — mock `fetch` and the collaborators (`datasetParser`, `datasetCache`); write one test per error/guard branch.
+- **Pattern B (components)**: React Testing Library; mock heavy deps (`react-plotly.js`, `openseadragon`) with `vi.mock`; assert via `getByRole`/`getByText` and ARIA state, not test ids.
+- **Pattern D (integration)**: a few `*.integration.test.tsx` run the real module chain with only the outer boundary mocked (`fetch`, `react-plotly.js`, `mirador`) — they catch contract drift between modules. Few and targeted, not per-file.
+- **Top-of-file JSDoc**: each test file opens with a short comment stating what it covers.
+- **Regression tests**: when a test pins a past bug, prefix it with a `// Regression:` comment explaining the bug.
+
 ### Unit Tests
 
 ```typescript
