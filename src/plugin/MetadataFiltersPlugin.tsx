@@ -186,16 +186,14 @@ const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, MetadataFilter
 
         {/* Filter button */}
         <Tooltip title={buttonDisabled ? "No metadata available" : "Filter annotations by metadata"}>
-          <span>
+          {/* The span (needed so the tooltip works on a disabled button) carries the
+              absolute positioning, so the tooltip anchors to the button's real spot. */}
+          <span style={{ position: 'absolute', bottom: 160, right: 20, zIndex: 999 }}>
             <IconButton
               ref={buttonRef}
               onClick={handleToggleFilters}
               disabled={buttonDisabled}
               sx={{
-                position: 'absolute',
-                bottom: 160,
-                right: 20,
-                zIndex: 999,
                 bgcolor: isOpen ? 'primary.main' : hasActiveFilters ? 'warning.main' : 'rgba(0,0,0,0.6)',
                 color: 'white',
                 '&:hover': {
