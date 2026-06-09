@@ -364,10 +364,19 @@ export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
  * postprocessor (plan §4.7, later commit); this suffixing is the standalone
  * safety fallback.
  */
+const EMPTY_RESOURCES: Record<string, AnnotationV3> = {};
+const resourcesCache = new WeakMap<object, Record<string, AnnotationV3>>();
+
 export function normalizeAnnotationResources(
   canvasAnnotations: Record<string, { json?: unknown }> | undefined
 ): Record<string, AnnotationV3> {
-  if (!isObject(canvasAnnotations)) return {};
+  if (!isObject(canvasAnnotations)) return EMPTY_RESOURCES;
+
+  // Memoize on the (Redux-stable) per-canvas state object: the same input returns
+  // the SAME reference, so the connected mapStateToProps does not produce a fresh
+  // object on every unrelated dispatch (avoids needless re-renders).
+  const cached = resourcesCache.get(canvasAnnotations);
+  if (cached) return cached;
 
   const out: Record<string, AnnotationV3> = {};
   const seen = new Map<string, number>();
@@ -382,5 +391,6 @@ export function normalizeAnnotationResources(
     }
   }
 
+  resourcesCache.set(canvasAnnotations, out);
   return out;
 }
