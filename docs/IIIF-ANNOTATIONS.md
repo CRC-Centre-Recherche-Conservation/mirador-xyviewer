@@ -11,6 +11,7 @@ This guide explains how to structure IIIF annotations for use with mirador-xyvie
 - [Body Types](#body-types)
 - [Target Structure](#target-structure)
 - [Complete Examples](#complete-examples)
+- [Protected datasets (IIIF Auth)](#protected-datasets-iiif-auth)
 
 ## Overview
 
@@ -531,3 +532,92 @@ const viewer = Mirador.viewer({
   }
 }, [scientificAnnotationPlugin]);
 ```
+
+## Protected datasets (IIIF Auth)
+
+Manifests, images and their `info.json` go through Mirador, which implements the
+[IIIF Authorization Flow API](https://iiif.io/api/auth/) (cookie + access-token
+services). **Dataset/spectrum files, however, are fetched by this plugin directly.**
+
+By default that fetch uses `credentials: 'omit'` and sends no authentication
+headers — the safe, CORS-friendly default for open data. Under that default an
+access-controlled dataset returns `401/403`; the panel then shows a **protected
+record** — a quiet, sealed readout (not a red error) that names the host to sign in
+against and offers a single **Sign in** action (a developer hint pointing to
+`configureDatasetRequests` is logged to the console).
+
+To fetch access-controlled datasets, register a **request provider** once at app
+setup. The provider receives the dataset URL and returns optional `credentials`
+and/or `headers`; returning `undefined` keeps the secure default. This mirrors the
+spirit of Mirador's own `requests.preprocessors`.
+
+```typescript
+import { configureDatasetRequests } from 'mirador-xyviewer';
+
+// Option A — same-origin cookie auth (the access cookie is sent with the request):
+configureDatasetRequests(() => ({ credentials: 'include' }));
+
+// Option B — Bearer token. Resolve it however your app stores it; e.g. from the
+// IIIF access-token service kept in Mirador's store, or your own auth layer:
+configureDatasetRequests((url) => {
+  const token = resolveTokenForUrl(url);            // your logic
+  return token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+});
+
+// Reset to the secure default:
+configureDatasetRequests(undefined);
+```
+
+For one-off control (e.g. when rendering `<DatasetBody>` / `<AnnotationBodyRenderer>`
+yourself), pass `requestOptions` as a prop instead — it takes precedence over the
+global provider for that fetch.
+
+**CORS caveat.** A cross-origin request with `credentials: 'include'` only succeeds
+if the dataset server responds with `Access-Control-Allow-Credentials: true` and an
+explicit (non-wildcard) `Access-Control-Allow-Origin`. Token requests
+(`Authorization` header) similarly require the server to allow that header via
+`Access-Control-Allow-Headers`. The design keeps `credentials: 'omit'` as the
+default precisely to avoid this friction for open datasets.
+
+> **Scope.** This seam does not couple to Mirador's internal auth state, so it stays
+> stable across Mirador versions: the glue that reads a token lives in *your*
+> provider callback, not in the plugin.
+
+### Prompting the user to sign in
+
+`configureDatasetRequests` carries credentials, but it can't *establish* a session.
+When the data is hosted on a **different origin** than the viewer — e.g. a
+physico-chemistry lab hosting embargoed spectra linked from a museum's manifest —
+the user may need to log into that data host, and Mirador's own login flow only
+covers images, not datasets.
+
+Register a sign-in handler to surface a **"Sign in" button** on the dataset error.
+It appears *only* on a `401/403` auth error *and* only when a handler is set. The
+handler runs your login flow; if it returns a Promise, the dataset is re-fetched
+automatically once that Promise resolves.
+
+```typescript
+import { configureDatasetAuth, configureDatasetRequests } from 'mirador-xyviewer';
+
+// Plugin-wide (the Mirador plugin renders the panel internally, so use the global):
+configureDatasetAuth(async (dataset) => {
+  await openLabLogin(new URL(dataset.id).origin); // resolves when login completes
+});
+
+// Pair with credentials scoped to the data host, so the retry carries them:
+configureDatasetRequests((url) =>
+  new URL(url).origin === 'https://data.lab.example'
+    ? { credentials: 'include' }
+    : undefined,
+);
+```
+
+For standalone use of `<DatasetBody>` / `<AnnotationBodyRenderer>`, pass an
+`onAuthRequired` prop instead (it overrides the global handler). Without any handler,
+the protected record still shows an **Open resource** link and a **Try again** action
+— fine when the user signs in out-of-band (already logged into the data host).
+
+> **Note.** A browser still won't send cross-origin credentials unless the data host
+> returns the matching CORS headers (`Access-Control-Allow-Credentials: true` and an
+> explicit `Access-Control-Allow-Origin`). That server-side configuration is the real
+> prerequisite — the plugin can carry credentials, but only the data host can accept them.

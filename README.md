@@ -24,6 +24,44 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Metadata Filters**: Filter annotations by metadata values
 - **Selection Highlight**: Pulse animation to locate selected annotations on the image (technique, date, operator, etc.)
 
+## IIIF API compatibility
+
+The plugin reads its data from Mirador's store and only post-processes annotation
+responses, so it composes cleanly with the rest of the IIIF stack:
+
+| IIIF API | Status | Notes |
+|----------|--------|-------|
+| Presentation 2.x / 3.0 | ✅ Full | v2 (`sc:AnnotationList`) is normalized internally to v3 |
+| Image 2.x / 3.0 | ✅ Full | Served by Mirador/OpenSeadragon; the plugin never calls it directly |
+| Content Search 1.0 / 2.0 | ✅ Untouched | The annotation post-processor is gated to annotation responses only — search `hits`/pagination are preserved |
+| Authorization Flow 1.0 / 2.0 | ⚠️ Opt-in | Manifest/image auth is handled by Mirador. Access-controlled **datasets** need [`configureDatasetRequests`](#protected-datasets-iiif-auth) |
+| Content State 1.0 | ✅ No conflict | Handled by Mirador; the plugin does not interfere |
+| Change Discovery 1.0 | — Out of scope | Server-side discovery; not a viewer concern |
+
+### Protected datasets (IIIF Auth)
+
+Dataset/spectrum files are fetched by the plugin itself. By default the request uses
+`credentials: 'omit'` and no auth headers (the safe, CORS-friendly default for open
+data). To fetch **access-controlled** datasets, register a request provider once at
+setup — cookie- or token-based:
+
+```typescript
+import { configureDatasetRequests } from 'mirador-xyviewer';
+
+// Same-origin cookie auth:
+configureDatasetRequests(() => ({ credentials: 'include' }));
+
+// Bearer token (e.g. resolved from your auth store):
+configureDatasetRequests((url) => {
+  const token = selectTokenForUrl(url);
+  return token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+});
+```
+
+> Cross-origin requests with `credentials: 'include'` additionally require the server
+> to send `Access-Control-Allow-Credentials: true` and an explicit
+> `Access-Control-Allow-Origin`. See the [IIIF Annotations guide](./docs/IIIF-ANNOTATIONS.md#protected-datasets-iiif-auth) for details.
+
 ## Quick Start
 
 ```bash
