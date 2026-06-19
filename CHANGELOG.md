@@ -1,3 +1,24 @@
+# [1.1.0-alpha.2](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/compare/v1.1.0-alpha.1...v1.1.0-alpha.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* **dataset:** link to the resource for formats that can't be plotted ([af72c7b](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/af72c7b09b53e3c85dee59a691d7c893eeb30c33))
+* **ui:** anchor the metadata filter tooltip to the floating button ([67ea747](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/67ea7478cc62a21afc87b131ab44681045947dc7))
+* **ui:** wrap disabled filter buttons in a span for MUI Tooltip ([128c0ee](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/128c0ee529499a361cd260678f522ca3f0170000))
+* update v2 localized value handling to support mixed arrays per IIIF Presentation 2.1 ([c47d84e](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/c47d84e69dda9ef2264651e41572903c7dfd78fa))
+
+
+### Features
+
+* **annotations:** add IIIF v2→v3 annotation normalizer ([52907b8](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/52907b8931dad92f2fe03a42e5bbda4a9c421804))
+* **annotations:** render annotations on canvas for any IIIF version ([20723da](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/20723da82eba3e26e1c533a27e86b0eb17757fd8))
+
+
+### Performance Improvements
+
+* **annotations:** memoize normalized resources to stabilize mapStateToProps ([a0db545](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/a0db545a4d968575277d085fadb26c2d02dd657b))
+
 # [1.1.0-alpha.1](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/compare/v1.0.0...v1.1.0-alpha.1) (2026-06-09)
 
 
