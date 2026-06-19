@@ -171,6 +171,12 @@ export function v2ValueToLocalized(
   const entries = Array.isArray(value) ? value : [value];
   const out: LocalizedString = {};
   for (const entry of entries) {
+    // Per IIIF Presentation 2.1, an array member may be a bare string (no
+    // language) or a `{ @value, @language }` object — including mixed arrays.
+    if (typeof entry === 'string') {
+      (out.none ||= []).push(entry);
+      continue;
+    }
     if (!isObject(entry) || typeof entry['@value'] !== 'string') continue;
     const lang = typeof entry['@language'] === 'string' && entry['@language'] ? entry['@language'] : 'none';
     (out[lang] ||= []).push(entry['@value']);

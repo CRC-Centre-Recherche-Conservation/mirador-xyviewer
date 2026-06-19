@@ -21,11 +21,15 @@ export interface LocalizedString {
   [language: string]: string[];
 }
 
-/** Raw v2 localized value: plain string or JSON-LD value form (single/array). */
+/**
+ * Raw v2 localized value. Per IIIF Presentation 2.1, this may be a plain string,
+ * a single `{ @value, @language }` object, or an array mixing bare strings and
+ * such objects.
+ */
 export type LocalizedStringV2 =
   | string
   | { '@value': string; '@language'?: string }
-  | Array<{ '@value': string; '@language'?: string }>;
+  | Array<string | { '@value': string; '@language'?: string }>;
 
 /* -------------------------------------------------------------------------- */
 /* Metadata                                                                   */
