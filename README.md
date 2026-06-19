@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/mirador-xyviewer.svg)](https://www.npmjs.com/package/mirador-xyviewer)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Mirador](https://img.shields.io/badge/Mirador-4.0-green.svg)](https://projectmirador.org/)
-[![IIIF](https://img.shields.io/badge/IIIF-v3-orange.svg)](https://iiif.io/)
+[![IIIF](https://img.shields.io/badge/IIIF-v2%20%26%20v3-orange.svg)](https://iiif.io/)
 
 A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format. Developed by the [Centre de Recherche sur la Conservation (CRC)](https://crc.mnhn.fr/) for museum and heritage applications requiring spectral data visualization (XRF, Raman, FTIR, UV-Vis, etc.).
 
@@ -16,6 +16,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 
 ## Features
 
+- **IIIF v2 & v3 Annotations**: Reads both IIIF Presentation API 2.0/2.1 (`sc:AnnotationList`) and 3.0 (`AnnotationPage`) annotation lists — v2 is normalized internally to v3, so all features below work identically for either version
 - **Spectrum Visualization**: Load and display CSV/TSV spectral data with Plotly
 - **Manifest Links**: Open related IIIF manifests in new windows
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan

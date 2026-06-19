@@ -13,6 +13,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MetadataFiltersPanel } from '../components/MetadataFiltersPanel';
 import { filtersStore } from '../state/filtersStore';
+import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { IIIFAnnotation, LocalizedString } from '../types/iiif';
 
@@ -185,16 +186,14 @@ const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, MetadataFilter
 
         {/* Filter button */}
         <Tooltip title={buttonDisabled ? "No metadata available" : "Filter annotations by metadata"}>
-          <span>
+          {/* The span (needed so the tooltip works on a disabled button) carries the
+              absolute positioning, so the tooltip anchors to the button's real spot. */}
+          <span style={{ position: 'absolute', bottom: 160, right: 20, zIndex: 999 }}>
             <IconButton
               ref={buttonRef}
               onClick={handleToggleFilters}
               disabled={buttonDisabled}
               sx={{
-                position: 'absolute',
-                bottom: 160,
-                right: 20,
-                zIndex: 999,
                 bgcolor: isOpen ? 'primary.main' : hasActiveFilters ? 'warning.main' : 'rgba(0,0,0,0.6)',
                 color: 'white',
                 '&:hover': {
@@ -373,26 +372,10 @@ export function mapStateToProps(
   const window = state.windows?.[windowId];
   const canvasId = window?.canvasId;
 
-  // Get annotation resources for this canvas
-  const annotationResources: Record<string, IIIFAnnotation> = {};
-
-  if (canvasId && state.annotations?.[canvasId]) {
-    const canvasAnnotations = state.annotations[canvasId];
-    for (const resourceData of Object.values(canvasAnnotations)) {
-      const data = resourceData as { json?: IIIFAnnotation };
-      if (data?.json) {
-        // Extract individual annotations from the annotation page
-        const json = data.json as { items?: IIIFAnnotation[] } | IIIFAnnotation;
-        if ('items' in json && Array.isArray(json.items)) {
-          json.items.forEach(item => {
-            annotationResources[item.id] = item;
-          });
-        } else if ('id' in json) {
-          annotationResources[json.id] = json;
-        }
-      }
-    }
-  }
+  // Normalize annotation resources for this canvas (handles both v2 and v3).
+  const annotationResources: Record<string, IIIFAnnotation> = normalizeAnnotationResources(
+    canvasId ? state.annotations?.[canvasId] : undefined
+  );
 
   // Get window config
   const filtersEnabled = window?.filtersEnabled !== false;

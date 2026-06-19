@@ -43,10 +43,21 @@ beforeEach(() => {
 });
 
 describe('DatasetBody', () => {
-  it('renders a warning Alert for an invalid dataset config', () => {
-    vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Bad MIME' });
-    render(<DatasetBody body={body} />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Bad MIME');
+  it('links to the resource (no download) when the format is valid but not plottable', () => {
+    // Valid URL, unsupported format (e.g. binary) → not an error: point to the resource.
+    vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+    render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+
+    expect(screen.getByText(/not supported for plotting/i)).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /open resource/i });
+    expect(link).toHaveAttribute('href', body.id);
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('renders an error Alert when the dataset URL itself is invalid', () => {
+    vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Invalid URL' });
+    render(<DatasetBody body={{ ...body, id: 'not-a-valid-url' }} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid URL');
   });
 
   it('renders a Load button in the idle state', () => {

@@ -20,9 +20,8 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["react", "react-dom", "vite/client", "vitest/globals"]
   },

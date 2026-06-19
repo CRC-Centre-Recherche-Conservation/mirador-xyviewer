@@ -9,11 +9,67 @@ import Mirador from 'mirador';
 import { miradorImageToolsPlugin } from 'mirador-image-tools';
 import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, annotationPostprocessor } from '../src';
 
-// Demo manifest with scientific annotations
-// Using local Avranches manuscript manifest (IIIF 3.0) with spectral analysis annotations
-// Served from public/ directory as static Vite endpoint
-// Use Vite's BASE_URL to handle GitHub Pages deployment (e.g., /mirador-xyviewer/)
-const DEMO_MANIFEST = `${import.meta.env.BASE_URL}avranches-manifest-v3.json`;
+// The demo runs against the REAL published Avranches manuscript manifest — itself
+// IIIF Presentation v2 (sc:Manifest / sequences / canvases) and carrying NO
+// annotations. We "link" our bundled v2 annotation lists (sc:AnnotationList) to
+// its canvases at fetch time via a request postprocessor, so there is no
+// maintained copy of the manifest. The lists are read through the same
+// version-agnostic path as v3 (see annotationNormalizer). A local v3 manifest is
+// also registered in the catalog so both IIIF versions are available from
+// Mirador's own "Add resource" UI.
+const EMMSM_MANIFEST = 'https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json';
+const V3_MANIFEST = `${import.meta.env.BASE_URL}avranches-manifest-v3.json`;
+
+// Canvases (…/AVRANCHES_MS059/<N>) for which a v2 annotation list is bundled.
+const ANNOTATED_CANVASES = [10, 11, 34, 70, 91, 114, 115, 118, 163, 260];
+
+/** Absolute URL (on the demo origin) of a bundled v2 annotation list. */
+const annotationListUrl = (n: number): string =>
+  new URL(`${import.meta.env.BASE_URL}annotations-v2-canvas-${n}.json`, window.location.origin).href;
+
+/** Append a version tag to a IIIF label (string / array / language-map forms). */
+function tagLabel(label: unknown, tag: string): unknown {
+  if (typeof label === 'string') return `${label} (${tag})`;
+  if (Array.isArray(label)) {
+    return label.map((l, i) => (i === 0 && typeof l === 'string' ? `${l} (${tag})` : l));
+  }
+  if (label && typeof label === 'object') {
+    const out = { ...(label as Record<string, unknown>) };
+    for (const k of Object.keys(out)) {
+      if (Array.isArray(out[k])) {
+        out[k] = (out[k] as unknown[]).map((s, i) => (i === 0 ? `${s} (${tag})` : s));
+      }
+    }
+    return out;
+  }
+  return `Avranches BM, 59 (${tag})`;
+}
+
+/**
+ * Mirador request postprocessor: when the published Avranches manifest is fetched,
+ * tag its title "(IIIF v2)" and inject `otherContent` (IIIF v2 annotation lists)
+ * onto the annotated canvases — linking our annotations without copying it.
+ */
+function injectAvranchesAnnotations(url: string, action: Record<string, unknown>): void {
+  if (!url.includes('Avranches_BM_59')) return;
+  const manifest = action.manifestJson as
+    | { label?: unknown; sequences?: { canvases?: Record<string, unknown>[] }[] }
+    | undefined;
+  if (!manifest?.sequences) return;
+
+  // Tag the title so v2/v3 are distinguishable in Mirador's catalog & window bar.
+  manifest.label = tagLabel(manifest.label, 'IIIF v2');
+
+  for (const sequence of manifest.sequences) {
+    for (const canvas of sequence.canvases ?? []) {
+      const id = (canvas['@id'] ?? canvas.id) as string | undefined;
+      const n = id ? Number(/\/AVRANCHES_MS059\/(\d+)$/.exec(id)?.[1]) : NaN;
+      if (ANNOTATED_CANVASES.includes(n)) {
+        canvas.otherContent = [{ '@id': annotationListUrl(n), '@type': 'sc:AnnotationList' }];
+      }
+    }
+  }
+}
 
 /**
  * Initialize Mirador with the scientific annotation plugin
@@ -42,13 +98,19 @@ function initMirador() {
       id: 'mirador-container',
       windows: [
         {
-          manifestId: DEMO_MANIFEST,
+          manifestId: EMMSM_MANIFEST,
+          // Open directly on an annotated folio (canvas 10) so the analyses show.
+          canvasId: 'https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10',
           // Enable info panel (annotations panel requires mirador-annotations plugin)
           sideBarOpen: true,
           sideBarPanel: 'info',
-          // Enable annotation overlay display on canvas
-          highlightAllAnnotations: true,
         },
+      ],
+      // Pre-register both IIIF flavors in Mirador's "Add resource" catalog:
+      // the real v2 manifest (annotations injected) and a local v3 manifest.
+      catalog: [
+        { manifestId: EMMSM_MANIFEST },
+        { manifestId: V3_MANIFEST },
       ],
       // Mirador configuration
       window: {
@@ -59,6 +121,8 @@ function initMirador() {
         allowWindowSideBar: true,
         sideBarOpenByDefault: true,
         defaultSideBarPanel: 'info',
+        // Show annotation markers on canvas for every window (else only on hover).
+        highlightAllAnnotations: true,
         panels: {
           annotations: true,
           info: true,
@@ -89,9 +153,10 @@ function initMirador() {
       osdConfig: {
         crossOriginPolicy: 'Anonymous',
       },
-      // Transform point annotations (xywh with w=1,h=1) to visible SVG circles
+      // Request postprocessors: inject the v2 annotation lists onto the published
+      // manifest, and transform point annotations (xywh w=1,h=1) into SVG circles.
       requests: {
-        postprocessors: [annotationPostprocessor],
+        postprocessors: [injectAvranchesAnnotations, annotationPostprocessor],
       },
     },
     // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters + selection highlight)

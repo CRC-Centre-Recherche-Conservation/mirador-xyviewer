@@ -25,11 +25,18 @@ export interface MiradorActions {
   hoverAnnotation: (windowId: string, annotationIds: string[]) => AnyAction;
 }
 
+/** A fetched annotation resource as stored in Mirador's per-canvas annotation state. */
+export interface MiradorAnnotationEntry {
+  json?: unknown;
+  [key: string]: unknown;
+}
+
 /** Mirador Redux store state (partial) */
 export interface MiradorState {
   windows: Record<string, MiradorWindow>;
   manifests: Record<string, MiradorManifest>;
-  annotations: Record<string, Record<string, unknown>>;
+  /** canvasId -> (annotation-list URL -> fetched resource). */
+  annotations: Record<string, Record<string, MiradorAnnotationEntry>>;
   config: MiradorConfig;
   workspace: MiradorWorkspace;
   [key: string]: unknown;
