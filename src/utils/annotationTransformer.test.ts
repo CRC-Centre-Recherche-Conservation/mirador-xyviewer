@@ -494,4 +494,82 @@ describe('annotationTransformer', () => {
       expect(action.annotationJson.items[0].target.selector.value).toContain('A 25 25');
     });
   });
+
+  // A IIIF Content Search response is structurally an AnnotationList/AnnotationPage,
+  // so the adapters would read it — but it carries search-only data (hits,
+  // pagination, highlighting) the destructive transform must leave intact.
+  describe('Content Search responses are left untouched', () => {
+    it('does not rewrite a search/1 AnnotationList (resources + hits preserved)', () => {
+      const searchV1 = {
+        '@context': 'http://iiif.io/api/search/1/context.json',
+        '@id': 'http://example.org/search?q=foo',
+        '@type': 'sc:AnnotationList',
+        resources: [
+          {
+            '@id': 'http://example.org/anno/1',
+            '@type': 'oa:Annotation',
+            motivation: 'sc:painting',
+            resource: { '@type': 'cnt:ContentAsText', chars: 'foo' },
+            on: 'http://example.org/canvas/1#xywh=1,2,1,1',
+          },
+        ],
+        hits: [{ '@type': 'search:Hit', annotations: ['http://example.org/anno/1'], match: 'foo' }],
+      };
+
+      const result = transformPointAnnotations(searchV1) as TransformedPage;
+
+      // Same object, not converted to a v3 `items` page.
+      expect(result).toBe(searchV1);
+      expect(result.items).toBeUndefined();
+      expect(result.resources).toHaveLength(1);
+      expect(result.hits).toHaveLength(1);
+      expect(result['@context']).toBe('http://iiif.io/api/search/1/context.json');
+    });
+
+    it('does not rewrite a search/2 AnnotationPage (pagination + highlighting preserved)', () => {
+      const searchV2 = {
+        '@context': 'http://iiif.io/api/search/2/context.json',
+        id: 'http://example.org/search?q=foo',
+        type: 'AnnotationPage',
+        items: [
+          {
+            id: 'http://example.org/anno/1',
+            type: 'Annotation',
+            body: { type: 'TextualBody', value: 'foo' },
+            target: 'http://example.org/canvas/1#xywh=1,2,1,1',
+          },
+        ],
+        partOf: { id: 'http://example.org/search?q=foo', type: 'AnnotationCollection', total: 1 },
+        next: 'http://example.org/search?q=foo&page=1',
+        startIndex: 0,
+        ignored: ['date'],
+        annotations: [{ type: 'AnnotationPage', items: [] }],
+      };
+
+      const result = transformPointAnnotations(searchV2) as TransformedPage;
+
+      expect(result).toBe(searchV2);
+      expect(result.partOf).toBeDefined();
+      expect(result.next).toBeDefined();
+      expect(result.ignored).toEqual(['date']);
+      // The point target was NOT rewritten into an SvgSelector.
+      expect(result.items[0].target).toBe('http://example.org/canvas/1#xywh=1,2,1,1');
+      expect(result['@context']).toBe('http://iiif.io/api/search/2/context.json');
+    });
+
+    it('the postprocessor never touches a search response (searchJson, not annotationJson)', () => {
+      const searchJson = {
+        '@context': 'http://iiif.io/api/search/2/context.json',
+        type: 'AnnotationPage',
+        items: [] as unknown[],
+        ignored: [] as unknown[],
+      };
+
+      // Mirador keys search responses as `searchJson`; the gate is on `annotationJson`.
+      annotationPostprocessor('http://example.org/search', { searchJson });
+
+      expect(searchJson.items).toEqual([]);
+      expect(searchJson['@context']).toBe('http://iiif.io/api/search/2/context.json');
+    });
+  });
 });

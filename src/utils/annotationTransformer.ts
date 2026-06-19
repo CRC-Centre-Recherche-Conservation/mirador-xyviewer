@@ -14,7 +14,11 @@
  * — nothing here changes (see plan §4.7 / §3.1).
  */
 
-import { normalizeAnnotationList, expandAnnotations } from './annotationNormalizer';
+import {
+  normalizeAnnotationList,
+  expandAnnotations,
+  isContentSearchResponse,
+} from './annotationNormalizer';
 
 /** Default radius for point markers in pixels */
 const DEFAULT_POINT_RADIUS = 12;
@@ -121,6 +125,12 @@ export function transformPointAnnotations(
   annotationPage: Record<string, unknown>,
   radius: number = DEFAULT_POINT_RADIUS
 ): Record<string, unknown> {
+  // A IIIF Content Search response is also an AnnotationList/AnnotationPage, so the
+  // adapters would read it — but it carries hits/pagination/highlighting we must
+  // NOT strip. Leave it untouched. (Defence in depth: the postprocessor already
+  // only runs on annotation responses; this also protects direct callers.)
+  if (isContentSearchResponse(annotationPage)) return annotationPage;
+
   // Read whatever IIIF version this container is into the internal model
   // (version-agnostic: dispatched through the normalizer's adapter registry).
   const items = normalizeAnnotationList(annotationPage);
@@ -168,7 +178,11 @@ export function annotationPostprocessor(
   _url: string,
   action: Record<string, unknown>
 ): void {
-  // Check if this is an annotation response
+  // Only act on annotation responses. Mirador runs every postprocessor over ALL
+  // fetched resources, distinguished by key: annotations carry `annotationJson`,
+  // search carries `searchJson`, manifests `manifestJson`, info `infoJson`. Gating
+  // on `annotationJson` is what keeps this transform off Search/Manifest/Info
+  // responses — do NOT broaden it (Search would lose its hits/pagination).
   if (action.annotationJson) {
     const annotationJson = action.annotationJson as Record<string, unknown>;
     transformPointAnnotations(annotationJson);

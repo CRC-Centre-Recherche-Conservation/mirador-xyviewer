@@ -369,6 +369,24 @@ export function expandAnnotations(annotations: AnnotationV3[]): AnnotationV3[] {
 /* Public API                                                                 */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * True if this container is a IIIF Content Search response (search/1 or search/2)
+ * rather than a plain annotation page. A search response is structurally an
+ * `AnnotationList`/`AnnotationPage` too — so the adapters would happily read it —
+ * but it carries search-only data the display pipeline must NOT strip:
+ * `hits`/highlighting, pagination (`partOf`/`next`/`startIndex`) and `ignored`.
+ * The signals checked here are search-specific; a Presentation annotation page
+ * carries none of them. Used to bail out of the destructive postprocessor.
+ */
+export function isContentSearchResponse(page: unknown): boolean {
+  if (!isObject(page)) return false;
+  return (
+    contextIncludes(page, '/api/search/') ||
+    Array.isArray(page.hits) ||
+    'ignored' in page
+  );
+}
+
 /** Normalize one raw page/list (any registered IIIF format) into a flat array of normalized annotations. */
 export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
   if (!isObject(json)) return [];
