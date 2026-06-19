@@ -24,6 +24,7 @@ export { scientificAnnotationPlugin as default } from './plugin';
 export {
   ManifestBody,
   DatasetBody,
+  configureDatasetAuth,
   TextualBody,
   SpectrumPlot,
   AnnotationBodyRenderer,
@@ -34,6 +35,7 @@ export {
 export type {
   ManifestBodyProps,
   DatasetBodyProps,
+  DatasetAuthHandler,
   TextualBodyProps,
   SpectrumPlotProps,
   SpectrumPlotLabels,
@@ -50,6 +52,7 @@ export {
   abortFetch,
   abortAllFetches,
   validateDatasetUrl,
+  configureDatasetRequests,
   parseDataset,
 } from './services';
 
@@ -68,6 +71,8 @@ export type {
   SpectrumData,
   FetchStatus,
   DatasetFetchResult,
+  DatasetRequestOptions,
+  DatasetRequestProvider,
   PlotlyTrace,
   PlotlyLayout,
   // Mirador types

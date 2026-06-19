@@ -9,7 +9,7 @@
  * fetcher's own logic; global.fetch is stubbed per test (setup.ts already
  * assigns global.fetch = vi.fn()).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MAX_DATASET_SIZE } from '../types/dataset';
 import type { SpectrumData } from '../types/dataset';
 
@@ -41,7 +41,7 @@ vi.mock('./datasetParser', () => ({
 }));
 vi.mock('./datasetCache', () => ({ datasetCache: cache }));
 
-import { fetchDataset } from './datasetFetcher';
+import { fetchDataset, configureDatasetRequests } from './datasetFetcher';
 
 // --- Helpers ---------------------------------------------------------------
 /** Build a minimal streamed Response stub for performFetch(). */
@@ -126,6 +126,7 @@ describe('fetchDataset — network and response guards', () => {
     const res = await fetchDataset(URL_OK, 'text/csv', 'L');
     expect(res.status).toBe('error');
     expect(res.error).toMatch(/HTTP 404/);
+    expect(res.authRequired).toBeFalsy();
   });
 
   it('errors when the server Content-Type is not allowed', async () => {
@@ -174,5 +175,75 @@ describe('fetchDataset — network and response guards', () => {
     vi.mocked(global.fetch).mockRejectedValue(abort);
     const res = await fetchDataset(URL_OK, 'text/csv', 'L');
     expect(res).toEqual({ status: 'error', error: 'Request aborted' });
+  });
+});
+
+describe('fetchDataset — IIIF Auth request options', () => {
+  /** RequestInit passed to the most recent global.fetch call. */
+  const lastInit = () =>
+    (vi.mocked(global.fetch).mock.calls.at(-1)?.[1] ?? {}) as RequestInit & {
+      headers: Record<string, string>;
+    };
+
+  // Reset the module-level provider so cases don't leak into one another.
+  afterEach(() => configureDatasetRequests(undefined));
+
+  it('omits credentials and sends no auth header by default', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(streamResponse('x,y\n1,2'));
+    await fetchDataset(URL_OK, 'text/csv', 'L');
+    const init = lastInit();
+    expect(init.credentials).toBe('omit');
+    expect(init.headers.Authorization).toBeUndefined();
+  });
+
+  it('applies credentials and headers from a registered provider', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(streamResponse('x,y\n1,2'));
+    configureDatasetRequests(() => ({
+      credentials: 'include',
+      headers: { Authorization: 'Bearer abc' },
+    }));
+    await fetchDataset(URL_OK, 'text/csv', 'L');
+    const init = lastInit();
+    expect(init.credentials).toBe('include');
+    expect(init.headers.Authorization).toBe('Bearer abc');
+    // The Accept header is preserved alongside the injected ones.
+    expect(init.headers.Accept).toContain('text/csv');
+  });
+
+  it('awaits an async provider', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(streamResponse('x,y\n1,2'));
+    configureDatasetRequests(async () => ({ headers: { Authorization: 'Bearer async' } }));
+    await fetchDataset(URL_OK, 'text/csv', 'L');
+    expect(lastInit().headers.Authorization).toBe('Bearer async');
+  });
+
+  it('lets per-call options override the provider', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(streamResponse('x,y\n1,2'));
+    configureDatasetRequests(() => ({
+      credentials: 'include',
+      headers: { Authorization: 'Bearer provider' },
+    }));
+    await fetchDataset(URL_OK, 'text/csv', 'L', {
+      credentials: 'same-origin',
+      headers: { Authorization: 'Bearer percall' },
+    });
+    const init = lastInit();
+    expect(init.credentials).toBe('same-origin');
+    expect(init.headers.Authorization).toBe('Bearer percall');
+  });
+
+  it('returns a user-facing message and logs a dev hint on 401', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.mocked(global.fetch).mockResolvedValue(
+      streamResponse('', { ok: false, status: 401, statusText: 'Unauthorized' }),
+    );
+    const res = await fetchDataset(URL_OK, 'text/csv', 'L');
+    expect(res.status).toBe('error');
+    expect(res.authRequired).toBe(true);
+    // User sees a friendly message; the dev API hint stays out of the UI.
+    expect(res.error).toMatch(/sign in/i);
+    expect(res.error).not.toMatch(/configureDatasetRequests/);
+    expect(debug).toHaveBeenCalledWith(expect.stringContaining('configureDatasetRequests'));
+    debug.mockRestore();
   });
 });

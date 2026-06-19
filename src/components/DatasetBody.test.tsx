@@ -6,9 +6,9 @@
  * idle Load button, success (plot rendered + onDataLoaded + points count),
  * error + retry (cache cleared, refetch), and the cache-hit-on-mount path.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { DatasetBody } from './DatasetBody';
+import { DatasetBody, configureDatasetAuth } from './DatasetBody';
 import type { DatasetBody as DatasetBodyType } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
 import { fetchDataset, validateDatasetUrl } from '../services/datasetFetcher';
@@ -73,7 +73,7 @@ describe('DatasetBody', () => {
     fireEvent.click(screen.getByRole('button', { name: /Load/i }));
 
     expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
-    expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String));
+    expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String), undefined);
     expect(onDataLoaded).toHaveBeenCalledWith(body.id, data);
     expect(screen.getByText(/2 points/)).toBeInTheDocument();
   });
@@ -106,5 +106,88 @@ describe('DatasetBody', () => {
     render(<DatasetBody body={body} />);
     expect(await screen.findByText(/2 points/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Load/i })).toBeNull();
+  });
+
+  describe('auth-protected datasets (Sign in affordance)', () => {
+    const authError = {
+      status: 'error' as const,
+      error: 'Access denied — you may need to sign in to view this dataset.',
+      authRequired: true,
+    };
+
+    // The global handler is module state, not a mock — reset it explicitly.
+    afterEach(() => configureDatasetAuth(undefined));
+
+    it('shows a Sign in button on an auth error when a handler is provided, and calls it', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      const onAuthRequired = vi.fn();
+      render(<DatasetBody body={body} onAuthRequired={onAuthRequired} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      const signIn = await screen.findByRole('button', { name: /sign in/i });
+      fireEvent.click(signIn);
+
+      expect(onAuthRequired).toHaveBeenCalledWith(body);
+    });
+
+    it('uses a globally registered handler (configureDatasetAuth) when no prop is given', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      const handler = vi.fn();
+      configureDatasetAuth(handler);
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      const signIn = await screen.findByRole('button', { name: /sign in/i });
+      fireEvent.click(signIn);
+
+      expect(handler).toHaveBeenCalledWith(body);
+    });
+
+    it('shows no Sign in button when no handler is provided, but offers Open resource', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText(/protected/i);
+      expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
+      // The user can still pursue the resource out-of-band.
+      expect(screen.getByRole('link', { name: /open resource/i })).toHaveAttribute('href', body.id);
+    });
+
+    it('renders a protected record (not a red error) and names the host', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      render(<DatasetBody body={body} onAuthRequired={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText(/protected/i);
+      // The mono "spec" readout names the format and the host to sign in against.
+      expect(screen.getByText('text/csv · example.org')).toBeInTheDocument();
+      // It's a status, not the generic error alert.
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('shows no Sign in button for a non-auth error, even with a handler', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'error', error: 'Network down' });
+      render(<DatasetBody body={body} onAuthRequired={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText('Network down');
+      expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
+    });
+
+    it('re-fetches automatically after an async handler resolves', async () => {
+      vi.mocked(fetchDataset).mockResolvedValueOnce(authError);
+      const onAuthRequired = vi.fn().mockResolvedValue(undefined);
+      render(<DatasetBody body={body} onAuthRequired={onAuthRequired} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      const signIn = await screen.findByRole('button', { name: /sign in/i });
+
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+      fireEvent.click(signIn);
+
+      expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+      expect(datasetCache.delete).toHaveBeenCalledWith(body.id);
+    });
   });
 });

@@ -8,5 +8,6 @@ export {
   fetchDataset,
   abortFetch,
   abortAllFetches,
-  validateDatasetUrl
+  validateDatasetUrl,
+  configureDatasetRequests,
 } from './datasetFetcher';

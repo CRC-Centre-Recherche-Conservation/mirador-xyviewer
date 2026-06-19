@@ -59,6 +59,32 @@ export interface CacheEntry {
   expiresAt: number;
 }
 
+/**
+ * Per-request overrides for a dataset fetch. Lets a host opt into IIIF Auth for
+ * access-controlled datasets/spectra without changing the secure default.
+ *
+ * The fetcher's default is `credentials: 'omit'` and no extra headers; values
+ * here are merged over that default (see {@link DatasetRequestProvider}). For
+ * cross-origin requests, `credentials: 'include'` additionally requires the
+ * server to send `Access-Control-Allow-Credentials: true` and an explicit
+ * `Access-Control-Allow-Origin`.
+ */
+export interface DatasetRequestOptions {
+  /** Fetch credentials mode. Default `'omit'` (unchanged secure default). */
+  credentials?: RequestCredentials;
+  /** Extra request headers, e.g. `{ Authorization: 'Bearer …' }`. */
+  headers?: Record<string, string>;
+}
+
+/**
+ * Resolves per-URL request options (sync or async). Registered once via
+ * `configureDatasetRequests`; mirrors the spirit of Mirador's own
+ * `requests.preprocessors`. Return `undefined` to leave the secure default.
+ */
+export type DatasetRequestProvider = (
+  url: string
+) => DatasetRequestOptions | undefined | Promise<DatasetRequestOptions | undefined>;
+
 /** Fetch status */
 export type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -67,6 +93,8 @@ export interface DatasetFetchResult {
   status: FetchStatus;
   data?: SpectrumData;
   error?: string;
+  /** True when the fetch failed with 401/403 — i.e. the resource needs auth. */
+  authRequired?: boolean;
 }
 
 /** Plotly trace configuration */
