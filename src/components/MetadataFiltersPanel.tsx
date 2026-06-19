@@ -179,24 +179,29 @@ const FilterGroupItem: React.FC<{
           }}
         />
         <Tooltip title="Select all">
-          <IconButton
-            size="small"
-            onClick={handleSelectAll}
-            sx={{ p: 0.25 }}
-            disabled={allSelected}
-          >
-            <CheckBoxIcon fontSize="small" />
-          </IconButton>
+          {/* span wrapper: a disabled button doesn't fire the events Tooltip needs. */}
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleSelectAll}
+              sx={{ p: 0.25 }}
+              disabled={allSelected}
+            >
+              <CheckBoxIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Deselect all">
-          <IconButton
-            size="small"
-            onClick={handleDeselectAll}
-            sx={{ p: 0.25 }}
-            disabled={noneSelected}
-          >
-            <CheckBoxOutlineBlankIcon fontSize="small" />
-          </IconButton>
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleDeselectAll}
+              sx={{ p: 0.25 }}
+              disabled={noneSelected}
+            >
+              <CheckBoxOutlineBlankIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
       </Box>
 

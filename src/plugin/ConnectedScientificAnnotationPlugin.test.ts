@@ -3,7 +3,8 @@
  *
  * Covers the pure body/metadata helpers and — the bug-prone bit — mapStateToProps,
  * which walks windows[id].canvasId -> annotations[canvasId][res].json and extracts
- * individual annotations from both v3 (items[]) and v2 (single json) shapes.
+ * individual annotations from both v3 (AnnotationPage/items[]) and v2
+ * (sc:AnnotationList/resources[]) shapes.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -14,7 +15,14 @@ import {
   mapStateToProps,
   scientificAnnotationPlugin,
 } from './ConnectedScientificAnnotationPlugin';
-import { miradorState, datasetAnnotation, textualAnnotation } from '../test/fixtures/miradorState';
+import {
+  miradorState,
+  datasetAnnotation,
+  datasetAnnotationV2,
+  textualAnnotation,
+  v2List,
+  stateForCanvas,
+} from '../test/fixtures/miradorState';
 
 describe('helpers', () => {
   it('isScientificBodyType: only Manifest/Dataset are scientific', () => {
@@ -45,10 +53,21 @@ describe('helpers', () => {
 });
 
 describe('mapStateToProps', () => {
-  it('extracts annotations from both v3 (items[]) and v2 (single json) shapes', () => {
+  it('extracts annotations from v3 AnnotationPage (items[]) containers', () => {
     const props = mapStateToProps(miradorState, { targetProps: { windowId: 'window-1' } });
     expect(Object.keys(props.annotationResources).sort()).toEqual(['anno-dataset', 'anno-text']);
     expect(props.annotationResources['anno-dataset']).toEqual(datasetAnnotation);
+  });
+
+  it('normalizes a v2 sc:AnnotationList into the v3-shaped resource map', () => {
+    const state = stateForCanvas(v2List('list-1', datasetAnnotationV2));
+
+    const props = mapStateToProps(state, { targetProps: { windowId: 'window-1' } });
+    const anno = props.annotationResources['anno-dataset'];
+    expect(anno).toBeDefined();
+    expect(anno.type).toBe('Annotation');
+    // The v2 twin normalizes to the same body as the v3 fixture.
+    expect(anno.body).toEqual(datasetAnnotation.body);
   });
 
   it('returns no resources when the window is unknown', () => {

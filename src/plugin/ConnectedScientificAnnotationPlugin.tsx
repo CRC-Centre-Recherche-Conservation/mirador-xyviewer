@@ -16,6 +16,7 @@ import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { filtersStore } from '../state/filtersStore';
+import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type {
   AnnotationBody,
   IIIFAnnotation,
@@ -317,26 +318,10 @@ export function mapStateToProps(state: MiradorState, { targetProps }: { targetPr
   const window = state.windows?.[windowId];
   const canvasId = window?.canvasId;
 
-  // Get annotation resources for this canvas
-  const annotationResources: Record<string, IIIFAnnotation> = {};
-
-  if (canvasId && state.annotations?.[canvasId]) {
-    const canvasAnnotations = state.annotations[canvasId];
-    for (const resourceData of Object.values(canvasAnnotations)) {
-      const data = resourceData as { json?: IIIFAnnotation };
-      if (data?.json) {
-        // Extract individual annotations from the annotation page
-        const json = data.json as { items?: IIIFAnnotation[] } | IIIFAnnotation;
-        if ('items' in json && Array.isArray(json.items)) {
-          json.items.forEach(item => {
-            annotationResources[item.id] = item;
-          });
-        } else if ('id' in json) {
-          annotationResources[json.id] = json;
-        }
-      }
-    }
-  }
+  // Normalize annotation resources for this canvas (handles both v2 and v3).
+  const annotationResources: Record<string, IIIFAnnotation> = normalizeAnnotationResources(
+    canvasId ? state.annotations?.[canvasId] : undefined
+  );
 
   return {
     annotationResources,

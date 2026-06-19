@@ -5,6 +5,7 @@ This guide explains how to structure IIIF annotations for use with mirador-xyvie
 ## Table of Contents
 
 - [Overview](#overview)
+- [IIIF Presentation API v2 support](#iiif-presentation-api-v2-support)
 - [Annotation Page Structure](#annotation-page-structure)
 - [Annotation Structure](#annotation-structure)
 - [Body Types](#body-types)
@@ -13,10 +14,16 @@ This guide explains how to structure IIIF annotations for use with mirador-xyvie
 
 ## Overview
 
-Mirador-xyviewer supports **IIIF Presentation API 3.0** annotations. Annotations must be:
+Mirador-xyviewer supports **both IIIF Presentation API 2.0/2.1 and 3.0** annotations. v2
+annotation lists are normalized internally to the v3 model, so everything in this guide
+applies to either version (see [IIIF Presentation API v2 support](#iiif-presentation-api-v2-support)
+for the v2 equivalents). The examples below use the v3 shape, which is also the canonical
+internal model.
 
-1. Referenced from a Canvas via `annotations` property
-2. Contained in an **AnnotationPage**
+Annotations must be:
+
+1. Referenced from a Canvas via `annotations` property (v3) or `otherContent` (v2)
+2. Contained in an **AnnotationPage** (v3) or an **`sc:AnnotationList`** (v2)
 3. Use `motivation: "supplementing"` (for physicochemical data)
 
 ```
@@ -29,6 +36,72 @@ Manifest
                     ├── body (content)
                     └── target (location on canvas)
 ```
+
+## IIIF Presentation API v2 support
+
+You do not need to author v3 to use the viewer: IIIF Presentation API **2.0/2.1**
+(`sc:AnnotationList` / Open Annotation) lists are accepted as-is and converted to the
+internal v3 model at load time. The conversion lives in a single module
+(`src/utils/annotationNormalizer.ts`); every renderer, type guard and filter downstream
+only ever sees the v3 shape. There is **no functional difference between 2.0 and 2.1** —
+both use the `http://iiif.io/api/presentation/2/context.json` context.
+
+### v2 ⇄ v3 mapping
+
+| Internal model (v3)      | v3 source        | v2 source (Open Annotation)                                  |
+|--------------------------|------------------|--------------------------------------------------------------|
+| container                | `AnnotationPage` / `items[]` | `sc:AnnotationList` / `resources[]`               |
+| `id`                     | `id`             | `@id`                                                        |
+| `type` (`Annotation`)    | `type`           | `@type` (`oa:Annotation`)                                    |
+| `motivation`             | `motivation`     | `motivation` (e.g. `oa:commenting`, `sc:painting`)           |
+| `body`                   | `body`           | `resource` (single object or array)                          |
+| `target`                 | `target`         | `on` (string `<canvas>#xywh=…` or `oa:SpecificResource`)     |
+| `label` / `metadata`     | LocalizedString  | plain string or `{ "@value", "@language" }` (single/array)   |
+| `seeAlso`                | `seeAlso`        | `seeAlso` (`@id` may be a URL string **or** a `{ url, url_label }` object — both preserved) |
+
+### Body-type mapping (`resource.@type` → internal `type`)
+
+| Internal body | Detected from v2 |
+|---------------|------------------|
+| `Dataset`     | `@type === 'dctypes:Dataset'`, or an open dataset MIME (`text/csv`, `text/plain`, `text/tab-separated-values`). `text/txt` is normalized to `text/plain`. |
+| `Manifest`    | `@type === 'sc:Manifest'`, or `format === 'application/ld+json'`. |
+| `TextualBody` | `@type ∈ { cnt:ContentAsText, dctypes:Text, oa:Tag, oa:SemanticTag }`, or a `chars` field is present (`value` ← `chars`). |
+| (fallback)    | Unknown `@type`: the namespace prefix is stripped (`ns:Foo` → `Foo`) and the body degrades gracefully. |
+
+### Open-format policy (binary datasets)
+
+Only **open text** dataset formats are plotted (`text/csv`, `text/plain`,
+`text/tab-separated-values`). Proprietary/binary payloads (e.g. `application/octet-stream`)
+are **intentionally not plotted**: such a body is still recognized as a `Dataset`, but the
+panel shows a short "format not supported for plotting" notice with a link to the resource
+itself (its `seeAlso` links render just above). This is by design — see the open-format note
+under [Body Types](#body-types).
+
+### Minimal v2 annotation list
+
+```json
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://example.org/annotations/canvas1-list.json",
+  "@type": "sc:AnnotationList",
+  "resources": [
+    {
+      "@id": "https://example.org/annotation/xrf-001",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "resource": {
+        "@id": "https://example.org/data/xrf-blue-001.csv",
+        "@type": "dctypes:Dataset",
+        "format": "text/csv"
+      },
+      "on": "https://example.org/canvas/painting#xywh=1250,890,1,1"
+    }
+  ]
+}
+```
+
+This is the v2 equivalent of [Example 1](#example-1-xrf-point-analysis) below and renders
+identically.
 
 ## Annotation Page Structure
 
@@ -190,10 +263,17 @@ For CSV/TSV spectral data files.
 }
 ```
 
-**Supported formats:**
+**Supported (plottable) formats:**
 - `text/csv` - Comma-separated values
 - `text/plain` - Plain text (auto-detect delimiter)
 - `text/tab-separated-values` - Tab-separated values
+- `text/txt` - non-standard alias, normalized to `text/plain`
+
+> **Open-format policy:** only the open text formats above are fetched and plotted. A
+> Dataset body in a proprietary/binary format (e.g. `application/octet-stream`) is still
+> recognized, but is **not** plotted: the panel shows a short "format not supported for
+> plotting" notice linking to the resource (`body.id`). This applies identically to v2 and
+> v3 inputs.
 
 ### 2. Manifest Body (Linked Manifests)
 
@@ -430,10 +510,10 @@ Before publishing your annotations, verify:
 - [ ] `type` is `"Annotation"`
 - [ ] `motivation` is `"supplementing"` (or other configured motivation)
 - [ ] `body` has valid `type` (`Dataset`, `Manifest`, or `TextualBody`)
-- [ ] Dataset bodies have allowed `format` (`text/csv`, `text/plain`, `text/tab-separated-values`)
+- [ ] Plottable Dataset bodies have an open `format` (`text/csv`, `text/plain`, `text/tab-separated-values`); binary formats are accepted but shown as a resource link, not plotted
 - [ ] `target` references a valid canvas URI
 - [ ] Point annotations use `xywh=x,y,1,1` format
-- [ ] AnnotationPage is properly linked from Canvas `annotations` array
+- [ ] AnnotationPage is properly linked from Canvas `annotations` array (v3) or `otherContent` (v2 `sc:AnnotationList`)
 - [ ] External resources (CSV files, linked manifests) are accessible via CORS
 
 ## Mirador Configuration

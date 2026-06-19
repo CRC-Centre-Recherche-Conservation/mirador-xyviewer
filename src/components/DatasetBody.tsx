@@ -18,6 +18,7 @@ import {
   Alert,
   Collapse,
   IconButton,
+  Link,
 } from '@mui/material';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -27,6 +28,7 @@ import type { DatasetBody as DatasetBodyType, LocalizedString } from '../types/i
 import type { SpectrumData, FetchStatus } from '../types/dataset';
 import { fetchDataset, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
 import { datasetCache } from '../services/datasetCache';
+import { isValidUrl } from '../utils/security';
 import { getLocalizedString } from '../utils/localization';
 import { SpectrumPlot } from './SpectrumPlot';
 
@@ -126,8 +128,25 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     setExpanded(prev => !prev);
   }, []);
 
-  // Render validation error
+  // Render validation outcome. Distinguish a broken URL (a real error) from a
+  // valid resource whose format we deliberately don't plot (e.g. binary /
+  // proprietary): the latter is not an error — we say so and link to the
+  // resource itself (the annotation's seeAlso links are rendered above).
   if (!validation.valid) {
+    if (isValidUrl(body.id)) {
+      return (
+        <Box sx={{ my: 1 }}>
+          <Alert severity="warning" sx={{ py: 0.5 }}>
+            <Typography variant="body2">
+              Format not supported for plotting{body.format ? ` (${body.format})` : ''}.{' '}
+              <Link href={body.id} target="_blank" rel="noopener noreferrer">
+                Open resource
+              </Link>
+            </Typography>
+          </Alert>
+        </Box>
+      );
+    }
     return (
       <Box sx={{ my: 1 }}>
         <Alert severity="warning" sx={{ py: 0.5 }}>

@@ -1,0 +1,154 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "http://192.168.122.250:8000/iiif/v2/annotation-collection/b168ffbb-2783-41d8-8eed-14bc6be0679e/page-260",
+  "@type": "sc:AnnotationList",
+  "label": "Analyses page 260",
+  "resources": [
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/3c935e05-6b91-41f6-a67c-79b44cd8d1b7",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/260#xywh=1219,980,1,1",
+      "label": "Prot_045 - \"S\" initial f126v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/14402bcc-3082-4371-9276-a96a0ba741cb",
+        "@type": "dctypes:Dataset",
+        "format": "text/plain",
+        "label": "Prot_045 - \"S\" initial f126v - BM Avranches MS 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Spectrométrie de masse par désorption laser (http://192.168.122.250:8000/rdm/concepts/5f9bfd47-9b4c-3b0c-a59c-7012504a06ed)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2021-04-08 00:00:00+02:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "\"S\" initial f126v - BM Avranches MS 59 (http://192.168.122.250:8000/resources/15711dd5-3e97-4bbf-a065-9ad55cbe387a)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/3c935e05-6b91-41f6-a67c-79b44cd8d1b7",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        },
+        {
+          "@id": {
+            "url": "https://doi.org/10.48579/PRO/ZEEJTH,",
+            "url_label": "HEU, Sylvie; ROBINET, Laurianne; ARBERET, Lucie; MICHELIN, Anne; RADEPONT, Marie; BELHADJ, Oulfa; LECOUTEUX, Stéphane, 2024, \"Parchment data proteomic - Mont Saint-Michel scriptorium manuscripts XIe century\", https://doi.org/10.48579/PRO/ZEEJTH, data.InDoRES, V1 "
+          },
+          "@type": "dctypes:Dataset",
+          "format": "text/html",
+          "label": "Published dataset"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/4de3370d-2213-41d6-b9da-3e1e692c85c4",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/260#xywh=1281,844,1,1",
+      "label": "IR11 - \"S\" initial f126v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/31e6268c-be4a-44c2-921b-704d53f274fa",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "IR11 - \"S\" initial f126v - BM Avranches MS 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "IRTF (http://192.168.122.250:8000/rdm/concepts/3e8fbf96-68f4-3dc5-9e41-5d270940cddf)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2020-02-20 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "\"S\" initial f126v - BM Avranches MS 59 (http://192.168.122.250:8000/resources/15711dd5-3e97-4bbf-a065-9ad55cbe387a)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/4de3370d-2213-41d6-b9da-3e1e692c85c4",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    },
+    {
+      "@context": "http://iiif.io/api/presentation/2/context.json",
+      "@id": "http://192.168.122.250:8000/iiif/v2/annotation/f484d72f-74f3-4c9c-a999-f9a257c4ee4e",
+      "@type": "oa:Annotation",
+      "motivation": "oa:commenting",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/260#xywh=1277,838,1,1",
+      "label": "FORS_021 - \"S\" initial f126v - BM Avranches MS 59",
+      "resource": {
+        "@id": "http://192.168.122.250:8000/files/1232809b-78aa-49f3-8515-e97a08ebde2d",
+        "@type": "dctypes:Dataset",
+        "format": "application/octet-stream",
+        "label": "FORS_021 - \"S\" initial f126v - BM Avranches MS 59"
+      },
+      "metadata": [
+        {
+          "label": "Technique",
+          "value": "Spectrométrie de réflectance par fibre optique (http://192.168.122.250:8000/rdm/concepts/65ea330e-e7ef-3cee-8266-35dc71321421)"
+        },
+        {
+          "label": "Project",
+          "value": "Project EMMA (http://192.168.122.250:8000/resources/5a0163f2-6be3-4897-9867-5190908ef16f)"
+        },
+        {
+          "label": "Acquisition date",
+          "value": "2019-12-03 00:00:00+01:00"
+        },
+        {
+          "label": "Researchers",
+          "value": "Centre de la Recherche sur la Conservation (CNRS / MNHN / Ministère de la Culture)"
+        },
+        {
+          "label": "Component observed",
+          "value": "\"S\" initial f126v - BM Avranches MS 59 (http://192.168.122.250:8000/resources/15711dd5-3e97-4bbf-a065-9ad55cbe387a)"
+        }
+      ],
+      "seeAlso": [
+        {
+          "@id": "http://192.168.122.250:8000/report/f484d72f-74f3-4c9c-a999-f9a257c4ee4e",
+          "@type": "dctypes:Text",
+          "format": "text/html",
+          "label": "Detailed analysis report"
+        }
+      ]
+    }
+  ],
+  "within": {
+    "@id": "http://192.168.122.250:8000/iiif/v2/annotation-collection/b168ffbb-2783-41d8-8eed-14bc6be0679e",
+    "@type": "sc:Layer",
+    "label": "Analyses pour b168ffbb-2783-41d8-8eed-14bc6be0679e"
+  }
+}
