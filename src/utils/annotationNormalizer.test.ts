@@ -76,6 +76,17 @@ describe('v2ValueToLocalized', () => {
     expect(getLocalizedString(loc as Record<string, string[]>, ['fr'])).toBe('Point XRF 1');
   });
 
+  it('keeps bare strings in an array (IIIF 2.1 string array)', () => {
+    const loc = v2ValueToLocalized(['CNRS', 'MNHN']);
+    expect(loc).toEqual({ none: ['CNRS', 'MNHN'] });
+    expect(getLocalizedString(loc as Record<string, string[]>)).toBe('CNRS');
+  });
+
+  it('handles a mixed array of strings and {@value,@language} objects', () => {
+    const loc = v2ValueToLocalized(['CNRS', { '@value': 'Centre', '@language': 'fr' }]);
+    expect(loc).toEqual({ none: ['CNRS'], fr: ['Centre'] });
+  });
+
   it('returns undefined for undefined', () => {
     expect(v2ValueToLocalized(undefined)).toBeUndefined();
   });
