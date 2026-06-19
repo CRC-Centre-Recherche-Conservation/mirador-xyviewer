@@ -104,8 +104,6 @@ function initMirador() {
           // Enable info panel (annotations panel requires mirador-annotations plugin)
           sideBarOpen: true,
           sideBarPanel: 'info',
-          // Enable annotation overlay display on canvas
-          highlightAllAnnotations: true,
         },
       ],
       // Pre-register both IIIF flavors in Mirador's "Add resource" catalog:
@@ -123,6 +121,8 @@ function initMirador() {
         allowWindowSideBar: true,
         sideBarOpenByDefault: true,
         defaultSideBarPanel: 'info',
+        // Show annotation markers on canvas for every window (else only on hover).
+        highlightAllAnnotations: true,
         panels: {
           annotations: true,
           info: true,
