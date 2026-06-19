@@ -9,7 +9,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/0cb63a98-7435-4319-9b56-ce6c2640fc16",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1345,2656,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1345,2656,1,1",
       "label": "FORS_007 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/256ce21b-3eef-4294-bd3a-2eccd2d116ce",
@@ -49,7 +49,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/10840079-c829-467f-8692-e7571e95d74e",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1311,754,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1311,754,1,1",
       "label": "X01 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/facdd323-a193-4ece-af93-a6d0eb9e30ff",
@@ -89,7 +89,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/24bd5712-58e2-4450-bcc8-ecd20fc15d77",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1789,1130,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1789,1130,1,1",
       "label": "Prot_042 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/6ae8c064-2e86-4fb2-ac40-bd5ca936c021",
@@ -138,7 +138,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/2a94a4ab-9c89-4f89-9708-20aa6947a8b4",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1367,1592,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1367,1592,1,1",
       "label": "X04 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/2b5bef01-6424-4dbe-a645-790478705173",
@@ -182,7 +182,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/356fb1d8-e1b4-4f1e-8db9-16be213f351b",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2763,4224,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2763,4224,1,1",
       "label": "FORS_012 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/55b5f26e-77b9-4cde-802d-2dc01f832199",
@@ -226,7 +226,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/41eeac0b-dd40-4ffd-9da0-9df5a301bb5e",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1425,4162,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1425,4162,1,1",
       "label": " IR02 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/9ec1c0e0-776a-47ad-b889-d3a9c516817e",
@@ -270,7 +270,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/50a39c94-ebc3-4313-9487-9fa376782b33",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1353,2610,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1353,2610,1,1",
       "label": "X05 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/2dd6661c-fa9a-48b3-9ad8-17398838851e",
@@ -314,7 +314,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/621bdff8-3d60-415f-8033-c50c1d31f8d9",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1654,2957,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1654,2957,1,1",
       "label": "Prot_041 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/d1196080-7b15-4a1e-b08b-cf08547bfb1f",
@@ -367,7 +367,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/66bdbf53-456d-4345-b415-287ad2cd9d02",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1666,2436,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1666,2436,1,1",
       "label": "IR01 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/457dd90d-8451-4ecf-8543-3a88ee64b076",
@@ -411,7 +411,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/6d51197a-b6e5-4bae-85a4-e6e1d0bec9bc",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1715,410,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1715,410,1,1",
       "label": "IR03 - parchment f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/3120f5ea-8d64-4afe-a7b5-9a45adc0d174",
@@ -455,7 +455,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/6f89052c-7988-4b9f-ae0e-a6a5a5762c82",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1423,2544,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1423,2544,1,1",
       "label": "FORS_008 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/9985fb99-53a8-415e-98f0-6f2b229d4de0",
@@ -499,7 +499,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/7df0e285-c772-486a-b918-060741eb535a",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2333,4488,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2333,4488,1,1",
       "label": "FORS_009 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/a73332ed-732e-41cd-a139-eb736a12b393",
@@ -543,7 +543,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/9267cb75-795d-4c9d-b6e2-0dea98f58b50",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2671,1172,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2671,1172,1,1",
       "label": " X03 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/c3396acf-de30-48b0-88a4-d8cbcd76ed6b",
@@ -587,7 +587,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/b9f04cfe-ae80-4228-b5a0-87c6b99263f9",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2675,1030,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2675,1030,1,1",
       "label": "X02 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/73025c93-87b5-463f-9146-a50dfa23905e",
@@ -631,7 +631,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/cda24b31-3a2c-4ac1-8d52-251549cb5791",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2725,4376,608,337",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2725,4376,608,337",
       "label": "maXRF_map1 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/manifest/d018c6c7-5c15-4b5e-bd6d-ab921e282e82",
@@ -679,7 +679,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/dbd4eed6-3a68-4cfc-89a9-c70344c4f4e7",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2579,4306,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2579,4306,1,1",
       "label": "FORS_011 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/a2840cd8-2442-4947-b4ad-732bbeabfb45",
@@ -723,7 +723,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/e6438d16-6fbc-4813-9418-d8318e658ca4",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2537,4292,162,119",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2537,4292,162,119",
       "label": "Micro Imaging - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@type": "cnt:ContentAsText",
@@ -762,7 +762,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/e6438d16-6fbc-4813-9418-d8318e658ca4",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1674,3627,115,108",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1674,3627,115,108",
       "label": "Micro Imaging - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@type": "cnt:ContentAsText",
@@ -801,7 +801,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/e6438d16-6fbc-4813-9418-d8318e658ca4",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=3683,4244,140,144",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=3683,4244,140,144",
       "label": "Micro Imaging - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@type": "cnt:ContentAsText",
@@ -840,7 +840,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/e6438d16-6fbc-4813-9418-d8318e658ca4",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1290,2564,112,164",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1290,2564,112,164",
       "label": "Micro Imaging - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@type": "cnt:ContentAsText",
@@ -879,7 +879,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/ec7d6140-60a1-49ee-9933-752b8685c356",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1077,550,3212,2492",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1077,550,3212,2492",
       "label": "maXRF_map2 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/manifest/d8277192-76c6-4249-898f-ed04ec5a53b1",
@@ -927,7 +927,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/ee524524-211a-4136-97d4-390d8b73383d",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1310,4264,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1310,4264,1,1",
       "label": "FORS_013 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/3bd87772-0439-4eee-b298-fbd13bb4664d",
@@ -971,7 +971,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/ee5487e1-e4b8-45f9-9778-2325c519e460",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=2901,2718,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=2901,2718,1,1",
       "label": "X06 - parchment f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/8ba2e6e0-01cf-414b-8d96-f6f502d30439",
@@ -1015,7 +1015,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/ff7dcee2-cdce-4a44-b163-90a7fa17ad4f",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0010.tif#xywh=1251,3984,1956,926",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/10#xywh=1251,3984,1956,926",
       "label": "maXRF_map3 - illumination f1v - Avranches BM Ms 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/manifest/e8cc0142-c569-4d0c-a3a5-0c99545a988a",

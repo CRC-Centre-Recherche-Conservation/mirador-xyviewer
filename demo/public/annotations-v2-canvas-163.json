@@ -9,7 +9,7 @@
       "@id": "http://192.168.122.250:8000/iiif/v2/annotation/beacec41-28f9-43c5-afca-0de29482df6e",
       "@type": "oa:Annotation",
       "motivation": "oa:commenting",
-      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0163.tif#xywh=2252,5407,1,1",
+      "on": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/163#xywh=2252,5407,1,1",
       "label": "MALDI TOFF 24 - Parchment f78r - BM Avranches MS 59",
       "resource": {
         "@id": "http://192.168.122.250:8000/files/9f1e57ef-9a0b-45c8-be76-12783ddd6e24",
