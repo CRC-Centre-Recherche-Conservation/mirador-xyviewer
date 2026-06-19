@@ -11,6 +11,7 @@ import {
   v2ValueToLocalized,
   normalizeAnnotationList,
   normalizeAnnotationResources,
+  expandAnnotations,
   adapterFor,
   registerAnnotationAdapter,
   ANNOTATION_ADAPTERS,
@@ -359,12 +360,38 @@ describe('normalizeAnnotationResources', () => {
         },
       },
     });
+    // Same `#target-${index}` convention the postprocessor uses, so the panel's
+    // keys line up with the ids Mirador renders on the canvas (none dropped).
     expect(Object.keys(map)).toHaveLength(4);
-    expect(map['e6438d16-micro-imaging']).toBeDefined();
+    expect(map['e6438d16-micro-imaging#target-0']).toBeDefined();
     expect(map['e6438d16-micro-imaging#target-1']).toBeDefined();
+    expect(map['e6438d16-micro-imaging#target-2']).toBeDefined();
     expect(map['e6438d16-micro-imaging#target-3']).toBeDefined();
     // suffixed entries carry the suffixed id
     expect(map['e6438d16-micro-imaging#target-1'].id).toBe('e6438d16-micro-imaging#target-1');
+  });
+});
+
+describe('expandAnnotations — shared id management', () => {
+  const ann = (id: string, target: unknown): import('../types/iiif').AnnotationV3 =>
+    ({ id, type: 'Annotation', body: { type: 'TextualBody', value: 'x' }, target } as import('../types/iiif').AnnotationV3);
+
+  it('leaves single-target annotations untouched', () => {
+    const input = [ann('a', 'c#xywh=0,0,1,1'), ann('b', 'c#xywh=1,1,1,1')];
+    const out = expandAnnotations(input);
+    expect(out.map((a) => a.id)).toEqual(['a', 'b']);
+  });
+
+  it('expands duplicate ids into 0-based #target-N (canvas convention)', () => {
+    const out = expandAnnotations([ann('m', 't0'), ann('m', 't1'), ann('m', 't2')]);
+    expect(out.map((a) => a.id)).toEqual(['m#target-0', 'm#target-1', 'm#target-2']);
+  });
+
+  it('is idempotent — re-expanding an already-expanded list is a no-op', () => {
+    const once = expandAnnotations([ann('m', 't0'), ann('m', 't1')]);
+    const twice = expandAnnotations(once);
+    expect(twice.map((a) => a.id)).toEqual(once.map((a) => a.id));
+    expect(twice).toEqual(once);
   });
 });
 

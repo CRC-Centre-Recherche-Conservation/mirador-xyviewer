@@ -308,6 +308,64 @@ const asLocalized = (v: LocalizedString | string | undefined): LocalizedString =
   v === undefined ? {} : typeof v === 'string' ? { none: [v] } : v;
 
 /* -------------------------------------------------------------------------- */
+/* Id management — duplicate-id merge + multi-target expand                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Collapse duplicate-id annotations and split multi-target ones so every output
+ * annotation has a UNIQUE id and a SINGLE target.
+ *
+ * This is the ONE place that owns id management. Both boundaries — the panel
+ * (`normalizeAnnotationResources`) and the request postprocessor
+ * (`transformPointAnnotations`) — call it, so a duplicate `@id` carrying several
+ * regions (e.g. the "Micro Imaging" multi-location case) always expands the same
+ * way and the panel's keys line up exactly with the ids Mirador renders on the
+ * canvas. Single-target annotations pass through untouched, which makes this
+ * idempotent: re-running it on an already-expanded list is a no-op.
+ *
+ * @param annotations Normalized annotations (may share ids / carry array targets).
+ */
+export function expandAnnotations(annotations: AnnotationV3[]): AnnotationV3[] {
+  // Group by id, preserving first-seen order.
+  const groups = new Map<string, AnnotationV3[]>();
+  for (const ann of annotations) {
+    const group = groups.get(ann.id);
+    if (group) group.push(ann);
+    else groups.set(ann.id, [ann]);
+  }
+
+  const out: AnnotationV3[] = [];
+  for (const [id, group] of groups) {
+    // Every target this id contributes: duplicate annotations and an
+    // already-array-valued target both flatten into one list of single targets.
+    const targets = group.flatMap((a) =>
+      Array.isArray(a.target) ? (a.target as unknown[]) : [a.target]
+    );
+
+    if (targets.length <= 1) {
+      // Single region → keep the original id, unwrap a length-1 array target.
+      out.push(targets.length === 1 ? { ...group[0], target: targets[0] as AnnotationTarget | string } : group[0]);
+      continue;
+    }
+
+    // Multiple regions → one annotation per target with a unique id. The
+    // `_…` fields record the grouping (parity with the historical v3 expand).
+    targets.forEach((target, index) => {
+      out.push({
+        ...group[0],
+        id: `${id}#target-${index}`,
+        target: target as AnnotationTarget | string,
+        _originalAnnotationId: id,
+        _targetIndex: index,
+        _totalTargets: targets.length,
+      } as AnnotationV3);
+    });
+  }
+
+  return out;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Public API                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -363,12 +421,13 @@ export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
 
 /**
  * Build a map of normalized annotations from Mirador's per-canvas annotation
- * state. Accepts mixed v2/v3 lists under one canvas and merges them.
+ * state, keyed by annotation id. Accepts mixed v2/v3 lists under one canvas and
+ * merges them.
  *
- * On duplicate id we append `#target-${n}` so NO entry is dropped. Runtime
- * id-alignment with Mirador's `AnnotationItem.id` is guaranteed by the v2-aware
- * postprocessor (plan §4.7, later commit); this suffixing is the standalone
- * safety fallback.
+ * Duplicate ids are resolved by the shared {@link expandAnnotations} pass — the
+ * SAME id management the postprocessor applies — so multi-region annotations
+ * (e.g. "Micro Imaging") become distinct `#target-${n}` entries (none dropped)
+ * and the keys line up with the ids Mirador renders on the canvas.
  */
 const EMPTY_RESOURCES: Record<string, AnnotationV3> = {};
 const resourcesCache = new WeakMap<object, Record<string, AnnotationV3>>();
@@ -384,17 +443,15 @@ export function normalizeAnnotationResources(
   const cached = resourcesCache.get(canvasAnnotations);
   if (cached) return cached;
 
-  const out: Record<string, AnnotationV3> = {};
-  const seen = new Map<string, number>();
-
+  const all: AnnotationV3[] = [];
   for (const entry of Object.values(canvasAnnotations)) {
     if (!isObject(entry)) continue;
-    for (const ann of normalizeAnnotationList(entry.json)) {
-      const count = seen.get(ann.id) ?? 0;
-      seen.set(ann.id, count + 1);
-      const key = count === 0 ? ann.id : `${ann.id}#target-${count}`;
-      out[key] = count === 0 ? ann : { ...ann, id: key };
-    }
+    all.push(...normalizeAnnotationList(entry.json));
+  }
+
+  const out: Record<string, AnnotationV3> = {};
+  for (const ann of expandAnnotations(all)) {
+    out[ann.id] = ann;
   }
 
   resourcesCache.set(canvasAnnotations, out);

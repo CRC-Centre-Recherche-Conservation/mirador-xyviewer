@@ -14,7 +14,7 @@
  * — nothing here changes (see plan §4.7 / §3.1).
  */
 
-import { normalizeAnnotationList } from './annotationNormalizer';
+import { normalizeAnnotationList, expandAnnotations } from './annotationNormalizer';
 
 /** Default radius for point markers in pixels */
 const DEFAULT_POINT_RADIUS = 12;
@@ -107,93 +107,13 @@ function transformAnnotationSelector(
 }
 
 /**
- * Merge annotations that share the same ID into a single annotation with multiple targets.
- * This handles the case where the backend sends duplicate annotations (same ID, different targets)
- * for analyses that cover multiple locations (e.g., Micro Imaging).
- *
- * @param items - Array of annotation objects
- * @returns Array of annotations with duplicates merged
- */
-function mergeAnnotationsByIds(
-  items: Record<string, unknown>[]
-): Record<string, unknown>[] {
-  const byId = new Map<string, Record<string, unknown>[]>();
-
-  // Group annotations by ID
-  items.forEach((item) => {
-    const id = item.id as string;
-    if (!byId.has(id)) {
-      byId.set(id, []);
-    }
-    byId.get(id)!.push(item);
-  });
-
-  // Merge duplicates
-  const merged: Record<string, unknown>[] = [];
-  byId.forEach((annotations, id) => {
-    if (annotations.length === 1) {
-      // No duplicates, keep as-is
-      merged.push(annotations[0]);
-    } else {
-      // Multiple annotations with same ID - merge their targets into an array
-      const base = { ...annotations[0] };
-      base.target = annotations.map((ann) => ann.target);
-      merged.push(base);
-
-      console.debug(
-        `[AnnotationTransformer] Merged ${annotations.length} annotations with ID: ${id}`
-      );
-    }
-  });
-
-  return merged;
-}
-
-/**
- * Expand annotations with multiple targets into separate annotations.
- * Mirador only supports single target per annotation, so we need to split them.
- *
- * @param annotation - The annotation object that may have multiple targets
- * @returns Array of annotations (1 if single target, N if multiple targets)
- */
-function expandMultiTargetAnnotation(
-  annotation: Record<string, unknown>
-): Record<string, unknown>[] {
-  const target = annotation.target;
-
-  // If target is not an array, return as-is
-  if (!Array.isArray(target)) {
-    return [annotation];
-  }
-
-  // If array has only one element, simplify to single target
-  if (target.length === 1) {
-    return [{ ...annotation, target: target[0] }];
-  }
-
-  // Expand into multiple annotations, each with a unique ID
-  const baseId = annotation.id as string;
-
-  return target.map((singleTarget, index) => ({
-    ...annotation,
-    // Create unique ID by appending target index
-    id: `${baseId}#target-${index}`,
-    // Keep reference to original annotation ID for grouping
-    _originalAnnotationId: baseId,
-    _targetIndex: index,
-    _totalTargets: target.length,
-    // Single target for this expanded annotation
-    target: singleTarget,
-  }));
-}
-
-/**
  * Transform all annotations in an annotation page:
- * 1. Merge duplicate annotations (same ID) into single annotation with multiple targets
- * 2. Expand multi-target annotations into separate annotations with unique IDs
- * 3. Transform point annotations to SVG circles
+ * 1. Read the container into the internal model (any IIIF version, via the normalizer).
+ * 2. Merge duplicate ids + expand multi-target into unique-id, single-target
+ *    annotations (shared {@link expandAnnotations} — same id management as the panel).
+ * 3. Transform point annotations to SVG circles (the display concern owned here).
  *
- * @param annotationPage - IIIF Annotation Page object
+ * @param annotationPage - IIIF Annotation Page / List object (mutated in place)
  * @param radius - Radius for point circles
  * @returns Transformed annotation page
  */
@@ -208,10 +128,9 @@ export function transformPointAnnotations(
   // Unknown/empty shape → leave the page untouched.
   if (!items.length) return annotationPage;
 
-  // Existing display pipeline, version-blind: merge same-id → expand
-  // multi-target → point→circle. These operate purely on the internal model.
-  const merged = mergeAnnotationsByIds(items as unknown as Record<string, unknown>[]);
-  const expanded = merged.flatMap(expandMultiTargetAnnotation);
+  // Shared id management (merge same-id → expand multi-target), then the
+  // display-only point→circle pass on the resulting single-target annotations.
+  const expanded = expandAnnotations(items) as unknown as Record<string, unknown>[];
   expanded.forEach((annotation) => transformAnnotationSelector(annotation, radius));
 
   annotationPage.items = expanded;
@@ -222,10 +141,10 @@ export function transformPointAnnotations(
   delete annotationPage['@context'];
   delete annotationPage['@id'];
 
-  // Log transformation summary when merge/expand changed the count.
-  if (merged.length < items.length || expanded.length !== merged.length) {
+  // Log when expansion changed the annotation count.
+  if (expanded.length !== items.length) {
     console.debug(
-      `[AnnotationTransformer] Processed annotations: ${items.length} → ${merged.length} (merged) → ${expanded.length} (expanded)`
+      `[AnnotationTransformer] Processed annotations: ${items.length} → ${expanded.length} (expanded)`
     );
   }
 
