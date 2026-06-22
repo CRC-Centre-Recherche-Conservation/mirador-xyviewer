@@ -29,25 +29,18 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import type { DatasetBody as DatasetBodyType, LocalizedString } from '../types/iiif';
 import type { SpectrumData, FetchStatus, DatasetRequestOptions } from '../types/dataset';
 import { fetchDataset, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
+import { configureDatasetAuth, getRegisteredAuthHandler } from '../services/datasetAuth';
+import type { DatasetAuthHandler } from '../services/datasetAuth';
 import { datasetCache } from '../services/datasetCache';
 import { isValidUrl } from '../utils/security';
 import { getLocalizedString } from '../utils/localization';
 import { SpectrumPlot } from './SpectrumPlot';
 
-/** Handler invoked when an auth-protected dataset needs the user to sign in. */
-export type DatasetAuthHandler = (body: DatasetBodyType) => void | Promise<void>;
-
-/** Global sign-in handler, used by any DatasetBody without an `onAuthRequired` prop. */
-let registeredAuthHandler: DatasetAuthHandler | undefined;
-
-/**
- * Register a global sign-in handler for auth-protected datasets. Use this with the
- * Mirador plugin, where the host can't pass props to the internally-rendered panel;
- * the per-component `onAuthRequired` prop overrides it. Pass `undefined` to reset.
- */
-export function configureDatasetAuth(handler: DatasetAuthHandler | undefined): void {
-  registeredAuthHandler = handler;
-}
+// The global sign-in handler registry lives in a lightweight, React-free module
+// (`services/datasetAuth`) so the `mirador-auth` subexport can register a handler
+// without importing this component. Re-exported here for backward compatibility.
+export { configureDatasetAuth };
+export type { DatasetAuthHandler };
 
 /** Monospace utility face for the data "spec" readout — the instrument-readout signature. */
 const MONO_STACK = 'ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace';
@@ -219,7 +212,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   const urlRef = useRef(body.id);
 
   // Per-component prop wins over a global handler registered via configureDatasetAuth.
-  const authHandler = onAuthRequired ?? registeredAuthHandler;
+  const authHandler = onAuthRequired ?? getRegisteredAuthHandler();
 
   // Host to authenticate against, surfaced in the protected-dataset notice.
   const host = useMemo(() => safeHost(body.id), [body.id]);

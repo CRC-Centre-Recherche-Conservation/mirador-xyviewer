@@ -11,3 +11,5 @@ export {
   validateDatasetUrl,
   configureDatasetRequests,
 } from './datasetFetcher';
+export { configureDatasetAuth, getRegisteredAuthHandler } from './datasetAuth';
+export type { DatasetAuthHandler } from './datasetAuth';
