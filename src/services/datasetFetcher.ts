@@ -6,6 +6,7 @@
 import type {
   SpectrumData,
   DatasetFetchResult,
+  DatasetRequestContext,
   DatasetRequestOptions,
   DatasetRequestProvider,
 } from '../types/dataset';
@@ -61,9 +62,10 @@ class DatasetAuthError extends Error {
  */
 async function resolveRequestOptions(
   url: string,
-  perCall: DatasetRequestOptions | undefined
+  perCall: DatasetRequestOptions | undefined,
+  context?: DatasetRequestContext
 ): Promise<{ credentials: RequestCredentials; headers: Record<string, string> }> {
-  const fromProvider = requestProvider ? await requestProvider(url) : undefined;
+  const fromProvider = requestProvider ? await requestProvider(url, context) : undefined;
   return {
     credentials: perCall?.credentials ?? fromProvider?.credentials ?? 'omit',
     headers: { ...fromProvider?.headers, ...perCall?.headers },
@@ -99,7 +101,8 @@ export async function fetchDataset(
   url: string,
   declaredMimeType: string,
   label: string,
-  options?: DatasetRequestOptions
+  options?: DatasetRequestOptions,
+  context?: DatasetRequestContext
 ): Promise<DatasetFetchResult> {
   // Validate URL
   if (!isValidUrl(url)) {
@@ -144,7 +147,7 @@ export async function fetchDataset(
 
   // Note: cache and in-flight dedup are keyed by URL only — one auth context per
   // URL per session is assumed, which holds for a viewer.
-  const fetchPromise = performFetch(url, declaredMimeType, label, controller.signal, options);
+  const fetchPromise = performFetch(url, declaredMimeType, label, controller.signal, options, context);
   datasetCache.setPendingRequest(url, fetchPromise);
 
   try {
@@ -172,12 +175,13 @@ async function performFetch(
   declaredMimeType: string,
   label: string,
   signal: AbortSignal,
-  options?: DatasetRequestOptions
+  options?: DatasetRequestOptions,
+  context?: DatasetRequestContext
 ): Promise<SpectrumData> {
   // Default: credentials 'omit' + no auth headers (avoids cross-origin CORS
   // friction). A host opts into IIIF Auth — cookie or Bearer token — via
   // configureDatasetRequests / per-call options.
-  const { credentials, headers } = await resolveRequestOptions(url, options);
+  const { credentials, headers } = await resolveRequestOptions(url, options, context);
   const response = await fetch(url, {
     method: 'GET',
     signal,

@@ -232,6 +232,14 @@ describe('fetchDataset — IIIF Auth request options', () => {
     expect(init.headers.Authorization).toBe('Bearer percall');
   });
 
+  it('passes the per-call request context (declared service) to the provider', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(streamResponse('x,y\n1,2'));
+    const provider = vi.fn(() => undefined);
+    configureDatasetRequests(provider);
+    await fetchDataset(URL_OK, 'text/csv', 'L', undefined, { service: { '@id': 'svc-1' } });
+    expect(provider).toHaveBeenCalledWith(URL_OK, { service: { '@id': 'svc-1' } });
+  });
+
   it('returns a user-facing message and logs a dev hint on 401', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
     vi.mocked(global.fetch).mockResolvedValue(

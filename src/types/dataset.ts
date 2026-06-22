@@ -2,6 +2,8 @@
  * Dataset and Spectrum Types
  */
 
+import type { IiifService } from './iiif';
+
 /** Allowed MIME types for dataset fetching */
 export const ALLOWED_MIME_TYPES = [
   'text/csv',
@@ -77,12 +79,23 @@ export interface DatasetRequestOptions {
 }
 
 /**
+ * Per-request context handed to a {@link DatasetRequestProvider}. Lets a provider do
+ * precise IIIF Auth matching from the resource's declared service, not just its URL.
+ */
+export interface DatasetRequestContext {
+  /** The dataset resource's declared IIIF Auth service(s), if any. */
+  service?: IiifService | IiifService[];
+}
+
+/**
  * Resolves per-URL request options (sync or async). Registered once via
  * `configureDatasetRequests`; mirrors the spirit of Mirador's own
- * `requests.preprocessors`. Return `undefined` to leave the secure default.
+ * `requests.preprocessors`. Receives an optional {@link DatasetRequestContext} (the
+ * resource's declared service). Return `undefined` to leave the secure default.
  */
 export type DatasetRequestProvider = (
-  url: string
+  url: string,
+  context?: DatasetRequestContext
 ) => DatasetRequestOptions | undefined | Promise<DatasetRequestOptions | undefined>;
 
 /** Fetch status */
