@@ -539,6 +539,11 @@ Manifests, images and their `info.json` go through Mirador, which implements the
 [IIIF Authorization Flow API](https://iiif.io/api/auth/) (cookie + access-token
 services). **Dataset/spectrum files, however, are fetched by this plugin directly.**
 
+> **Recommended:** if your datasets share an origin (or a declared auth service) with
+> protected images, use `wireMiradorDatasetAuth` to **reuse Mirador's session** — one
+> login unlocks both. See the **[IIIF Auth integration guide](./IIIF-AUTH.md)**. The
+> manual `configureDatasetRequests` path below is the lower-level escape hatch.
+
 By default that fetch uses `credentials: 'omit'` and sends no authentication
 headers — the safe, CORS-friendly default for open data. Under that default an
 access-controlled dataset returns `401/403`; the panel then shows a **protected

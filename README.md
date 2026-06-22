@@ -64,6 +64,8 @@ configureDatasetRequests((url) => {
 
 #### Reusing Mirador's IIIF Auth session (recommended)
 
+> Full guide: **[docs/IIIF-AUTH.md](./docs/IIIF-AUTH.md)** — trust model, cross-origin, API, troubleshooting.
+
 If your protected datasets live on the **same origin** as protected images, you don't
 need to plumb tokens by hand. Mirador 4 already runs the IIIF Auth 1.0 flow for images;
 `wireMiradorDatasetAuth` reuses that stored token so a **single login unlocks images and
@@ -118,7 +120,8 @@ the manual "Open resource" → "Try again" path.
 > The login window opens directly from your click, so popup blockers allow it. The login is
 > only driven to a **trusted, https** auth/token origin (same gate as token reuse), and the
 > token service's reply is origin-checked. Pass `loginDriver` to override the built-in flow
-> (e.g. in tests). See [`docs/IIIF-AUTH-INTEGRATION-PLAN.md`](./docs/IIIF-AUTH-INTEGRATION-PLAN.md).
+> (e.g. in tests). See the **[IIIF Auth integration guide](./docs/IIIF-AUTH.md)** for the
+> trust model, cross-origin setup, API reference, and troubleshooting.
 
 ## Quick Start
 
