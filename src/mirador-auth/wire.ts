@@ -112,22 +112,28 @@ export function wireMiradorDatasetAuth(
     const o = originOf(url);
     return o !== undefined && canonical.includes(o) && isSecureTransport(url);
   };
-  configureDatasetAuth(async (body) => {
-    const discovered = discoverAuthService(body.service);
-    if (!discovered) return; // no declared auth service → manual "Open resource" + "Try again"
-    // Same gate as the read side: only drive a login to a trusted, https auth/token origin —
-    // never open a popup or store a token for an arbitrary manifest-declared host.
-    if (!trustedAndSecure(discovered.authServiceId) || !trustedAndSecure(discovered.tokenServiceId)) {
-      console.debug('[mirador-xyviewer/mirador-auth] skipping login: auth/token origin not trusted');
-      return;
-    }
-    try {
-      await drive(discovered, store.dispatch);
-    } catch (err) {
-      // Never reject: the Sign-in affordance awaits this; a rejection would be unhandled.
-      console.debug('[mirador-xyviewer/mirador-auth] IIIF login did not complete:', err);
-    }
-  });
+  // The body's declared auth service, but only if it's on a trusted, https origin (same
+  // gate as token reuse): never open a popup or store a token for an arbitrary
+  // manifest-declared host. Single source for both the login and the button visibility.
+  const discoverTrusted = (body: { service?: unknown }): DiscoveredAuthService | undefined => {
+    const d = discoverAuthService(body.service);
+    if (!d || !trustedAndSecure(d.authServiceId) || !trustedAndSecure(d.tokenServiceId)) return undefined;
+    return d;
+  };
+
+  configureDatasetAuth(
+    async (body) => {
+      const discovered = discoverTrusted(body);
+      if (!discovered) return; // no trusted declared service → manual "Open resource" + "Try again"
+      try {
+        await drive(discovered, store.dispatch);
+      } catch (err) {
+        // Never reject: the Sign-in affordance awaits this; a rejection would be unhandled.
+        console.debug('[mirador-xyviewer/mirador-auth] IIIF login did not complete:', err);
+      }
+    },
+    { canStartLogin: (body) => discoverTrusted(body) !== undefined },
+  );
 
   configureDatasetRequests(provider);
   return () => {

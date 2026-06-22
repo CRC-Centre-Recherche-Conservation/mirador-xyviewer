@@ -191,6 +191,37 @@ describe('wireMiradorDatasetAuth — login trigger (Phase 2)', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('registers a canStartLogin predicate reflecting trusted discoverability', () => {
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab', 'https://auth.museum'] });
+    const opts = configureDatasetAuth.mock.calls.at(-1)![1] as { canStartLogin: (b: unknown) => boolean };
+    expect(
+      opts.canStartLogin({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE }),
+    ).toBe(true);
+    // no declared service → cannot start a login
+    expect(opts.canStartLogin({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv' })).toBe(false);
+  });
+
+  it('canStartLogin is false when the declared service origin is not trusted', () => {
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab'] }); // auth.museum NOT trusted
+    const opts = configureDatasetAuth.mock.calls.at(-1)![1] as { canStartLogin: (b: unknown) => boolean };
+    expect(
+      opts.canStartLogin({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE }),
+    ).toBe(false);
+  });
+
+  it('canStartLogin is false for a cleartext http service origin', () => {
+    const httpService = {
+      '@id': 'http://auth.lab/login',
+      profile: 'http://iiif.io/api/auth/1/login',
+      service: [{ '@id': 'http://auth.lab/token', profile: 'http://iiif.io/api/auth/1/token' }],
+    };
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab', 'http://auth.lab'] });
+    const opts = configureDatasetAuth.mock.calls.at(-1)![1] as { canStartLogin: (b: unknown) => boolean };
+    expect(
+      opts.canStartLogin({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: httpService }),
+    ).toBe(false);
+  });
+
   it('teardown resets both the provider and the auth handler', () => {
     const teardown = wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab'] });
     teardown();
