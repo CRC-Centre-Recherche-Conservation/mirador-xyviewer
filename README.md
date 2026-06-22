@@ -106,8 +106,19 @@ wireMiradorDatasetAuth(store, {
 > (an anti-exfiltration gate). If only the content origin is trusted, the declared path
 > is skipped and the dataset falls back to the protected-record notice.
 >
-> Triggering a login for image-less/cross-host datasets is on the roadmap — see
-> [`docs/IIIF-AUTH-INTEGRATION-PLAN.md`](./docs/IIIF-AUTH-INTEGRATION-PLAN.md).
+#### Starting a login (image-less / cross-host datasets)
+
+`wireMiradorDatasetAuth` also registers a sign-in handler, so the "Sign in" button on a
+protected dataset starts the IIIF Auth 1.0 flow when the resource **declares** its auth
+`service` — including datasets with no image on the same host. It opens the access window,
+retrieves the token into Mirador's store, and the panel auto-retries. Resources that
+declare no auth service (or whose auth/token origin isn't in `trustedOrigins`) fall back to
+the manual "Open resource" → "Try again" path.
+
+> The login window opens directly from your click, so popup blockers allow it. The login is
+> only driven to a **trusted, https** auth/token origin (same gate as token reuse), and the
+> token service's reply is origin-checked. Pass `loginDriver` to override the built-in flow
+> (e.g. in tests). See [`docs/IIIF-AUTH-INTEGRATION-PLAN.md`](./docs/IIIF-AUTH-INTEGRATION-PLAN.md).
 
 ## Quick Start
 

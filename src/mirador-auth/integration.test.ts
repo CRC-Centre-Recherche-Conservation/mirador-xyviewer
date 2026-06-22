@@ -31,7 +31,10 @@ const csvResponse = (): Response => {
 const lastInit = () =>
   (vi.mocked(global.fetch).mock.calls.at(-1)?.[1] ?? {}) as RequestInit & { headers: Record<string, string> };
 
-const storeWith = (entries: Record<string, unknown>) => ({ getState: () => ({ accessTokens: entries }) });
+const storeWith = (entries: Record<string, unknown>) => ({
+  getState: () => ({ accessTokens: entries }),
+  dispatch: vi.fn(),
+});
 
 // Reset the module-level provider so tests don't leak the wiring into each other.
 afterEach(() => configureDatasetRequests(undefined));

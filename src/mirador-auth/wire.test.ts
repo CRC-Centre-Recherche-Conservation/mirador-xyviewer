@@ -1,22 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { DatasetRequestProvider } from '../types/dataset';
 
-// Stub Mirador's token selector (heavy bundle) — returns the `accessTokens` slice.
+// Stub Mirador's token selector (heavy bundle) + action creator.
 vi.mock('mirador', () => ({
   getAccessTokens: (state: { accessTokens?: unknown }) => state?.accessTokens ?? {},
+  resolveAccessTokenRequest: (a: string, t: string, json: unknown) => ({ type: 'RECEIVE', a, t, json }),
 }));
 
-// Capture the provider that wireMiradorDatasetAuth registers with the fetcher.
-const { configureDatasetRequests } = vi.hoisted(() => ({ configureDatasetRequests: vi.fn() }));
-vi.mock('../services', () => ({ configureDatasetRequests }));
+// Capture the provider + auth handler that wireMiradorDatasetAuth registers.
+const { configureDatasetRequests, configureDatasetAuth } = vi.hoisted(() => ({
+  configureDatasetRequests: vi.fn(),
+  configureDatasetAuth: vi.fn(),
+}));
+vi.mock('../services', () => ({ configureDatasetRequests, configureDatasetAuth }));
 
 import { wireMiradorDatasetAuth } from './wire';
+import type { DatasetAuthHandler } from '../services/datasetAuth';
 
-const storeWith = (entries: Record<string, unknown>) => ({ getState: () => ({ accessTokens: entries }) });
-/** The most recently registered provider. */
+const storeWith = (entries: Record<string, unknown>) => ({
+  getState: () => ({ accessTokens: entries }),
+  dispatch: vi.fn(),
+});
+/** The most recently registered provider / auth handler. */
 const provider = (): DatasetRequestProvider => configureDatasetRequests.mock.calls.at(-1)![0];
+const authHandler = (): DatasetAuthHandler => configureDatasetAuth.mock.calls.at(-1)![0];
 
-beforeEach(() => configureDatasetRequests.mockClear());
+beforeEach(() => {
+  configureDatasetRequests.mockClear();
+  configureDatasetAuth.mockClear();
+});
 
 describe('wireMiradorDatasetAuth', () => {
   it('registers a provider that injects Authorization: Bearer for a trusted, matching origin', () => {
@@ -94,5 +106,95 @@ describe('wireMiradorDatasetAuth', () => {
     expect(provider()('https://data.lab/d.csv', context)).toEqual({
       headers: { Authorization: 'Bearer DECLARED' },
     });
+  });
+});
+
+describe('wireMiradorDatasetAuth — login trigger (Phase 2)', () => {
+  const SERVICE = {
+    '@id': 'https://auth.museum/login',
+    profile: 'http://iiif.io/api/auth/1/login',
+    service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+  };
+
+  it('registers a configureDatasetAuth handler', () => {
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab'] });
+    expect(configureDatasetAuth).toHaveBeenCalledTimes(1);
+    expect(typeof authHandler()).toBe('function');
+  });
+
+  it('drives the login with the discovered service when the body declares one', async () => {
+    const driver = vi.fn().mockResolvedValue(undefined);
+    const store = storeWith({});
+    wireMiradorDatasetAuth(store, {
+      trustedOrigins: ['https://data.lab', 'https://auth.museum'],
+      loginDriver: driver,
+    });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE });
+    expect(driver).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authServiceId: 'https://auth.museum/login',
+        tokenServiceId: 'https://auth.museum/token',
+      }),
+      store.dispatch,
+    );
+  });
+
+  it('does not drive a login when the declared service origin is not trusted', async () => {
+    const driver = vi.fn();
+    // auth.museum (the SERVICE origin) is NOT in trustedOrigins → must not open a popup / store a token.
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab'], loginDriver: driver });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE });
+    expect(driver).not.toHaveBeenCalled();
+  });
+
+  it('does not drive a login over a cleartext http service origin', async () => {
+    const driver = vi.fn();
+    const httpService = {
+      '@id': 'http://auth.lab/login',
+      profile: 'http://iiif.io/api/auth/1/login',
+      service: [{ '@id': 'http://auth.lab/token', profile: 'http://iiif.io/api/auth/1/token' }],
+    };
+    wireMiradorDatasetAuth(storeWith({}), {
+      trustedOrigins: ['https://data.lab', 'http://auth.lab'],
+      loginDriver: driver,
+    });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: httpService });
+    expect(driver).not.toHaveBeenCalled();
+  });
+
+  it('no-ops when the body declares no auth service', async () => {
+    const driver = vi.fn();
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab'], loginDriver: driver });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv' });
+    expect(driver).not.toHaveBeenCalled();
+  });
+
+  it('swallows a login-driver error (handler resolves, never rejects)', async () => {
+    const driver = vi.fn().mockRejectedValue(new Error('boom'));
+    wireMiradorDatasetAuth(storeWith({}), {
+      trustedOrigins: ['https://data.lab', 'https://auth.museum'],
+      loginDriver: driver,
+    });
+    await expect(
+      authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('handler resolves on driver success (so DatasetBody auto-retries)', async () => {
+    const driver = vi.fn().mockResolvedValue(undefined);
+    wireMiradorDatasetAuth(storeWith({}), {
+      trustedOrigins: ['https://data.lab', 'https://auth.museum'],
+      loginDriver: driver,
+    });
+    await expect(
+      authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('teardown resets both the provider and the auth handler', () => {
+    const teardown = wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['https://data.lab'] });
+    teardown();
+    expect(configureDatasetRequests).toHaveBeenLastCalledWith(undefined);
+    expect(configureDatasetAuth).toHaveBeenLastCalledWith(undefined);
   });
 });

@@ -1,14 +1,22 @@
-import { configureDatasetRequests } from '../services';
+import { configureDatasetAuth, configureDatasetRequests } from '../services';
 import type { DatasetRequestOptions, DatasetRequestProvider } from '../types/dataset';
-import { isSecureTransport, originOf, resolveMiradorToken } from './resolveToken';
+import {
+  discoverAuthService,
+  isSecureTransport,
+  originOf,
+  resolveMiradorToken,
+} from './resolveToken';
+import type { DiscoveredAuthService } from './resolveToken';
+import { runIiifAuthLogin } from './loginDriver';
 
 /**
  * Minimal shape of the Mirador Redux store this needs. The real `Mirador.viewer(...).store`
- * satisfies it structurally (no cast). Phase 1 reads state only; Phase 2 (login trigger)
- * will also use `subscribe`.
+ * satisfies it structurally (no cast): `getState` for token matching, `dispatch` to land a
+ * newly-acquired token in Mirador's store during a login.
  */
 export interface MiradorStoreLike {
   getState(): unknown;
+  dispatch(action: unknown): unknown;
 }
 
 /** Options for {@link wireMiradorDatasetAuth}. */
@@ -27,6 +35,12 @@ export interface WireMiradorDatasetAuthOptions {
    * server to send `Access-Control-Allow-Credentials: true` + an explicit origin.
    */
   cookie?: boolean;
+  /**
+   * Override the login driver (testing / advanced). Defaults to the built-in IIIF Auth
+   * 1.0 flow ({@link runIiifAuthLogin}): open the access window, fetch the token, and
+   * dispatch it into Mirador's store.
+   */
+  loginDriver?: (discovered: DiscoveredAuthService, dispatch: (action: unknown) => void) => Promise<void>;
 }
 
 /**
@@ -42,8 +56,11 @@ export interface WireMiradorDatasetAuthOptions {
  * provider, not a chain): don't combine with a manual `configureDatasetRequests` call.
  * The returned teardown clears the provider (handy for tests / hot reload).
  *
- * Phase 1 only reuses an *existing* token; surfacing a "Sign in" button when none/expired
- * (to start a login) is Phase 2, wired separately via `configureDatasetAuth`.
+ * Also registers a `configureDatasetAuth` handler so the dataset "Sign in" affordance can
+ * start a IIIF Auth login for a resource that declares its auth `service` (incl. image-less
+ * / cross-host datasets): it drives the login, lands the token in Mirador's store, and the
+ * panel auto-retries. Resources with no declared service fall back to the manual "Open
+ * resource" + "Try again" path. The teardown clears both registries.
  *
  * @example
  * const { store } = Mirador.viewer(config, [scientificAnnotationPlugin]);
@@ -88,6 +105,33 @@ export function wireMiradorDatasetAuth(
     return undefined;
   };
 
+  // Write side: the Sign-in affordance starts a login for a resource that declares its
+  // auth service, then resolves so DatasetBody auto-retries.
+  const drive = options.loginDriver ?? runIiifAuthLogin;
+  const trustedAndSecure = (url: string): boolean => {
+    const o = originOf(url);
+    return o !== undefined && canonical.includes(o) && isSecureTransport(url);
+  };
+  configureDatasetAuth(async (body) => {
+    const discovered = discoverAuthService(body.service);
+    if (!discovered) return; // no declared auth service → manual "Open resource" + "Try again"
+    // Same gate as the read side: only drive a login to a trusted, https auth/token origin —
+    // never open a popup or store a token for an arbitrary manifest-declared host.
+    if (!trustedAndSecure(discovered.authServiceId) || !trustedAndSecure(discovered.tokenServiceId)) {
+      console.debug('[mirador-xyviewer/mirador-auth] skipping login: auth/token origin not trusted');
+      return;
+    }
+    try {
+      await drive(discovered, store.dispatch);
+    } catch (err) {
+      // Never reject: the Sign-in affordance awaits this; a rejection would be unhandled.
+      console.debug('[mirador-xyviewer/mirador-auth] IIIF login did not complete:', err);
+    }
+  });
+
   configureDatasetRequests(provider);
-  return () => configureDatasetRequests(undefined);
+  return () => {
+    configureDatasetRequests(undefined);
+    configureDatasetAuth(undefined);
+  };
 }
