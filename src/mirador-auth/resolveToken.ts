@@ -10,6 +10,59 @@ export interface ResolveTokenOptions {
    * Entries are canonicalized (case, default port, trailing slash/dot) before matching.
    */
   trustedOrigins: string[];
+  /**
+   * Optional: the resource's declared IIIF Auth `service` block. When present, the
+   * token is resolved from the declared token service (the spec-correct path, which
+   * also works cross-origin) in preference to host-inheritance — but only if that
+   * token service's origin is itself trusted (anti-exfiltration). Typed `unknown` on
+   * purpose: it originates from untrusted wire JSON and is narrowed defensively by
+   * {@link tokenServiceIdFromDeclared}.
+   */
+  service?: unknown;
+}
+
+/** IIIF Auth token-service profiles (1.0 and the legacy 0.x). */
+const TOKEN_PROFILES = new Set([
+  'http://iiif.io/api/auth/1/token',
+  'http://iiif.io/api/auth/0/token',
+]);
+
+const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
+
+const idOf = (s: Record<string, unknown>): string | undefined => {
+  const id = s['@id'] ?? s.id;
+  return typeof id === 'string' ? id : undefined;
+};
+
+const hasTokenProfile = (s: Record<string, unknown>): boolean => {
+  const p = s.profile;
+  if (typeof p === 'string') return TOKEN_PROFILES.has(p);
+  return Array.isArray(p) && p.some((x) => typeof x === 'string' && TOKEN_PROFILES.has(x));
+};
+
+/**
+ * The token-service id declared inside a resource's IIIF Auth `service` block, or
+ * `undefined`. The token service (profile `auth/1/token`, or legacy `/0/token`) is
+ * normally nested under the access (login/clickthrough/…) service; handles v2 (`@id`)
+ * and v3 (`id`) wire shapes, single objects and arrays.
+ */
+export function tokenServiceIdFromDeclared(service: unknown): string | undefined {
+  for (const access of asArray(service)) {
+    if (typeof access !== 'object' || access === null) continue;
+    const a = access as Record<string, unknown>;
+    for (const nested of asArray(a.service)) {
+      if (typeof nested === 'object' && nested !== null && hasTokenProfile(nested as Record<string, unknown>)) {
+        const id = idOf(nested as Record<string, unknown>);
+        if (id) return id;
+      }
+    }
+    // Defensive: a token service asserted directly on the access object.
+    if (hasTokenProfile(a)) {
+      const id = idOf(a);
+      if (id) return id;
+    }
+  }
+  return undefined;
 }
 
 /** Hostnames permitted to use plaintext http:// — local development only. */
@@ -29,7 +82,9 @@ export function originOf(url: string): string | undefined {
   } catch {
     return undefined;
   }
-  if (!u.hostname) return undefined;
+  // An origin never carries credentials; reject userinfo so a misconfigured trusted
+  // entry like `https://data.lab@auth.museum` can't silently trust the wrong host.
+  if (!u.hostname || u.username || u.password) return undefined;
   const host = u.hostname.replace(/\.$/, '');
   return `${u.protocol}//${host}${u.port ? `:${u.port}` : ''}`;
 }
@@ -52,11 +107,12 @@ export function isSecureTransport(url: string): boolean {
  * Find a Mirador IIIF-Auth access token reusable for `url`, gated by `trustedOrigins`
  * and a secure transport.
  *
- * Strategy (Phase 1): **host-inheritance** — return the token of any token service
- * whose origin matches the content origin. This is a pragmatic heuristic (no IIIF-spec
- * sanction; within one origin it trusts every path, so avoid on multi-tenant hosts);
- * Phase 1b adds the spec-correct declared-`service` path. The `trustedOrigins` gate and
- * the https requirement always apply.
+ * Strategy: (a) when the resource declares its auth `service` and that token service's
+ * origin is trusted, use the declared token service (spec-correct, works cross-origin);
+ * else (b) **host-inheritance** — a token whose service origin matches the content origin
+ * (a pragmatic heuristic with no IIIF-spec sanction; within one origin it trusts every
+ * path, so avoid on multi-tenant hosts). The `trustedOrigins` gate and the https
+ * requirement always apply.
  *
  * This is the single place that knows Mirador's token-store shape
  * (`getAccessTokens(state)[tokenServiceId].json.accessToken`); all consumers go through
@@ -70,8 +126,22 @@ export function resolveMiradorToken(state: unknown, opts: ResolveTokenOptions): 
   if (!trusted.has(contentOrigin)) return undefined;
 
   const tokens = getAccessTokens(state);
+
+  // (a) Spec-correct: the resource declares its auth service. Use that token service —
+  //     but only if ITS origin is also trusted, else a malicious resource could name an
+  //     unrelated token-service id to exfiltrate a token to this (trusted) content origin.
+  const declaredId = opts.service ? tokenServiceIdFromDeclared(opts.service) : undefined;
+  if (declaredId) {
+    const declaredOrigin = originOf(declaredId);
+    if (declaredOrigin && trusted.has(declaredOrigin)) {
+      const token = tokens[declaredId]?.json?.accessToken;
+      if (token) return token;
+    }
+  }
+
+  // (b) Host-inheritance fallback: first token service whose origin matches the content
+  //     origin wins (store order).
   for (const [tokenServiceId, entry] of Object.entries(tokens)) {
-    // First token service whose origin matches the content origin wins (store order).
     const token = entry.json?.accessToken;
     if (token && originOf(tokenServiceId) === contentOrigin) return token;
   }
