@@ -195,6 +195,77 @@ describe('DatasetBody', () => {
       expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
     });
 
+    it('hides the Sign in button when the registered predicate says this body cannot start a login', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn(), { canStartLogin: () => false });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText(/protected/i);
+      expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
+      // Falls back to the manual path.
+      expect(screen.getByRole('link', { name: /open resource/i })).toHaveAttribute('href', body.id);
+    });
+
+    it('shows the Sign in button when the registered predicate allows it', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn(), { canStartLogin: () => true });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    });
+
+    it('shows a signing-in state while the login is pending, then refetches on success', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      let resolveLogin: () => void = () => {};
+      const handler = vi.fn(() => new Promise<void>((r) => { resolveLogin = r; }));
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^sign in$/i }));
+
+      // While the login promise is pending: progress label + disabled (no double-popup),
+      // and the copy points the user at the popup.
+      const busy = await screen.findByRole('button', { name: /signing in/i });
+      expect(busy).toBeDisabled();
+      expect(screen.getByText(/complete sign-in in the new window/i)).toBeInTheDocument();
+
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+      resolveLogin();
+      expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+    });
+
+    it('shows the Sign in button for a handler registered without a predicate (back-compat)', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn()); // no canStartLogin → must default to showing the button
+      render(<DatasetBody body={body} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    });
+
+    it('resets the signing-in state for a synchronous (void) handler', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn(), { canStartLogin: () => true }); // returns void → no auto-retry
+      render(<DatasetBody body={body} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^sign in$/i }));
+      const after = await screen.findByRole('button', { name: /^sign in$/i });
+      expect(after).not.toBeDisabled(); // not stuck on "Signing in…"
+    });
+
+    it('recovers the button when the handler rejects (no stuck busy, no unhandled rejection)', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      const onAuthRequired = vi.fn().mockRejectedValue(new Error('popup closed'));
+      render(<DatasetBody body={body} onAuthRequired={onAuthRequired} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^sign in$/i }));
+      const signIn = await screen.findByRole('button', { name: /^sign in$/i });
+      expect(signIn).not.toBeDisabled();
+      expect(screen.queryByTestId('spectrum-plot')).toBeNull();
+    });
+
     it('re-fetches automatically after an async handler resolves', async () => {
       vi.mocked(fetchDataset).mockResolvedValueOnce(authError);
       const onAuthRequired = vi.fn().mockResolvedValue(undefined);

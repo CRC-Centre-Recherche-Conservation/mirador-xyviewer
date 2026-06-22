@@ -29,7 +29,11 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import type { DatasetBody as DatasetBodyType, LocalizedString } from '../types/iiif';
 import type { SpectrumData, FetchStatus, DatasetRequestOptions } from '../types/dataset';
 import { fetchDataset, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
-import { configureDatasetAuth, getRegisteredAuthHandler } from '../services/datasetAuth';
+import {
+  configureDatasetAuth,
+  getRegisteredAuthHandler,
+  getRegisteredCanStartLogin,
+} from '../services/datasetAuth';
 import type { DatasetAuthHandler } from '../services/datasetAuth';
 import { datasetCache } from '../services/datasetCache';
 import { isValidUrl } from '../utils/security';
@@ -59,8 +63,10 @@ interface ProtectedDatasetNoticeProps {
   format?: string;
   host?: string;
   resourceUrl: string;
-  /** Present only when a sign-in handler is wired; absent → no Sign in action. */
+  /** Present only when a login can actually start for this body; absent → no Sign in action. */
   onSignIn?: () => void;
+  /** Login in progress — disables the button and shows a "Signing in…" state. */
+  busy?: boolean;
   onRetry: () => void;
 }
 
@@ -76,15 +82,18 @@ const ProtectedDatasetNotice: React.FC<ProtectedDatasetNoticeProps> = ({
   host,
   resourceUrl,
   onSignIn,
+  busy,
   onRetry,
 }) => {
-  const message = onSignIn
-    ? host
-      ? `Hosted by ${host} — sign in to view.`
-      : 'Sign in to view this dataset.'
-    : host
-      ? `Hosted by ${host}. Sign in there, then retry.`
-      : 'This dataset is protected. Sign in, then retry.';
+  const message = busy
+    ? 'Complete sign-in in the new window…'
+    : onSignIn
+      ? host
+        ? `Hosted by ${host} — sign in to view.`
+        : 'Sign in to view this dataset.'
+      : host
+        ? `Hosted by ${host}. Sign in there, then retry.`
+        : 'This dataset is protected. Sign in, then retry.';
   const spec = [format, host].filter(Boolean).join(' · ');
 
   return (
@@ -140,11 +149,13 @@ const ProtectedDatasetNotice: React.FC<ProtectedDatasetNoticeProps> = ({
             variant="contained"
             size="small"
             disableElevation
-            endIcon={<OpenInNewIcon fontSize="small" />}
+            disabled={busy}
+            startIcon={busy ? <CircularProgress size={14} color="inherit" /> : undefined}
+            endIcon={busy ? undefined : <OpenInNewIcon fontSize="small" />}
             onClick={onSignIn}
             sx={{ textTransform: 'none' }}
           >
-            Sign in
+            {busy ? 'Signing in…' : 'Sign in'}
           </Button>
         )}
         <Link
@@ -207,12 +218,18 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   const mountedRef = useRef(true);
   const urlRef = useRef(body.id);
 
   // Per-component prop wins over a global handler registered via configureDatasetAuth.
   const authHandler = onAuthRequired ?? getRegisteredAuthHandler();
+  // Show "Sign in" only when a login can actually start for this body: a per-component prop
+  // is the host's responsibility; the global handler exposes a predicate (when wired) so we
+  // don't render a dead button for a resource that declares no (trusted) auth service.
+  const canSignIn =
+    Boolean(authHandler) && (onAuthRequired ? true : (getRegisteredCanStartLogin()?.(body) ?? true));
 
   // Host to authenticate against, surfaced in the protected-dataset notice.
   const host = useMemo(() => safeHost(body.id), [body.id]);
@@ -291,12 +308,21 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   // otherwise the user re-triggers with Retry after signing in.
   const handleSignIn = useCallback(async () => {
     if (!authHandler) return;
-    const maybePromise = authHandler(body);
-    if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
-      await maybePromise;
-      if (!mountedRef.current) return;
-      datasetCache.delete(body.id);
-      handleFetch();
+    setSigningIn(true);
+    try {
+      const maybePromise = authHandler(body);
+      if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
+        await maybePromise;
+        if (!mountedRef.current) return;
+        datasetCache.delete(body.id);
+        handleFetch();
+      }
+    } catch (err) {
+      // A host onAuthRequired may reject (e.g. the user closed the popup); recover quietly
+      // rather than surface an unhandled rejection. The user can Retry.
+      console.debug('[mirador-xyviewer] sign-in did not complete:', err);
+    } finally {
+      if (mountedRef.current) setSigningIn(false);
     }
   }, [authHandler, body, handleFetch]);
 
@@ -354,7 +380,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircularProgress size={20} />
             <Typography variant="body2" color="text.secondary">
-              Loading spectrum...
+              Loading spectrum…
             </Typography>
           </Box>
         )}
@@ -366,7 +392,8 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
             format={body.format}
             host={host}
             resourceUrl={body.id}
-            onSignIn={authHandler ? handleSignIn : undefined}
+            onSignIn={canSignIn ? handleSignIn : undefined}
+            busy={signingIn}
             onRetry={handleRetry}
           />
         ) : (
