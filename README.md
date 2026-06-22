@@ -84,12 +84,29 @@ token as `Authorization: Bearer …` on dataset fetches. The lower-level
 auth store); `wireMiradorDatasetAuth` takes exclusive ownership of that slot, so use one
 or the other.
 
+For **split content/auth domains** — content on one host, the IIIF auth/token service on
+another (e.g. spectra on `data.lab`, login on `auth.museum`) — trust **both** origins:
+
+```typescript
+wireMiradorDatasetAuth(store, {
+  trustedOrigins: ['https://data.lab.example', 'https://auth.example'],
+});
+```
+
 > **Trust model.** A token is attached only when (a) the content origin is in
 > `trustedOrigins`, (b) the transport is **https** (plaintext http is refused except
-> loopback), and (c) a Mirador token service shares that origin (*host-inheritance* —
-> it trusts every path on a trusted origin, so avoid on multi-tenant hosts). Matching the
-> resource's **declared** IIIF auth service (the spec-correct path) and triggering a login
-> for image-less/cross-host datasets are on the roadmap — see
+> loopback), and (c) a Mirador token service is matched — either the one the resource
+> **declares** in its IIIF auth `service` (the spec-correct path, which works
+> **cross-origin**), or, as a fallback, any token service sharing the content origin
+> (*host-inheritance* — it trusts every path on a trusted origin, so avoid on
+> multi-tenant hosts).
+>
+> **Split content/auth domains** need **both** origins trusted: the content origin to
+> permit the fetch, and the declared token-service origin to permit reusing that token
+> (an anti-exfiltration gate). If only the content origin is trusted, the declared path
+> is skipped and the dataset falls back to the protected-record notice.
+>
+> Triggering a login for image-less/cross-host datasets is on the roadmap — see
 > [`docs/IIIF-AUTH-INTEGRATION-PLAN.md`](./docs/IIIF-AUTH-INTEGRATION-PLAN.md).
 
 ## Quick Start
