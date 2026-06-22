@@ -270,7 +270,9 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     setError(null);
     setAuthRequired(false);
 
-    const result = await fetchDataset(body.id, body.format, displayLabel, requestOptions);
+    const result = await fetchDataset(body.id, body.format, displayLabel, requestOptions, {
+      service: body.service,
+    });
 
     if (!mountedRef.current) return;
 
@@ -284,7 +286,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       setAuthRequired(result.authRequired === true);
       setStatus('error');
     }
-  }, [body.id, body.format, displayLabel, validation, onDataLoaded, requestOptions]);
+  }, [body.id, body.format, body.service, displayLabel, validation, onDataLoaded, requestOptions]);
 
   const handleRetry = useCallback(() => {
     datasetCache.delete(body.id);

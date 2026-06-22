@@ -73,9 +73,29 @@ describe('DatasetBody', () => {
     fireEvent.click(screen.getByRole('button', { name: /Load/i }));
 
     expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
-    expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String), undefined);
+    expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String), undefined, {
+      service: undefined,
+    });
     expect(onDataLoaded).toHaveBeenCalledWith(body.id, data);
     expect(screen.getByText(/2 points/)).toBeInTheDocument();
+  });
+
+  it("forwards the body's declared IIIF service to fetchDataset (Phase 1b)", async () => {
+    const service = { '@id': 'https://auth.museum/login' };
+    const bodyWithService: DatasetBodyType = { ...body, service };
+    vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+    render(<DatasetBody body={bodyWithService} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+    await screen.findByTestId('spectrum-plot');
+
+    expect(fetchDataset).toHaveBeenCalledWith(
+      bodyWithService.id,
+      bodyWithService.format,
+      expect.any(String),
+      undefined,
+      { service },
+    );
   });
 
   it('shows an error Alert on fetch failure', async () => {
