@@ -73,8 +73,12 @@ export function wireMiradorDatasetAuth(
     }
   }
 
-  const provider: DatasetRequestProvider = (url): DatasetRequestOptions | undefined => {
-    const token = resolveMiradorToken(store.getState(), { url, trustedOrigins: canonical });
+  const provider: DatasetRequestProvider = (url, context): DatasetRequestOptions | undefined => {
+    const token = resolveMiradorToken(store.getState(), {
+      url,
+      service: context?.service,
+      trustedOrigins: canonical,
+    });
     if (token) return { headers: { Authorization: `Bearer ${token}` } };
 
     if (cookie && isSecureTransport(url)) {

@@ -61,6 +61,7 @@ export type {
   // IIIF types
   LocalizedString,
   MetadataEntry,
+  IiifService,
   ManifestBody as ManifestBodyType,
   DatasetBody as DatasetBodyType,
   TextualBody as TextualBodyType,
@@ -72,6 +73,7 @@ export type {
   FetchStatus,
   DatasetFetchResult,
   DatasetRequestOptions,
+  DatasetRequestContext,
   DatasetRequestProvider,
   PlotlyTrace,
   PlotlyLayout,

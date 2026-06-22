@@ -79,4 +79,20 @@ describe('wireMiradorDatasetAuth', () => {
     wireMiradorDatasetAuth(store, { trustedOrigins: [] });
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('trustedOrigins'));
   });
+
+  it('forwards the declared service from the request context to the resolver', () => {
+    const store = storeWith({ 'https://auth.museum/token': { json: { accessToken: 'DECLARED' } } });
+    wireMiradorDatasetAuth(store, { trustedOrigins: ['https://data.lab', 'https://auth.museum'] });
+    const context = {
+      service: {
+        '@id': 'https://auth.museum/login',
+        profile: 'http://iiif.io/api/auth/1/login',
+        service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+      },
+    };
+    // data.lab has no same-origin token; only the declared cross-origin service resolves it.
+    expect(provider()('https://data.lab/d.csv', context)).toEqual({
+      headers: { Authorization: 'Bearer DECLARED' },
+    });
+  });
 });

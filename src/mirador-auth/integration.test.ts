@@ -65,4 +65,19 @@ describe('mirador-auth ⇄ dataset fetcher (real seam)', () => {
     await fetchDataset('https://data.lab/after-teardown.csv', 'text/csv', 'L');
     expect(lastInit().headers.Authorization).toBeUndefined();
   });
+
+  it('attaches a declared cross-origin token via the request service context (Phase 1b)', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(csvResponse());
+    const store = storeWith({ 'https://auth.museum/token': { json: { accessToken: 'X-TKN' } } });
+    wireMiradorDatasetAuth(store, { trustedOrigins: ['https://data.lab', 'https://auth.museum'] });
+
+    await fetchDataset('https://data.lab/declared.csv', 'text/csv', 'L', undefined, {
+      service: {
+        '@id': 'https://auth.museum/login',
+        profile: 'http://iiif.io/api/auth/1/login',
+        service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+      },
+    });
+    expect(lastInit().headers.Authorization).toBe('Bearer X-TKN');
+  });
 });
