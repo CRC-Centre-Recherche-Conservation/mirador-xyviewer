@@ -8,7 +8,12 @@ vi.mock('mirador', () => ({
   getAccessTokens: (state: { accessTokens?: unknown }) => state?.accessTokens ?? {},
 }));
 
-import { originOf, resolveMiradorToken, tokenServiceIdFromDeclared } from './resolveToken';
+import {
+  discoverAuthService,
+  originOf,
+  resolveMiradorToken,
+  tokenServiceIdFromDeclared,
+} from './resolveToken';
 
 /** A fake Mirador state carrying only the token slice this resolver reads. */
 const stateWith = (entries: Record<string, unknown>) => ({ accessTokens: entries });
@@ -278,5 +283,55 @@ describe('originOf', () => {
     // from silently trusting the wrong host.
     expect(originOf('https://user:pass@data.lab/x')).toBeUndefined();
     expect(originOf('https://data.lab@auth.museum/x')).toBeUndefined();
+  });
+});
+
+describe('discoverAuthService', () => {
+  it('returns the access service id, profile, and nested token service id (v2 login)', () => {
+    expect(discoverAuthService(v2AuthService)).toEqual({
+      authServiceId: 'https://auth.museum/login',
+      profile: 'http://iiif.io/api/auth/1/login',
+      tokenServiceId: 'https://auth.museum/token',
+    });
+  });
+
+  it('recognizes clickthrough / kiosk / external / 0.x access profiles', () => {
+    for (const p of [
+      'http://iiif.io/api/auth/1/clickthrough',
+      'http://iiif.io/api/auth/1/kiosk',
+      'http://iiif.io/api/auth/1/external',
+      'http://iiif.io/api/auth/0/login',
+    ]) {
+      const svc = {
+        '@id': 'https://auth.museum/x',
+        profile: p,
+        service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+      };
+      expect(discoverAuthService(svc)?.profile).toBe(p);
+    }
+  });
+
+  it('returns undefined when the declared service is not an access service', () => {
+    expect(
+      discoverAuthService({ '@id': 'https://x/token', profile: 'http://iiif.io/api/auth/1/token' }),
+    ).toBeUndefined();
+    expect(
+      discoverAuthService({ '@id': 'https://x/img', profile: 'http://iiif.io/api/image/2/level2.json' }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when the access service declares no token service', () => {
+    expect(
+      discoverAuthService({ '@id': 'https://auth.museum/login', profile: 'http://iiif.io/api/auth/1/login' }),
+    ).toBeUndefined();
+  });
+
+  it('picks the access service from an array', () => {
+    expect(discoverAuthService(['nonsense', v2AuthService])?.authServiceId).toBe('https://auth.museum/login');
+  });
+
+  it('returns undefined for malformed input', () => {
+    expect(discoverAuthService(undefined)).toBeUndefined();
+    expect(discoverAuthService(42)).toBeUndefined();
   });
 });

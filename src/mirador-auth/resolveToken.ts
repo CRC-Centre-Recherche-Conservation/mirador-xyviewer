@@ -27,6 +27,25 @@ const TOKEN_PROFILES = new Set([
   'http://iiif.io/api/auth/0/token',
 ]);
 
+/** IIIF Auth access-service profiles (the interaction patterns), 1.0 and 0.x. */
+const ACCESS_PROFILES = new Set([
+  'http://iiif.io/api/auth/1/login',
+  'http://iiif.io/api/auth/1/clickthrough',
+  'http://iiif.io/api/auth/1/kiosk',
+  'http://iiif.io/api/auth/1/external',
+  'http://iiif.io/api/auth/0/login',
+  'http://iiif.io/api/auth/0/clickthrough',
+  'http://iiif.io/api/auth/0/kiosk',
+  'http://iiif.io/api/auth/0/external',
+]);
+
+const profileOf = (s: Record<string, unknown>): string | undefined => {
+  const p = s.profile;
+  if (typeof p === 'string') return p;
+  if (Array.isArray(p)) return p.find((x): x is string => typeof x === 'string');
+  return undefined;
+};
+
 const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
 
 const idOf = (s: Record<string, unknown>): string | undefined => {
@@ -60,6 +79,39 @@ export function tokenServiceIdFromDeclared(service: unknown): string | undefined
     if (hasTokenProfile(a)) {
       const id = idOf(a);
       if (id) return id;
+    }
+  }
+  return undefined;
+}
+
+/** A resource's declared IIIF Auth access service plus its nested token service. */
+export interface DiscoveredAuthService {
+  /** Access (login/clickthrough/kiosk/external) service id — where the user authenticates. */
+  authServiceId: string;
+  /** The access service's IIIF Auth profile URI. */
+  profile: string;
+  /** Nested token service id — the key Mirador's `accessTokens` store uses. */
+  tokenServiceId: string;
+}
+
+/**
+ * Extract the IIIF Auth access service (and its nested token service) a resource
+ * declares — what Phase 2 needs to drive a login. Returns `undefined` unless an
+ * access service (a login/clickthrough/kiosk/external profile) with a nested token
+ * service is declared.
+ */
+export function discoverAuthService(service: unknown): DiscoveredAuthService | undefined {
+  for (const access of asArray(service)) {
+    if (typeof access !== 'object' || access === null) continue;
+    const a = access as Record<string, unknown>;
+    const profile = profileOf(a);
+    const authServiceId = idOf(a);
+    if (!profile || !authServiceId || !ACCESS_PROFILES.has(profile)) continue;
+    for (const nested of asArray(a.service)) {
+      if (typeof nested === 'object' && nested !== null && hasTokenProfile(nested as Record<string, unknown>)) {
+        const tokenServiceId = idOf(nested as Record<string, unknown>);
+        if (tokenServiceId) return { authServiceId, profile, tokenServiceId };
+      }
     }
   }
   return undefined;
