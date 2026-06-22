@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs.js"
+    },
+    "./mirador-auth": {
+      "types": "./dist/mirador-auth/index.d.ts",
+      "import": "./dist/mirador-auth.esm.js",
+      "require": "./dist/mirador-auth.cjs.js"
     }
   },
   "files": [

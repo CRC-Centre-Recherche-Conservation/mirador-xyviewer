@@ -35,6 +35,22 @@ declare module 'mirador' {
     options: { windowId: string }
   ): unknown;
 
+  /**
+   * A Mirador IIIF Auth token-store entry. Keyed (in the store) by token-service id;
+   * the bearer token lives at `.json.accessToken` (see state/reducers/accessTokens.js).
+   */
+  export interface MiradorAccessTokenEntry {
+    authId?: string;
+    id?: string;
+    isFetching?: boolean;
+    json?: { accessToken?: string; expiresIn?: number; [key: string]: unknown };
+    error?: string;
+    success?: boolean;
+  }
+
+  // Mirador getAccessTokens selector - the IIIF Auth token store, keyed by token-service id.
+  export function getAccessTokens(state: unknown): Record<string, MiradorAccessTokenEntry>;
+
   // Mirador viewer factory
   export function viewer(
     config: unknown,

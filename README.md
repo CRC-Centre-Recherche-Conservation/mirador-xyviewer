@@ -62,6 +62,36 @@ configureDatasetRequests((url) => {
 > to send `Access-Control-Allow-Credentials: true` and an explicit
 > `Access-Control-Allow-Origin`. See the [IIIF Annotations guide](./docs/IIIF-ANNOTATIONS.md#protected-datasets-iiif-auth) for details.
 
+#### Reusing Mirador's IIIF Auth session (recommended)
+
+If your protected datasets live on the **same origin** as protected images, you don't
+need to plumb tokens by hand. Mirador 4 already runs the IIIF Auth 1.0 flow for images;
+`wireMiradorDatasetAuth` reuses that stored token so a **single login unlocks images and
+same-host datasets** — no second sign-in.
+
+```typescript
+import { wireMiradorDatasetAuth } from 'mirador-xyviewer/mirador-auth';
+
+const { store } = Mirador.viewer(config, [scientificAnnotationPlugin]);
+
+// Once at setup. trustedOrigins is a required allowlist (anti-leak); no wildcard.
+wireMiradorDatasetAuth(store, { trustedOrigins: ['https://data.lab.example'] });
+```
+
+This registers a `configureDatasetRequests` provider that attaches the matching Mirador
+token as `Authorization: Bearer …` on dataset fetches. The lower-level
+`configureDatasetRequests` above remains available as an escape hatch (e.g. a non-Mirador
+auth store); `wireMiradorDatasetAuth` takes exclusive ownership of that slot, so use one
+or the other.
+
+> **Trust model.** A token is attached only when (a) the content origin is in
+> `trustedOrigins`, (b) the transport is **https** (plaintext http is refused except
+> loopback), and (c) a Mirador token service shares that origin (*host-inheritance* —
+> it trusts every path on a trusted origin, so avoid on multi-tenant hosts). Matching the
+> resource's **declared** IIIF auth service (the spec-correct path) and triggering a login
+> for image-less/cross-host datasets are on the roadmap — see
+> [`docs/IIIF-AUTH-INTEGRATION-PLAN.md`](./docs/IIIF-AUTH-INTEGRATION-PLAN.md).
+
 ## Quick Start
 
 ```bash
