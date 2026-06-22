@@ -20,6 +20,7 @@ import type {
   AnnotationBody,
   AnnotationTarget,
   AnnotationV3,
+  IiifService,
   LocalizedString,
   LocalizedStringV2,
   MetadataEntry,
@@ -205,9 +206,11 @@ function mapBody(raw: unknown): AnnotationBody {
   const chars = typeof raw.chars === 'string' ? raw.chars : undefined;
   const label = v2ValueToLocalized(raw.label as LocalizedStringV2 | undefined);
 
-  const base: { format?: string; label?: LocalizedString } = {};
+  const base: { format?: string; label?: LocalizedString; service?: IiifService | IiifService[] } = {};
   if (format) base.format = format;
   if (label && typeof label !== 'string') base.label = label;
+  // Preserve a declared IIIF service (e.g. an Auth service) — needed for token resolution.
+  if (raw.service !== undefined) base.service = raw.service as IiifService | IiifService[];
 
   // Bare v3 `@type` passes through unchanged.
   if (rawType === 'Dataset' || rawType === 'Manifest' || rawType === 'TextualBody') {
