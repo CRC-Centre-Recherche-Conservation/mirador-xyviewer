@@ -51,6 +51,14 @@ declare module 'mirador' {
   // Mirador getAccessTokens selector - the IIIF Auth token store, keyed by token-service id.
   export function getAccessTokens(state: unknown): Record<string, MiradorAccessTokenEntry>;
 
+  // Mirador resolveAccessTokenRequest action creator - stores the token under its service id
+  // (dispatches RECEIVE_ACCESS_TOKEN when `json.accessToken` is present).
+  export function resolveAccessTokenRequest(
+    authId: string,
+    tokenServiceId: string,
+    json: unknown
+  ): AnyAction;
+
   // Mirador viewer factory
   export function viewer(
     config: unknown,
