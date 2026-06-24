@@ -18,3 +18,5 @@ export { wireMiradorDatasetAuth } from './wire';
 export type { MiradorStoreLike, WireMiradorDatasetAuthOptions } from './wire';
 export { wireMiradorImageAuthReload } from './imageAuthReload';
 export type { MiradorSubscribableStore } from './imageAuthReload';
+export { isBlockedHost } from './blocklist';
+export type { BlocklistConfig } from './blocklist';
