@@ -1,19 +1,22 @@
 /**
- * Demo-only IIIF Auth simulation — INDEPENDENT services, the real model.
+ * Demo-only IIIF Auth simulation — one manifest federating several auth services
+ * (see demo-auth-config.ts for the topology). Real data throughout, via the `/lab` proxy.
+ * NOT part of the published plugin.
  *
- * Each protected resource sits behind its own service (see demo-auth-config.ts), so each
- * needs its own login and yields its own token:
- *   - protected spectra get their DATASET auth service declared here; our plugin
- *     (`wireMiradorDatasetAuth`) shows "Sign in", runs that service's login, and reuses its
- *     token for same-service spectra;
- *   - protected maXRF IMAGES are handled by MIRADOR itself — their info.json (served by the
- *     proxy) returns a 401 declaring the image auth service, so Mirador drives its own login
- *     directly on the map (no spectrum needed).
- * Signing in for one service does NOT unlock another. Real data throughout, via the `/lab`
- * proxy. NOT part of the published plugin.
+ * Two mechanisms, because images and datasets fetch differently:
+ *   - protected spectra (DATASETS) declare their auth service here; the plugin
+ *     (`wireMiradorDatasetAuth`) shows "Sign in", runs that service's login, and attaches a
+ *     bearer token;
+ *   - protected maXRF IMAGES are handled by MIRADOR — their info.json returns 401 declaring
+ *     the image auth service, so Mirador drives its own (cookie) login on the map.
+ *
+ * Both a login window's cookie AND its token are scoped to the SAME service id, so the
+ * `crc-lab` service guards its map2 image (cookie) and its spectra (bearer) under ONE login:
+ * sign in for either and the other unlocks (the plugin reuses the stored token; the image
+ * reuses the cookie). `partner-lab` and `imaging-lab` stay isolated — each its own login.
  */
-import { wireMiradorDatasetAuth } from '../src/mirador-auth';
-import { PROTECTED_DATASETS, authServiceFor } from './demo-auth-config';
+import { wireMiradorDatasetAuth, wireMiradorImageAuthReload } from '../src/mirador-auth';
+import { authServiceFor, serviceForAnnotation } from './demo-auth-config';
 
 const DEMO_ORIGIN = window.location.origin;
 const BACKEND = 'http://192.168.122.250:8000';
@@ -36,21 +39,22 @@ function rewriteInPlace(node: unknown): void {
   }
 }
 
-/** The dataset auth service for a (rewritten) `/lab/files/<uuid>` URL, if it's protected. */
-const datasetService = (id: unknown): string | undefined => {
-  if (typeof id !== 'string') return undefined;
-  const m = /\/lab\/files\/([^/?]+)/.exec(id);
-  return m ? PROTECTED_DATASETS[m[1]] : undefined;
-};
-
-/** Declare each protected spectrum's own dataset auth service so the plugin offers Sign-in. */
+/**
+ * Declare each protected spectrum's auth service (matched by its ANNOTATION UUID) so the
+ * plugin offers Sign-in and reuses the token. Image (manifest) annotations are skipped —
+ * Mirador drives their cookie login via the proxy's 401 info.json.
+ */
 function declareDatasetServices(page: { items?: unknown[]; resources?: unknown[] }): void {
   for (const entry of (page.items ?? page.resources ?? []) as Record<string, unknown>[]) {
+    const svc = serviceForAnnotation(page.items ? entry.id : entry['@id']);
+    if (!svc) continue;
     const body = page.items ? (Array.isArray(entry.body) ? entry.body[0] : entry.body) : entry.resource;
     if (!body || typeof body !== 'object') continue;
     const b = body as Record<string, unknown>;
-    const svc = datasetService(page.items ? b.id : b['@id']);
-    if (svc) b.service = authServiceFor(DEMO_ORIGIN, svc);
+    const bodyId = page.items ? b.id : b['@id'];
+    if (typeof bodyId === 'string' && bodyId.includes('/files/')) {
+      b.service = authServiceFor(DEMO_ORIGIN, svc);
+    }
   }
 }
 
@@ -69,10 +73,17 @@ export function rewriteBackendUrls(_url: string, action: Record<string, unknown>
 }
 
 /** Wire the demo's dataset IIIF Auth (independent services). Call once after `Mirador.viewer`. */
-export function setupDemoAuth(store: { getState(): unknown; dispatch(action: unknown): unknown }): void {
+export function setupDemoAuth(store: {
+  getState(): unknown;
+  dispatch(action: unknown): unknown;
+  subscribe(listener: () => void): () => void;
+}): void {
   wireMiradorDatasetAuth(store, { trustedOrigins: TRUSTED_ORIGINS });
+  // Protected maXRF images are driven by Mirador's own login; reload the canvas once that
+  // login lands so the first image appears without re-opening the window.
+  wireMiradorImageAuthReload(store);
   // eslint-disable-next-line no-console
-  console.log('%c[demo] IIIF Auth simulation active — independent services', 'color:#22c55e;font-weight:bold', {
-    note: 'Spectra: 2 dataset services (plugin). maXRF maps: 2 image services (Mirador). Each its own login.',
+  console.log('%c[demo] IIIF Auth simulation active — federated services', 'color:#22c55e;font-weight:bold', {
+    note: 'crc-lab: map2 image + spectra (one login). partner-lab: spectrum only. imaging-lab: map3 image only.',
   });
 }
