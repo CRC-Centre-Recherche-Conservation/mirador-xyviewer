@@ -78,7 +78,13 @@ export function setupDemoAuth(store: {
   dispatch(action: unknown): unknown;
   subscribe(listener: () => void): () => void;
 }): void {
-  wireMiradorDatasetAuth(store, { trustedOrigins: TRUSTED_ORIGINS });
+  // Local dev serves the demo (and its `/lab` proxy) from a loopback origin, which the SSRF
+  // blocklist refuses by default — opt in so the demo's same-origin tokens attach. Harmless
+  // on the deployed https origin. This is exactly the intended "dev loosens the default" path.
+  wireMiradorDatasetAuth(store, {
+    trustedOrigins: TRUSTED_ORIGINS,
+    blocklist: { allow: ['loopback', 'localhost'] },
+  });
   // Protected maXRF images are driven by Mirador's own login; reload the canvas once that
   // login lands so the first image appears without re-opening the window.
   wireMiradorImageAuthReload(store);
