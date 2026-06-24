@@ -16,3 +16,5 @@ export { resolveMiradorToken } from './resolveToken';
 export type { ResolveTokenOptions } from './resolveToken';
 export { wireMiradorDatasetAuth } from './wire';
 export type { MiradorStoreLike, WireMiradorDatasetAuthOptions } from './wire';
+export { wireMiradorImageAuthReload } from './imageAuthReload';
+export type { MiradorSubscribableStore } from './imageAuthReload';

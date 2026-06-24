@@ -18,6 +18,14 @@ declare module 'mirador' {
     payload: Record<string, unknown>
   ): AnyAction;
 
+  // Mirador info-response action creators (used to remount an OSD tile source after auth).
+  export function requestInfoResponse(
+    infoId: string,
+    imageResource?: unknown,
+    windowId?: string
+  ): AnyAction;
+  export function removeInfoResponse(infoId: string): AnyAction;
+
   // Mirador updateViewport action creator - updates the viewport position/zoom
   export function updateViewport(
     windowId: string,
