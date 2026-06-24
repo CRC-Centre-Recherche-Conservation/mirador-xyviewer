@@ -207,6 +207,53 @@ describe('resolveMiradorToken', () => {
       }),
     ).toBe('HOST');
   });
+
+  // — host-driven default: trustedOrigins optional (IIIF spec: a token goes back to its
+  //   own service's origin). With no allowlist, a token is only ever returned for the exact
+  //   origin that issued it; cross-origin (declared-service) reuse still needs explicit trust.
+
+  it('host-driven (no trustedOrigins): returns a token for its own issuing origin', () => {
+    const state = stateWith({ 'https://data.lab/token': { json: { accessToken: 'TKN' } } });
+    expect(resolveMiradorToken(state, { url: 'https://data.lab/d.csv' })).toBe('TKN');
+  });
+
+  it('an explicit empty trustedOrigins array denies all (kill-switch), unlike omitting it', () => {
+    const state = stateWith({ 'https://data.lab/token': { json: { accessToken: 'TKN' } } });
+    expect(resolveMiradorToken(state, { url: 'https://data.lab/d.csv' })).toBe('TKN'); // omitted → host-driven
+    expect(
+      resolveMiradorToken(state, { url: 'https://data.lab/d.csv', trustedOrigins: [] }),
+    ).toBeUndefined(); // explicit [] → deny-all, even same-origin
+  });
+
+  it('host-driven: never sends a token to an origin other than the one that issued it', () => {
+    const state = stateWith({ 'https://data.lab/token': { json: { accessToken: 'TKN' } } });
+    expect(resolveMiradorToken(state, { url: 'https://evil.example/d.csv' })).toBeUndefined();
+  });
+
+  it('host-driven: a declared SAME-origin token service is used', () => {
+    const state = stateWith({ 'https://data.lab/token': { json: { accessToken: 'TKN' } } });
+    const sameOriginService = {
+      '@id': 'https://data.lab/login',
+      profile: 'http://iiif.io/api/auth/1/login',
+      service: [{ '@id': 'https://data.lab/token', profile: 'http://iiif.io/api/auth/1/token' }],
+    };
+    expect(
+      resolveMiradorToken(state, { url: 'https://data.lab/d.csv', service: sameOriginService }),
+    ).toBe('TKN');
+  });
+
+  it('host-driven: a declared CROSS-origin token service is NOT used without explicit trust', () => {
+    const state = stateWith({ 'https://auth.museum/token': { json: { accessToken: 'AUTH' } } });
+    // content on data.lab, auth declared on auth.museum: cross-origin reuse must be opted into.
+    expect(
+      resolveMiradorToken(state, { url: 'https://data.lab/d.csv', service: v2AuthService }),
+    ).toBeUndefined();
+  });
+
+  it('host-driven: still refuses a token over plaintext http (non-loopback)', () => {
+    const state = stateWith({ 'http://data.lab/token': { json: { accessToken: 'TKN' } } });
+    expect(resolveMiradorToken(state, { url: 'http://data.lab/d.csv' })).toBeUndefined();
+  });
 });
 
 describe('tokenServiceIdFromDeclared', () => {

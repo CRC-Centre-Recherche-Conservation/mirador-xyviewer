@@ -5,11 +5,15 @@ export interface ResolveTokenOptions {
   /** The content URL being fetched (dataset, manifest, annotation…). */
   url: string;
   /**
-   * Allowlist of content origins permitted to receive a token. Required — a token
-   * is never returned for an origin outside this list (anti-leak gate). No wildcard.
-   * Entries are canonicalized (case, default port, trailing slash/dot) before matching.
+   * Optional allowlist of content origins permitted to receive a token. When provided —
+   * **even as an empty array** — it is an explicit anti-leak gate: a token is only ever
+   * returned for a listed origin (no wildcard), so `[]` is a deny-all kill-switch, and a
+   * non-empty list is what enables cross-origin (declared-service) reuse. When **omitted**, a
+   * host-driven default applies: a token is returned only for the exact origin of the service
+   * that issued it (IIIF spec — a token goes back to its own service's origin). Entries are
+   * canonicalized (case, default port, trailing slash/dot) before matching.
    */
-  trustedOrigins: string[];
+  trustedOrigins?: string[];
   /**
    * Optional: the resource's declared IIIF Auth `service` block. When present, the
    * token is resolved from the declared token service (the spec-correct path, which
@@ -166,15 +170,17 @@ export function isSecureTransport(url: string): boolean {
 }
 
 /**
- * Find a Mirador IIIF-Auth access token reusable for `url`, gated by `trustedOrigins`
- * and a secure transport.
+ * Find a Mirador IIIF-Auth access token reusable for `url`, gated by trust and a secure
+ * transport.
  *
  * Strategy: (a) when the resource declares its auth `service` and that token service's
  * origin is trusted, use the declared token service (spec-correct, works cross-origin);
- * else (b) **host-inheritance** — a token whose service origin matches the content origin
- * (a pragmatic heuristic with no IIIF-spec sanction; within one origin it trusts every
- * path, so avoid on multi-tenant hosts). The `trustedOrigins` gate and the https
- * requirement always apply.
+ * else (b) **host-inheritance** — a token whose service origin matches the content origin.
+ *
+ * Trust has two modes (see {@link ResolveTokenOptions.trustedOrigins}): an **explicit**
+ * allowlist (required for cross-origin reuse), or the **host-driven default** (no list) in
+ * which a token is only ever returned for the exact origin that issued it. The https
+ * requirement always applies.
  *
  * This is the single place that knows Mirador's token-store shape
  * (`getAccessTokens(state)[tokenServiceId].json.accessToken`); all consumers go through
@@ -184,25 +190,35 @@ export function resolveMiradorToken(state: unknown, opts: ResolveTokenOptions): 
   const contentOrigin = originOf(opts.url);
   if (!contentOrigin || !isSecureTransport(opts.url)) return undefined;
 
-  const trusted = new Set(opts.trustedOrigins.map(originOf).filter((o): o is string => o !== undefined));
-  if (!trusted.has(contentOrigin)) return undefined;
+  // Explicit allowlist (provided, even []) vs host-driven default (omitted). An explicit list
+  // — including a deliberately empty or all-invalid one — is a strict gate: only a listed
+  // origin gets a token, so [] denies all. Omitted falls back to host-driven, where each path
+  // below only returns a token bound to the content's own origin.
+  const explicit = opts.trustedOrigins !== undefined;
+  const trusted = new Set((opts.trustedOrigins ?? []).map(originOf).filter((o): o is string => o !== undefined));
+  if (explicit && !trusted.has(contentOrigin)) return undefined;
 
   const tokens = getAccessTokens(state);
 
-  // (a) Spec-correct: the resource declares its auth service. Use that token service —
-  //     but only if ITS origin is also trusted, else a malicious resource could name an
-  //     unrelated token-service id to exfiltrate a token to this (trusted) content origin.
+  // (a) Spec-correct: the resource declares its auth service. Explicit mode requires that
+  //     token service's origin to be trusted (else a malicious resource could name an
+  //     unrelated token-service id to exfiltrate a token); host-driven mode requires it to
+  //     BE the content's own origin (cross-origin reuse needs an explicit allowlist).
   const declaredId = opts.service ? tokenServiceIdFromDeclared(opts.service) : undefined;
   if (declaredId) {
     const declaredOrigin = originOf(declaredId);
-    if (declaredOrigin && trusted.has(declaredOrigin)) {
-      const token = tokens[declaredId]?.json?.accessToken;
-      if (token) return token;
+    if (declaredOrigin) {
+      const declaredTrusted = explicit ? trusted.has(declaredOrigin) : declaredOrigin === contentOrigin;
+      if (declaredTrusted) {
+        const token = tokens[declaredId]?.json?.accessToken;
+        if (token) return token;
+      }
     }
   }
 
-  // (b) Host-inheritance fallback: first token service whose origin matches the content
-  //     origin wins (store order).
+  // (b) Host-inheritance: first token service whose origin matches the content origin wins
+  //     (store order). Inherently same-origin, so it is the host-driven default and needs no
+  //     allowlist — within one origin it trusts every path, so avoid on multi-tenant hosts.
   for (const [tokenServiceId, entry] of Object.entries(tokens)) {
     const token = entry.json?.accessToken;
     if (token && originOf(tokenServiceId) === contentOrigin) return token;
