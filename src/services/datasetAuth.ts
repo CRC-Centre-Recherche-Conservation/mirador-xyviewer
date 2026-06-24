@@ -7,8 +7,21 @@
  */
 import type { DatasetBody as DatasetBodyType } from '../types/iiif';
 
+/** Options passed to a {@link DatasetAuthHandler}. */
+export interface DatasetAuthOptions {
+  /**
+   * May the user be prompted? `false` = reuse an existing session silently only (the token
+   * service, no login window) — used on reload / for image-less datasets to restore without
+   * a click. `true` (default) = full login (window) if there's no session yet.
+   */
+  interactive?: boolean;
+}
+
 /** Handler invoked when an auth-protected dataset needs the user to sign in. */
-export type DatasetAuthHandler = (body: DatasetBodyType) => void | Promise<void>;
+export type DatasetAuthHandler = (
+  body: DatasetBodyType,
+  options?: DatasetAuthOptions,
+) => void | Promise<void>;
 
 /**
  * Predicate: can a login actually be started for this body? Lets `DatasetBody` hide the

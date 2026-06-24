@@ -85,6 +85,19 @@ const INTERACTIVE_PROFILES = new Set([
 /** A minimal opened-window handle — `closed` is readable cross-origin. */
 type OpenedWindow = { closed: boolean };
 
+/**
+ * Default access-window opener: a small CENTERED popup (passing width/height makes the
+ * browser open a popup rather than a full tab). The fixed name reuses one popup if the user
+ * clicks Sign in again instead of stacking tabs.
+ */
+function openLoginPopup(url: string): OpenedWindow | null {
+  const width = 480;
+  const height = 620;
+  const left = window.screenX + Math.max(0, ((window.outerWidth || width) - width) / 2);
+  const top = window.screenY + Math.max(0, ((window.outerHeight || height) - height) / 2);
+  return window.open(url, 'iiif-auth-login', `popup,width=${width},height=${height},left=${left},top=${top}`);
+}
+
 /** Dependencies for {@link runIiifAuthLogin}, injectable for testing. */
 export interface RunLoginDeps {
   /** Open the access (login) window. Default: `window.open(url, '_blank')`. */
@@ -116,21 +129,52 @@ function waitForWindowClose(win: OpenedWindow, deps: RunLoginDeps): Promise<void
 }
 
 /**
+ * Try to obtain a token from an EXISTING session, without prompting: hit the token service
+ * (which returns a token only if the access cookie is already valid) and, if it yields one,
+ * land it in Mirador's store. Returns whether a token was acquired. This is the silent
+ * re-acquisition that restores access after a reload (the cookie persists; the short-lived
+ * token is re-derived) — exactly how a viewer keeps IIIF Auth alive without a re-login.
+ * Never throws: a timeout / no-token reply just means "no valid session" → `false`.
+ */
+export async function acquireTokenViaSession(
+  discovered: DiscoveredAuthService,
+  dispatch: (action: unknown) => void,
+  deps: { tokenTimeoutMs?: number } = {},
+): Promise<boolean> {
+  const { authServiceId, tokenServiceId } = discovered;
+  try {
+    const message = await requestAccessTokenViaIframe(tokenServiceId, {
+      timeoutMs: deps.tokenTimeoutMs ?? 8_000,
+    });
+    if (message.accessToken) {
+      dispatch(resolveAccessTokenRequest(authServiceId, tokenServiceId, message));
+      return true;
+    }
+  } catch {
+    // timeout / no reply → treat as "no session"
+  }
+  return false;
+}
+
+/**
  * Drive a IIIF Auth 1.0 login for a declared access service and land the token in
- * Mirador's store: for an interactive profile (login/clickthrough) open the access
- * window and wait for the user to finish (the page closes); for kiosk/external go
- * straight to the token service. Then fetch the token via {@link requestAccessTokenViaIframe}
- * and `dispatch(resolveAccessTokenRequest(...))`. Rejects if the window or token times out.
+ * Mirador's store. First reuse any existing session silently ({@link acquireTokenViaSession});
+ * only if there's none, prompt: for an interactive profile (login/clickthrough) open the
+ * access window and wait for the user to finish; for kiosk/external go straight to the token
+ * service. Rejects if the window or token times out.
  */
 export async function runIiifAuthLogin(
   discovered: DiscoveredAuthService,
   dispatch: (action: unknown) => void,
   deps: RunLoginDeps = {},
 ): Promise<void> {
+  // Reuse an existing session (after reload, or a sibling resource's login) — no window.
+  if (await acquireTokenViaSession(discovered, dispatch, deps)) return;
+
   const { authServiceId, profile, tokenServiceId } = discovered;
 
   if (INTERACTIVE_PROFILES.has(profile)) {
-    const openWindow = deps.openWindow ?? ((url: string) => window.open(url, '_blank'));
+    const openWindow = deps.openWindow ?? openLoginPopup;
     const win = openWindow(authServiceId);
     // Fail fast on a blocked popup instead of falling through to a ~30s token-iframe timeout.
     if (!win) throw new Error('IIIF Auth login window was blocked — allow popups for this site');

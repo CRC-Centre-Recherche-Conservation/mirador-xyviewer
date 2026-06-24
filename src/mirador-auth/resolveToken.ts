@@ -21,6 +21,16 @@ export interface ResolveTokenOptions {
   service?: unknown;
 }
 
+/**
+ * The bearer token Mirador holds for a token-service id, or `undefined`. Like
+ * {@link resolveMiradorToken} this is the only place that knows the token-store shape —
+ * but ungated: callers that already hold a trusted token-service id (e.g. a resource's
+ * own declared service) use it to check session reuse, not to attach a token to a URL.
+ */
+export function accessTokenForService(state: unknown, tokenServiceId: string): string | undefined {
+  return getAccessTokens(state)[tokenServiceId]?.json?.accessToken;
+}
+
 /** IIIF Auth token-service profiles (1.0 and the legacy 0.x). */
 const TOKEN_PROFILES = new Set([
   'http://iiif.io/api/auth/1/token',

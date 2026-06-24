@@ -9,6 +9,7 @@ vi.mock('mirador', () => ({
 }));
 
 import {
+  accessTokenForService,
   discoverAuthService,
   originOf,
   resolveMiradorToken,
@@ -333,5 +334,17 @@ describe('discoverAuthService', () => {
   it('returns undefined for malformed input', () => {
     expect(discoverAuthService(undefined)).toBeUndefined();
     expect(discoverAuthService(42)).toBeUndefined();
+  });
+});
+
+describe('accessTokenForService', () => {
+  it('returns the stored bearer token for a token-service id', () => {
+    const state = stateWith({ 'https://auth.museum/token': { json: { accessToken: 'TKN' } } });
+    expect(accessTokenForService(state, 'https://auth.museum/token')).toBe('TKN');
+  });
+
+  it('returns undefined when that service has no resolved token', () => {
+    expect(accessTokenForService(stateWith({}), 'https://auth.museum/token')).toBeUndefined();
+    expect(accessTokenForService(stateWith({ 'https://auth.museum/token': { isFetching: true } }), 'https://auth.museum/token')).toBeUndefined();
   });
 });

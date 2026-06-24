@@ -1,13 +1,14 @@
 import { configureDatasetAuth, configureDatasetRequests } from '../services';
 import type { DatasetRequestOptions, DatasetRequestProvider } from '../types/dataset';
 import {
+  accessTokenForService,
   discoverAuthService,
   isSecureTransport,
   originOf,
   resolveMiradorToken,
 } from './resolveToken';
 import type { DiscoveredAuthService } from './resolveToken';
-import { runIiifAuthLogin } from './loginDriver';
+import { acquireTokenViaSession, runIiifAuthLogin } from './loginDriver';
 
 /**
  * Minimal shape of the Mirador Redux store this needs. The real `Mirador.viewer(...).store`
@@ -41,6 +42,12 @@ export interface WireMiradorDatasetAuthOptions {
    * dispatch it into Mirador's store.
    */
   loginDriver?: (discovered: DiscoveredAuthService, dispatch: (action: unknown) => void) => Promise<void>;
+  /**
+   * Override the silent session re-acquirer (testing). Defaults to
+   * {@link acquireTokenViaSession}: hit the token service and reuse a still-valid session
+   * (after a reload) without prompting. Returns whether a token was obtained.
+   */
+  sessionAcquirer?: (discovered: DiscoveredAuthService, dispatch: (action: unknown) => void) => Promise<boolean>;
 }
 
 /**
@@ -108,6 +115,7 @@ export function wireMiradorDatasetAuth(
   // Write side: the Sign-in affordance starts a login for a resource that declares its
   // auth service, then resolves so DatasetBody auto-retries.
   const drive = options.loginDriver ?? runIiifAuthLogin;
+  const acquireSession = options.sessionAcquirer ?? acquireTokenViaSession;
   const trustedAndSecure = (url: string): boolean => {
     const o = originOf(url);
     return o !== undefined && canonical.includes(o) && isSecureTransport(url);
@@ -122,10 +130,18 @@ export function wireMiradorDatasetAuth(
   };
 
   configureDatasetAuth(
-    async (body) => {
+    async (body, opts) => {
       const discovered = discoverTrusted(body);
       if (!discovered) return; // no trusted declared service → manual "Open resource" + "Try again"
+      // Already hold this service's token (e.g. a sibling image login) → nothing to do.
+      if (accessTokenForService(store.getState(), discovered.tokenServiceId)) return;
       try {
+        // Silent mode (DatasetBody's auto-attempt on 401): only reuse a still-valid session,
+        // never open a window — this is what restores access after a reload without a click.
+        if (opts?.interactive === false) {
+          await acquireSession(discovered, store.dispatch);
+          return;
+        }
         await drive(discovered, store.dispatch);
       } catch (err) {
         // Never reject: the Sign-in affordance awaits this; a rejection would be unhandled.

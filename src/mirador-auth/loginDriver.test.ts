@@ -10,7 +10,7 @@ vi.mock('mirador', () => ({
   }),
 }));
 
-import { requestAccessTokenViaIframe, runIiifAuthLogin } from './loginDriver';
+import { acquireTokenViaSession, requestAccessTokenViaIframe, runIiifAuthLogin } from './loginDriver';
 
 const TOKEN_URL = 'https://auth.museum/token';
 
@@ -94,6 +94,48 @@ describe('requestAccessTokenViaIframe', () => {
   });
 });
 
+describe('acquireTokenViaSession', () => {
+  const discovered = {
+    authServiceId: 'https://auth.museum/login',
+    profile: 'http://iiif.io/api/auth/1/login',
+    tokenServiceId: TOKEN_URL,
+  };
+
+  it('dispatches and resolves true when the token service returns a token (valid session)', async () => {
+    const dispatch = vi.fn();
+    const p = acquireTokenViaSession(discovered, dispatch);
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { messageId: TOKEN_URL, accessToken: 'TKN' },
+        origin: 'https://auth.museum',
+      }),
+    );
+    await expect(p).resolves.toBe(true);
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ json: expect.objectContaining({ accessToken: 'TKN' }) }),
+    );
+  });
+
+  it('resolves false without dispatching when the token service returns no token (no session)', async () => {
+    const dispatch = vi.fn();
+    const p = acquireTokenViaSession(discovered, dispatch);
+    window.dispatchEvent(
+      new MessageEvent('message', { data: { messageId: TOKEN_URL }, origin: 'https://auth.museum' }),
+    );
+    await expect(p).resolves.toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('resolves false on timeout (token service silent) — never throws', async () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const p = acquireTokenViaSession(discovered, dispatch, { tokenTimeoutMs: 500 });
+    await vi.advanceTimersByTimeAsync(500);
+    await expect(p).resolves.toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
 describe('runIiifAuthLogin', () => {
   const interactive = {
     authServiceId: 'https://auth.museum/login',
@@ -106,13 +148,36 @@ describe('runIiifAuthLogin', () => {
     tokenServiceId: TOKEN_URL,
   };
 
-  it('opens the access window, waits for it to close, requests the token, and dispatches it', async () => {
+  it('reuses an existing session silently (no window) when the token service returns a token', async () => {
+    const dispatch = vi.fn();
+    const openWindow = vi.fn();
+    const p = runIiifAuthLogin(interactive, dispatch, { openWindow });
+    // Session still valid (e.g. after reload) → the silent attempt gets a token, no prompt.
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { messageId: TOKEN_URL, accessToken: 'TKN' },
+        origin: 'https://auth.museum',
+      }),
+    );
+    await p;
+    expect(openWindow).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ json: expect.objectContaining({ accessToken: 'TKN' }) }),
+    );
+  });
+
+  it('opens the access window when there is no session, then requests + dispatches the token', async () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
     const win = { closed: false };
     const openWindow = vi.fn(() => win);
 
     const p = runIiifAuthLogin(interactive, dispatch, { openWindow, pollIntervalMs: 10, tokenTimeoutMs: 5000 });
+    // No session yet → the silent attempt replies with no token → fall through to the window.
+    window.dispatchEvent(
+      new MessageEvent('message', { data: { messageId: TOKEN_URL }, origin: 'https://auth.museum' }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
     expect(openWindow).toHaveBeenCalledWith('https://auth.museum/login');
 
     win.closed = true; // user finished authenticating; the login page closed
@@ -132,6 +197,35 @@ describe('runIiifAuthLogin', () => {
         json: expect.objectContaining({ accessToken: 'TKN' }),
       }),
     );
+  });
+
+  it('opens a centered popup window (not a new tab) by default', async () => {
+    vi.useFakeTimers();
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue({ closed: true } as Window);
+    const dispatch = vi.fn();
+
+    const p = runIiifAuthLogin(interactive, dispatch, { pollIntervalMs: 10, tokenTimeoutMs: 5000 });
+    // No session → silent attempt gets no token → falls through to the access window.
+    window.dispatchEvent(
+      new MessageEvent('message', { data: { messageId: TOKEN_URL }, origin: 'https://auth.museum' }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://auth.museum/login',
+      'iiif-auth-login',
+      expect.stringContaining('popup'),
+    );
+
+    await vi.advanceTimersByTimeAsync(10); // window already "closed" → poll resolves → token iframe
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { messageId: TOKEN_URL, accessToken: 'TKN' },
+        origin: 'https://auth.museum',
+      }),
+    );
+    await p;
+    openSpy.mockRestore();
   });
 
   it('rejects fast when the interactive login window is blocked (popup blocker)', async () => {

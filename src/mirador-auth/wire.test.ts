@@ -139,6 +139,34 @@ describe('wireMiradorDatasetAuth — login trigger (Phase 2)', () => {
     );
   });
 
+  it('skips the login popup when the service token is already stored (reuse the image session)', async () => {
+    const driver = vi.fn();
+    // The user already logged in for the image, so the crc-lab token is in the store.
+    const store = storeWith({ 'https://auth.museum/token': { json: { accessToken: 'TKN' } } });
+    wireMiradorDatasetAuth(store, {
+      trustedOrigins: ['https://data.lab', 'https://auth.museum'],
+      loginDriver: driver,
+    });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE });
+    expect(driver).not.toHaveBeenCalled();
+  });
+
+  it('reuses the session silently (no window) when called with interactive:false', async () => {
+    const driver = vi.fn();
+    const sessionAcquirer = vi.fn().mockResolvedValue(true);
+    wireMiradorDatasetAuth(storeWith({}), {
+      trustedOrigins: ['https://data.lab', 'https://auth.museum'],
+      loginDriver: driver,
+      sessionAcquirer,
+    });
+    await authHandler()(
+      { type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE },
+      { interactive: false },
+    );
+    expect(sessionAcquirer).toHaveBeenCalled();
+    expect(driver).not.toHaveBeenCalled(); // never opens a window in silent mode
+  });
+
   it('does not drive a login when the declared service origin is not trusted', async () => {
     const driver = vi.fn();
     // auth.museum (the SERVICE origin) is NOT in trustedOrigins → must not open a popup / store a token.
