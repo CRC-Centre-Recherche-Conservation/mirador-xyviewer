@@ -28,7 +28,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import type { DatasetBody as DatasetBodyType, LocalizedString } from '../types/iiif';
 import type { SpectrumData, FetchStatus, DatasetRequestOptions } from '../types/dataset';
-import { fetchDataset, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
+import { fetchDataset, fetchDatasetBlob, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
 import {
   configureDatasetAuth,
   getRegisteredAuthHandler,
@@ -65,6 +65,8 @@ interface ProtectedDatasetNoticeProps {
   resourceUrl: string;
   /** Present only when a login can actually start for this body; absent → no Sign in action. */
   onSignIn?: () => void;
+  /** Open/download the raw file through an AUTHENTICATED fetch (carries the token). */
+  onOpenResource: () => void;
   /** Login in progress — disables the button and shows a "Signing in…" state. */
   busy?: boolean;
   onRetry: () => void;
@@ -82,6 +84,7 @@ const ProtectedDatasetNotice: React.FC<ProtectedDatasetNoticeProps> = ({
   host,
   resourceUrl,
   onSignIn,
+  onOpenResource,
   busy,
   onRetry,
 }) => {
@@ -159,9 +162,10 @@ const ProtectedDatasetNotice: React.FC<ProtectedDatasetNoticeProps> = ({
           </Button>
         )}
         <Link
-          href={resourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          component="button"
+          type="button"
+          onClick={onOpenResource}
+          title={resourceUrl}
           variant="caption"
           sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}
         >
@@ -222,6 +226,8 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
 
   const mountedRef = useRef(true);
   const urlRef = useRef(body.id);
+  // Guards the one-shot silent session re-acquisition (zero-click reload) per body.
+  const silentTriedRef = useRef(false);
 
   // Per-component prop wins over a global handler registered via configureDatasetAuth.
   const authHandler = onAuthRequired ?? getRegisteredAuthHandler();
@@ -244,6 +250,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
 
   // Check cache on mount
   useEffect(() => {
+    silentTriedRef.current = false; // a different dataset gets its own silent attempt
     const cached = datasetCache.get(body.id);
     if (cached) {
       setData(cached);
@@ -280,11 +287,26 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     setError(null);
     setAuthRequired(false);
 
-    const result = await fetchDataset(body.id, body.format, displayLabel, requestOptions, {
-      service: body.service,
-    });
-
+    const load = () =>
+      fetchDataset(body.id, body.format, displayLabel, requestOptions, { service: body.service });
+    let result = await load();
     if (!mountedRef.current) return;
+
+    // Zero-click recovery: on 401, try ONCE to reuse a still-valid session silently (the
+    // token service, no window) before prompting. After a reload the access cookie persists,
+    // so the token is re-derived and the dataset reappears on its own — like the image canvas.
+    if (result.status === 'error' && result.authRequired && authHandler && !silentTriedRef.current) {
+      silentTriedRef.current = true;
+      try {
+        await authHandler(body, { interactive: false });
+      } catch {
+        /* no session — fall through to the protected notice */
+      }
+      if (!mountedRef.current) return;
+      datasetCache.delete(body.id);
+      result = await load();
+      if (!mountedRef.current) return;
+    }
 
     if (result.status === 'success' && result.data) {
       setData(result.data);
@@ -296,7 +318,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       setAuthRequired(result.authRequired === true);
       setStatus('error');
     }
-  }, [body.id, body.format, body.service, displayLabel, validation, onDataLoaded, requestOptions]);
+  }, [body, displayLabel, validation, onDataLoaded, requestOptions, authHandler]);
 
   const handleRetry = useCallback(() => {
     datasetCache.delete(body.id);
@@ -326,6 +348,24 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     }
   }, [authHandler, body, handleFetch]);
 
+  // Open/download the raw file via an AUTHENTICATED fetch (the token rides along), so a
+  // protected file actually opens instead of a `<a href>` hitting a raw 401. If we're not
+  // authed yet, fall back to the sign-in flow rather than surfacing the server's 401 body.
+  const handleOpenResource = useCallback(async () => {
+    try {
+      const blob = await fetchDatasetBlob(body.id, requestOptions, { service: body.service });
+      const objectUrl = URL.createObjectURL(blob);
+      window.open(objectUrl, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (err) {
+      if ((err as { authRequired?: boolean }).authRequired) {
+        if (authHandler) handleSignIn();
+      } else {
+        console.debug('[mirador-xyviewer] could not open dataset resource:', err);
+      }
+    }
+  }, [body.id, body.service, requestOptions, authHandler, handleSignIn]);
+
   const toggleExpanded = useCallback(() => {
     setExpanded(prev => !prev);
   }, []);
@@ -341,7 +381,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
           <Alert severity="warning" sx={{ py: 0.5 }}>
             <Typography variant="body2">
               Format not supported for plotting{body.format ? ` (${body.format})` : ''}.{' '}
-              <Link href={body.id} target="_blank" rel="noopener noreferrer">
+              <Link component="button" type="button" onClick={handleOpenResource} title={body.id}>
                 Open resource
               </Link>
             </Typography>
@@ -393,6 +433,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
             host={host}
             resourceUrl={body.id}
             onSignIn={canSignIn ? handleSignIn : undefined}
+            onOpenResource={handleOpenResource}
             busy={signingIn}
             onRetry={handleRetry}
           />

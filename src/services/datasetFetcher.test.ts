@@ -41,7 +41,7 @@ vi.mock('./datasetParser', () => ({
 }));
 vi.mock('./datasetCache', () => ({ datasetCache: cache }));
 
-import { fetchDataset, configureDatasetRequests } from './datasetFetcher';
+import { fetchDataset, fetchDatasetBlob, configureDatasetRequests } from './datasetFetcher';
 
 // --- Helpers ---------------------------------------------------------------
 /** Build a minimal streamed Response stub for performFetch(). */
@@ -253,5 +253,45 @@ describe('fetchDataset — IIIF Auth request options', () => {
     expect(res.error).not.toMatch(/configureDatasetRequests/);
     expect(debug).toHaveBeenCalledWith(expect.stringContaining('configureDatasetRequests'));
     debug.mockRestore();
+  });
+});
+
+// --- Authenticated download ------------------------------------------------
+/** Minimal Response stub exposing .blob() (fetchDatasetBlob doesn't stream). */
+function blobResponse(
+  body: string,
+  { ok = true, status = 200, statusText = 'OK' } = {},
+): Response {
+  return {
+    ok,
+    status,
+    statusText,
+    blob: async () => new Blob([body], { type: 'text/csv' }),
+  } as unknown as Response;
+}
+
+describe('fetchDatasetBlob — authenticated download', () => {
+  it('returns the file as a Blob, carrying the provider auth context', async () => {
+    configureDatasetRequests(() => ({ headers: { Authorization: 'Bearer TKN' } }));
+    vi.mocked(global.fetch).mockResolvedValue(blobResponse('x,y\n1,2'));
+
+    const blob = await fetchDatasetBlob(URL_OK);
+
+    expect(blob).toBeInstanceOf(Blob);
+    expect(global.fetch).toHaveBeenCalledWith(
+      URL_OK,
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer TKN' }) }),
+    );
+    configureDatasetRequests(undefined);
+  });
+
+  it('throws an auth-required error on 401 (so the caller can sign in)', async () => {
+    vi.mocked(global.fetch).mockResolvedValue(blobResponse('Unauthorized', { ok: false, status: 401, statusText: 'Unauthorized' }));
+    await expect(fetchDatasetBlob(URL_OK)).rejects.toMatchObject({ authRequired: true });
+  });
+
+  it('rejects a non-http(s) URL before fetching', async () => {
+    await expect(fetchDatasetBlob('ftp://x/y.csv')).rejects.toThrow(/Invalid URL/);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

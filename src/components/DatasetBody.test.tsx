@@ -49,9 +49,9 @@ describe('DatasetBody', () => {
     render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
 
     expect(screen.getByText(/not supported for plotting/i)).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /open resource/i });
-    expect(link).toHaveAttribute('href', body.id);
-    expect(link).toHaveAttribute('target', '_blank');
+    // "Open resource" is an authenticated action (button), not a raw link — so a protected
+    // file downloads with the token instead of a `<a href>` hitting a bare 401.
+    expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
   });
 
   it('renders an error Alert when the dataset URL itself is invalid', () => {
@@ -170,8 +170,8 @@ describe('DatasetBody', () => {
       fireEvent.click(screen.getByRole('button', { name: /Load/i }));
       await screen.findByText(/protected/i);
       expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
-      // The user can still pursue the resource out-of-band.
-      expect(screen.getByRole('link', { name: /open resource/i })).toHaveAttribute('href', body.id);
+      // The user can still pursue the resource via the authenticated open action.
+      expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
     });
 
     it('renders a protected record (not a red error) and names the host', async () => {
@@ -203,8 +203,8 @@ describe('DatasetBody', () => {
       fireEvent.click(screen.getByRole('button', { name: /Load/i }));
       await screen.findByText(/protected/i);
       expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
-      // Falls back to the manual path.
-      expect(screen.getByRole('link', { name: /open resource/i })).toHaveAttribute('href', body.id);
+      // Falls back to the authenticated open action.
+      expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
     });
 
     it('shows the Sign in button when the registered predicate allows it', async () => {
@@ -219,7 +219,13 @@ describe('DatasetBody', () => {
     it('shows a signing-in state while the login is pending, then refetches on success', async () => {
       vi.mocked(fetchDataset).mockResolvedValue(authError);
       let resolveLogin: () => void = () => {};
-      const handler = vi.fn(() => new Promise<void>((r) => { resolveLogin = r; }));
+      // Silent re-acquisition (interactive:false) finds no session → resolves at once; the
+      // interactive Sign-in (the click) is the one that stays pending.
+      const handler = vi.fn((_b: unknown, opts?: { interactive?: boolean }) =>
+        opts?.interactive === false
+          ? Promise.resolve()
+          : new Promise<void>((r) => { resolveLogin = r; }),
+      );
       configureDatasetAuth(handler, { canStartLogin: () => true });
       render(<DatasetBody body={body} />);
 
@@ -235,6 +241,26 @@ describe('DatasetBody', () => {
       vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
       resolveLogin();
       expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+    });
+
+    it('recovers silently on a valid session (zero-click reload): no Sign in shown', async () => {
+      vi.mocked(fetchDataset).mockResolvedValueOnce(authError); // first fetch: 401
+      // A still-valid session: the silent (interactive:false) re-acquisition succeeds, so the
+      // re-fetch lands the data — no popup, no Sign in button.
+      const handler = vi.fn((_b: unknown, opts?: { interactive?: boolean }) => {
+        if (opts?.interactive === false) {
+          vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+        }
+        return Promise.resolve();
+      });
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+
+      expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^sign in$/i })).toBeNull();
+      expect(handler).toHaveBeenCalledWith(expect.anything(), { interactive: false });
     });
 
     it('shows the Sign in button for a handler registered without a predicate (back-compat)', async () => {

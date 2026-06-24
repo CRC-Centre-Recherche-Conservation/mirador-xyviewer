@@ -94,6 +94,32 @@ export function abortAllFetches(): void {
 }
 
 /**
+ * Fetch a protected dataset file as a Blob using the SAME IIIF Auth context as
+ * {@link fetchDataset} (the provider-resolved token / credentials). This is what lets a
+ * "download / open" carry auth — a plain `<a href>` can't attach a bearer, so it would hit
+ * a raw 401. Throws a `DatasetAuthError` (`.authRequired`) on 401/403 so the caller can
+ * trigger sign-in instead of surfacing the server's error body.
+ */
+export async function fetchDatasetBlob(
+  url: string,
+  options?: DatasetRequestOptions,
+  context?: DatasetRequestContext
+): Promise<Blob> {
+  if (!isValidUrl(url)) {
+    throw new Error('Invalid URL: Only http/https protocols are allowed');
+  }
+  const { credentials, headers } = await resolveRequestOptions(url, options, context);
+  const response = await fetch(url, { method: 'GET', headers, credentials });
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new DatasetAuthError('Access denied — sign in to download this file.');
+    }
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.blob();
+}
+
+/**
  * Fetch and parse a dataset
  * Returns cached data if available, otherwise fetches
  */
