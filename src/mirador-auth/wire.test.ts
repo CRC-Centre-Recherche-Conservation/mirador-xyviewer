@@ -86,9 +86,14 @@ describe('wireMiradorDatasetAuth', () => {
     expect(provider()('https://data.lab/d.csv')).toEqual({ headers: { Authorization: 'Bearer TKN' } });
   });
 
-  it('warns when no valid trusted origins are provided (silent-no-op footgun)', () => {
-    const store = storeWith({});
-    wireMiradorDatasetAuth(store, { trustedOrigins: [] });
+  it('does NOT warn for omitted (host-driven) or explicit-empty (deny-all) trustedOrigins', () => {
+    wireMiradorDatasetAuth(storeWith({}), {});
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: [] });
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('warns when trustedOrigins were provided but every entry is invalid (footgun)', () => {
+    wireMiradorDatasetAuth(storeWith({}), { trustedOrigins: ['not-a-url', 'data.lab'] });
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('trustedOrigins'));
   });
 
@@ -255,5 +260,96 @@ describe('wireMiradorDatasetAuth — login trigger (Phase 2)', () => {
     teardown();
     expect(configureDatasetRequests).toHaveBeenLastCalledWith(undefined);
     expect(configureDatasetAuth).toHaveBeenLastCalledWith(undefined);
+  });
+});
+
+describe('wireMiradorDatasetAuth — host-driven default & SSRF blocklist', () => {
+  const publicService = {
+    '@id': 'https://auth.museum/login',
+    profile: 'http://iiif.io/api/auth/1/login',
+    service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+  };
+  const internalService = {
+    '@id': 'https://10.0.0.5/login',
+    profile: 'http://iiif.io/api/auth/1/login',
+    service: [{ '@id': 'https://10.0.0.5/token', profile: 'http://iiif.io/api/auth/1/token' }],
+  };
+  const sameOriginService = {
+    '@id': 'https://data.lab/login',
+    profile: 'http://iiif.io/api/auth/1/login',
+    service: [{ '@id': 'https://data.lab/token', profile: 'http://iiif.io/api/auth/1/token' }],
+  };
+
+  it('host-driven (no trustedOrigins): injects a token for its own issuing origin', () => {
+    const store = storeWith({ 'https://data.lab/token': { json: { accessToken: 'TKN' } } });
+    wireMiradorDatasetAuth(store, {});
+    expect(provider()('https://data.lab/d.csv')).toEqual({ headers: { Authorization: 'Bearer TKN' } });
+  });
+
+  it('host-driven: the cookie fallback stays off without an explicit allowlist', () => {
+    wireMiradorDatasetAuth(storeWith({}), { cookie: true });
+    expect(provider()('https://data.lab/d.csv')).toBeUndefined();
+  });
+
+  it('an explicit empty trustedOrigins is a deny-all kill-switch (no token, even same-origin)', () => {
+    const store = storeWith({ 'https://data.lab/token': { json: { accessToken: 'TKN' } } });
+    wireMiradorDatasetAuth(store, { trustedOrigins: [] });
+    expect(provider()('https://data.lab/d.csv')).toBeUndefined();
+  });
+
+  it('does not inject a token for a private-network content host (SSRF guard)', () => {
+    const store = storeWith({ 'https://10.0.0.5/token': { json: { accessToken: 'TKN' } } });
+    wireMiradorDatasetAuth(store, { trustedOrigins: ['https://10.0.0.5'] });
+    expect(provider()('https://10.0.0.5/d.csv')).toBeUndefined();
+  });
+
+  it('does not inject a token for a special-use internal content host', () => {
+    const store = storeWith({ 'https://db.internal/token': { json: { accessToken: 'TKN' } } });
+    wireMiradorDatasetAuth(store, { trustedOrigins: ['https://db.internal'] });
+    expect(provider()('https://db.internal/d.csv')).toBeUndefined();
+  });
+
+  it('honors blocklist.allow so a loopback dev host can receive its token (the demo opt-in)', () => {
+    const store = storeWith({ 'http://localhost:5173/token': { json: { accessToken: 'TKN' } } });
+    wireMiradorDatasetAuth(store, {
+      trustedOrigins: ['http://localhost:5173'],
+      blocklist: { allow: ['localhost'] },
+    });
+    expect(provider()('http://localhost:5173/d.csv')).toEqual({ headers: { Authorization: 'Bearer TKN' } });
+  });
+
+  it("host-driven: drives a login for the resource's OWN-origin declared service", async () => {
+    const driver = vi.fn().mockResolvedValue(undefined);
+    wireMiradorDatasetAuth(storeWith({}), { loginDriver: driver });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: sameOriginService });
+    expect(driver).toHaveBeenCalled();
+  });
+
+  it('host-driven: does NOT drive a login for a cross-origin declared service (needs an allowlist)', async () => {
+    const driver = vi.fn();
+    // body on data.lab, auth declared on auth.museum: never pop a login to a manifest-named
+    // origin the operator never trusted — mirrors the same-origin token-reuse rule.
+    wireMiradorDatasetAuth(storeWith({}), { loginDriver: driver });
+    await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: publicService });
+    expect(driver).not.toHaveBeenCalled();
+  });
+
+  it('host-driven: does not drive a login for an internal declared service host (SSRF guard)', async () => {
+    const driver = vi.fn();
+    // same-origin as the (internal) body, so only the SSRF blocklist stops it.
+    wireMiradorDatasetAuth(storeWith({}), { loginDriver: driver });
+    await authHandler()({ type: 'Dataset', id: 'https://10.0.0.5/d.csv', format: 'text/csv', service: internalService });
+    expect(driver).not.toHaveBeenCalled();
+  });
+
+  it('host-driven: canStartLogin is true for own-origin but false for a cross-origin declared service', () => {
+    wireMiradorDatasetAuth(storeWith({}), {});
+    const opts = configureDatasetAuth.mock.calls.at(-1)![1] as { canStartLogin: (b: unknown) => boolean };
+    expect(
+      opts.canStartLogin({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: sameOriginService }),
+    ).toBe(true);
+    expect(
+      opts.canStartLogin({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: publicService }),
+    ).toBe(false);
   });
 });

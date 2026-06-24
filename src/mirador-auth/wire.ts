@@ -9,6 +9,8 @@ import {
 } from './resolveToken';
 import type { DiscoveredAuthService } from './resolveToken';
 import { acquireTokenViaSession, runIiifAuthLogin } from './loginDriver';
+import { isBlockedHost } from './blocklist';
+import type { BlocklistConfig } from './blocklist';
 
 /**
  * Minimal shape of the Mirador Redux store this needs. The real `Mirador.viewer(...).store`
@@ -23,19 +25,32 @@ export interface MiradorStoreLike {
 /** Options for {@link wireMiradorDatasetAuth}. */
 export interface WireMiradorDatasetAuthOptions {
   /**
-   * Required allowlist of content origins permitted to receive a token or cookie.
-   * Anti-leak gate — nothing is attached to an origin outside this list. No wildcard.
-   * Pass bare origins (`https://host[:port]`); path/case/trailing-slash are normalized,
-   * and cleartext http (except loopback) is ignored.
+   * Optional allowlist of content origins permitted to receive a token or cookie. When
+   * provided, it is an explicit anti-leak gate (nothing is attached outside it; no wildcard)
+   * and is required for cross-origin reuse and for the `cookie` fallback. When omitted or
+   * empty, a **host-driven default** applies: a token is reused only for the exact origin
+   * that issued it, and a login is offered only for a resource's own declared (secure,
+   * non-internal) service. Pass bare origins (`https://host[:port]`); path/case/trailing-slash
+   * are normalized, and cleartext http (except loopback) is ignored.
    */
-  trustedOrigins: string[];
+  trustedOrigins?: string[];
   /**
    * When `true`, fall back to `credentials: 'include'` (browser cookies) for trusted,
    * https origins that have no reusable token. Off by default (secure default is
-   * `credentials: 'omit'`). Cross-origin credentialed requests additionally need the
-   * server to send `Access-Control-Allow-Credentials: true` + an explicit origin.
+   * `credentials: 'omit'`). Requires an explicit `trustedOrigins` (a cookie target can't be
+   * derived from a token). Cross-origin credentialed requests additionally need the server
+   * to send `Access-Control-Allow-Credentials: true` + an explicit origin.
    */
   cookie?: boolean;
+  /**
+   * SSRF defense-in-depth. Before attaching a credential to — or opening a login for — a
+   * dataset host, hosts that are not public unicast (private / reserved / loopback /
+   * link-local IP literals, and special-use internal names) are refused. This is a SECONDARY
+   * guard; the primary protection is the origin scoping above + CORS, and it cannot stop
+   * DNS-rebinding or a public name that resolves internally. Extend with `deny`, or relax
+   * with `allow` (e.g. `{ allow: ['localhost'] }` for local development).
+   */
+  blocklist?: BlocklistConfig;
   /**
    * Override the login driver (testing / advanced). Defaults to the built-in IIIF Auth
    * 1.0 flow ({@link runIiifAuthLogin}): open the access window, fetch the token, and
@@ -77,34 +92,46 @@ export function wireMiradorDatasetAuth(
   store: MiradorStoreLike,
   options: WireMiradorDatasetAuthOptions,
 ): () => void {
-  const { trustedOrigins, cookie = false } = options;
+  const { trustedOrigins, cookie = false, blocklist } = options;
 
-  // Canonicalize once at setup; drop unparseable entries (a bare host or a trailing
-  // slash would otherwise silently never match `new URL().origin` — a no-op footgun).
-  const canonical = [...new Set(trustedOrigins.map(originOf).filter((o): o is string => o !== undefined))];
-  if (canonical.length === 0) {
+  // Canonicalize once at setup; drop unparseable entries (a bare host or a trailing slash
+  // would otherwise silently never match `new URL().origin` — a no-op footgun).
+  const canonical = [...new Set((trustedOrigins ?? []).map(originOf).filter((o): o is string => o !== undefined))];
+  // Host-driven only when the allowlist is OMITTED. An explicit list (incl. [] or all-invalid)
+  // is a strict gate: [] is a deny-all kill-switch (no token / cookie / login attached anywhere).
+  const hostDriven = trustedOrigins === undefined;
+  // Warn only on a real misconfiguration: an allowlist was passed but every entry was
+  // invalid. An omitted / empty list is the intentional host-driven default (no warning).
+  if (trustedOrigins && trustedOrigins.length > 0 && canonical.length === 0) {
     console.warn(
-      '[mirador-xyviewer/mirador-auth] wireMiradorDatasetAuth: no valid trustedOrigins — no ' +
-        'dataset will receive a token. Pass bare origins, e.g. ["https://data.lab.example"].',
+      '[mirador-xyviewer/mirador-auth] wireMiradorDatasetAuth: every trustedOrigins entry was ' +
+        'invalid and ignored. Pass bare origins, e.g. ["https://data.lab.example"].',
     );
-  } else {
-    const cleartext = canonical.filter((o) => !isSecureTransport(o));
-    if (cleartext.length) {
-      console.warn(
-        `[mirador-xyviewer/mirador-auth] wireMiradorDatasetAuth: ignoring cleartext http origin(s) ` +
-          `${cleartext.join(', ')} — tokens/cookies are only sent over https (or loopback).`,
-      );
-    }
+  }
+  const cleartext = canonical.filter((o) => !isSecureTransport(o));
+  if (cleartext.length) {
+    console.warn(
+      `[mirador-xyviewer/mirador-auth] wireMiradorDatasetAuth: ignoring cleartext http origin(s) ` +
+        `${cleartext.join(', ')} — tokens/cookies are only sent over https (or loopback).`,
+    );
   }
 
   const provider: DatasetRequestProvider = (url, context): DatasetRequestOptions | undefined => {
+    // SSRF defense-in-depth — the single attach point for both fetchDataset and
+    // fetchDatasetBlob (download): never attach a credential to an internal / non-public host.
+    if (isBlockedHost(url, blocklist)) return undefined;
+
     const token = resolveMiradorToken(store.getState(), {
       url,
       service: context?.service,
-      trustedOrigins: canonical,
+      // Host-driven must reach the resolver as undefined; an explicit list (incl. [] → deny-all)
+      // passes the canonical array.
+      trustedOrigins: hostDriven ? undefined : canonical,
     });
     if (token) return { headers: { Authorization: `Bearer ${token}` } };
 
+    // Cookie fallback requires an explicit allowlist (a cookie target can't be token-derived);
+    // `canonical.includes` is already false in host-driven mode, so it stays off there.
     if (cookie && isSecureTransport(url)) {
       const origin = originOf(url);
       if (origin && canonical.includes(origin)) return { credentials: 'include' };
@@ -118,14 +145,25 @@ export function wireMiradorDatasetAuth(
   const acquireSession = options.sessionAcquirer ?? acquireTokenViaSession;
   const trustedAndSecure = (url: string): boolean => {
     const o = originOf(url);
-    return o !== undefined && canonical.includes(o) && isSecureTransport(url);
+    if (o === undefined || !isSecureTransport(url) || isBlockedHost(url, blocklist)) return false;
+    // Explicit allowlist, or — host-driven — the resource's own declared (secure, public) origin.
+    return hostDriven || canonical.includes(o);
   };
-  // The body's declared auth service, but only if it's on a trusted, https origin (same
-  // gate as token reuse): never open a popup or store a token for an arbitrary
-  // manifest-declared host. Single source for both the login and the button visibility.
-  const discoverTrusted = (body: { service?: unknown }): DiscoveredAuthService | undefined => {
+  // The body's declared auth service, but only if it may be logged into: a secure, non-internal
+  // origin that is either explicitly trusted or — host-driven — the resource's OWN origin. Never
+  // open a popup or acquire a token for an arbitrary manifest-declared host. Single source for
+  // both the login and the Sign-in button visibility.
+  const discoverTrusted = (body: { id?: string; service?: unknown }): DiscoveredAuthService | undefined => {
     const d = discoverAuthService(body.service);
     if (!d || !trustedAndSecure(d.authServiceId) || !trustedAndSecure(d.tokenServiceId)) return undefined;
+    if (hostDriven) {
+      // Host-driven mirrors the same-origin token-reuse rule (resolveToken path a): a login is
+      // offered only for the resource's own origin; cross-origin login needs an explicit allowlist.
+      const ownOrigin = body.id ? originOf(body.id) : undefined;
+      if (!ownOrigin || originOf(d.authServiceId) !== ownOrigin || originOf(d.tokenServiceId) !== ownOrigin) {
+        return undefined;
+      }
+    }
     return d;
   };
 
