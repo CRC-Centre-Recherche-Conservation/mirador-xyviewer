@@ -18,6 +18,14 @@ declare module 'mirador' {
     payload: Record<string, unknown>
   ): AnyAction;
 
+  // Mirador info-response action creators (used to remount an OSD tile source after auth).
+  export function requestInfoResponse(
+    infoId: string,
+    imageResource?: unknown,
+    windowId?: string
+  ): AnyAction;
+  export function removeInfoResponse(infoId: string): AnyAction;
+
   // Mirador updateViewport action creator - updates the viewport position/zoom
   export function updateViewport(
     windowId: string,
@@ -34,6 +42,30 @@ declare module 'mirador' {
     state: unknown,
     options: { windowId: string }
   ): unknown;
+
+  /**
+   * A Mirador IIIF Auth token-store entry. Keyed (in the store) by token-service id;
+   * the bearer token lives at `.json.accessToken` (see state/reducers/accessTokens.js).
+   */
+  export interface MiradorAccessTokenEntry {
+    authId?: string;
+    id?: string;
+    isFetching?: boolean;
+    json?: { accessToken?: string; expiresIn?: number; [key: string]: unknown };
+    error?: string;
+    success?: boolean;
+  }
+
+  // Mirador getAccessTokens selector - the IIIF Auth token store, keyed by token-service id.
+  export function getAccessTokens(state: unknown): Record<string, MiradorAccessTokenEntry>;
+
+  // Mirador resolveAccessTokenRequest action creator - stores the token under its service id
+  // (dispatches RECEIVE_ACCESS_TOKEN when `json.accessToken` is present).
+  export function resolveAccessTokenRequest(
+    authId: string,
+    tokenServiceId: string,
+    json: unknown
+  ): AnyAction;
 
   // Mirador viewer factory
   export function viewer(

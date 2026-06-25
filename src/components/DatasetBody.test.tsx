@@ -6,17 +6,18 @@
  * idle Load button, success (plot rendered + onDataLoaded + points count),
  * error + retry (cache cleared, refetch), and the cache-hit-on-mount path.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { DatasetBody } from './DatasetBody';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { DatasetBody, configureDatasetAuth } from './DatasetBody';
 import type { DatasetBody as DatasetBodyType } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
-import { fetchDataset, validateDatasetUrl } from '../services/datasetFetcher';
+import { fetchDataset, fetchDatasetBlob, validateDatasetUrl } from '../services/datasetFetcher';
 import { datasetCache } from '../services/datasetCache';
 
 vi.mock('./SpectrumPlot', () => ({ SpectrumPlot: () => <div data-testid="spectrum-plot" /> }));
 vi.mock('../services/datasetFetcher', () => ({
   fetchDataset: vi.fn(),
+  fetchDatasetBlob: vi.fn(),
   abortFetch: vi.fn(),
   validateDatasetUrl: vi.fn(() => ({ valid: true })),
 }));
@@ -49,9 +50,40 @@ describe('DatasetBody', () => {
     render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
 
     expect(screen.getByText(/not supported for plotting/i)).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /open resource/i });
-    expect(link).toHaveAttribute('href', body.id);
-    expect(link).toHaveAttribute('target', '_blank');
+    // "Open resource" is an authenticated action (button), not a raw link — so a protected
+    // file downloads with the token instead of a `<a href>` hitting a bare 401.
+    expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
+  });
+
+  it('opens the resource via an <a download> click (not window.open) so popup blockers allow it', async () => {
+    vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+    vi.mocked(fetchDatasetBlob).mockResolvedValue(new Blob(['x'], { type: 'text/csv' }));
+
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:fake');
+    URL.revokeObjectURL = vi.fn();
+    const openSpy = vi.spyOn(window, 'open');
+    let downloadName: string | undefined;
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        downloadName = this.download;
+      });
+
+    try {
+      render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+      fireEvent.click(screen.getByRole('button', { name: /open resource/i }));
+
+      await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+      expect(downloadName).toBe('d.csv'); // the real file name, not a blob UUID
+      expect(openSpy).not.toHaveBeenCalled(); // never window.open (blocked after an await)
+    } finally {
+      clickSpy.mockRestore();
+      openSpy.mockRestore();
+      URL.createObjectURL = origCreate;
+      URL.revokeObjectURL = origRevoke;
+    }
   });
 
   it('renders an error Alert when the dataset URL itself is invalid', () => {
@@ -73,9 +105,29 @@ describe('DatasetBody', () => {
     fireEvent.click(screen.getByRole('button', { name: /Load/i }));
 
     expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
-    expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String));
+    expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String), undefined, {
+      service: undefined,
+    });
     expect(onDataLoaded).toHaveBeenCalledWith(body.id, data);
     expect(screen.getByText(/2 points/)).toBeInTheDocument();
+  });
+
+  it("forwards the body's declared IIIF service to fetchDataset (Phase 1b)", async () => {
+    const service = { '@id': 'https://auth.museum/login' };
+    const bodyWithService: DatasetBodyType = { ...body, service };
+    vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+    render(<DatasetBody body={bodyWithService} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+    await screen.findByTestId('spectrum-plot');
+
+    expect(fetchDataset).toHaveBeenCalledWith(
+      bodyWithService.id,
+      bodyWithService.format,
+      expect.any(String),
+      undefined,
+      { service },
+    );
   });
 
   it('shows an error Alert on fetch failure', async () => {
@@ -106,5 +158,240 @@ describe('DatasetBody', () => {
     render(<DatasetBody body={body} />);
     expect(await screen.findByText(/2 points/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Load/i })).toBeNull();
+  });
+
+  describe('auth-protected datasets (Sign in affordance)', () => {
+    const authError = {
+      status: 'error' as const,
+      error: 'Access denied — you may need to sign in to view this dataset.',
+      authRequired: true,
+    };
+
+    // The global handler is module state, not a mock — reset it explicitly.
+    afterEach(() => configureDatasetAuth(undefined));
+
+    it('shows a Sign in button on an auth error when a handler is provided, and calls it', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      const onAuthRequired = vi.fn();
+      render(<DatasetBody body={body} onAuthRequired={onAuthRequired} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      const signIn = await screen.findByRole('button', { name: /sign in/i });
+      fireEvent.click(signIn);
+
+      expect(onAuthRequired).toHaveBeenCalledWith(body);
+    });
+
+    it('uses a globally registered handler (configureDatasetAuth) when no prop is given', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      const handler = vi.fn();
+      configureDatasetAuth(handler);
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      const signIn = await screen.findByRole('button', { name: /sign in/i });
+      fireEvent.click(signIn);
+
+      expect(handler).toHaveBeenCalledWith(body);
+    });
+
+    it('shows no Sign in button when no handler is provided, but offers Open resource', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText(/protected/i);
+      expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
+      // The user can still pursue the resource via the authenticated open action.
+      expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
+    });
+
+    it('signs in then downloads automatically when Open resource hits a 401 (one click)', async () => {
+      vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+      const blobAuthError = Object.assign(new Error('401'), { authRequired: true });
+      // First attempt is unauthenticated → 401; after the login the retry succeeds.
+      vi.mocked(fetchDatasetBlob)
+        .mockRejectedValueOnce(blobAuthError)
+        .mockResolvedValueOnce(new Blob(['x'], { type: 'text/csv' }));
+      const handler = vi.fn().mockResolvedValue(undefined);
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      try {
+        render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+        fireEvent.click(screen.getByRole('button', { name: /open resource/i }));
+
+        await waitFor(() => expect(handler).toHaveBeenCalled()); // the login ran
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled()); // download fired after login
+        expect(vi.mocked(fetchDatasetBlob)).toHaveBeenCalledTimes(2); // initial 401 + retry
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+      }
+    });
+
+    it('downloads directly without a login when already authenticated', async () => {
+      vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+      vi.mocked(fetchDatasetBlob).mockResolvedValue(new Blob(['x'], { type: 'text/csv' }));
+      const handler = vi.fn().mockResolvedValue(undefined);
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      try {
+        render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+        fireEvent.click(screen.getByRole('button', { name: /open resource/i }));
+
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled()); // downloaded straight away
+        expect(handler).not.toHaveBeenCalled(); // no login popup when already authed
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+      }
+    });
+
+    it('renders a protected record (not a red error) and names the host', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      render(<DatasetBody body={body} onAuthRequired={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText(/protected/i);
+      // The mono "spec" readout names the format and the host to sign in against.
+      expect(screen.getByText('text/csv · example.org')).toBeInTheDocument();
+      // It's a status, not the generic error alert.
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('shows no Sign in button for a non-auth error, even with a handler', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'error', error: 'Network down' });
+      render(<DatasetBody body={body} onAuthRequired={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText('Network down');
+      expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
+    });
+
+    it('hides the Sign in button when the registered predicate says this body cannot start a login', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn(), { canStartLogin: () => false });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByText(/protected/i);
+      expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
+      // Falls back to the authenticated open action.
+      expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
+    });
+
+    it('shows the Sign in button when the registered predicate allows it', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn(), { canStartLogin: () => true });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    });
+
+    it('shows a signing-in state while the login is pending, then refetches on success', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      let resolveLogin: () => void = () => {};
+      // Silent re-acquisition (interactive:false) finds no session → resolves at once; the
+      // interactive Sign-in (the click) is the one that stays pending.
+      const handler = vi.fn((_b: unknown, opts?: { interactive?: boolean }) =>
+        opts?.interactive === false
+          ? Promise.resolve()
+          : new Promise<void>((r) => { resolveLogin = r; }),
+      );
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^sign in$/i }));
+
+      // While the login promise is pending: progress label + disabled (no double-popup),
+      // and the copy points the user at the popup.
+      const busy = await screen.findByRole('button', { name: /signing in/i });
+      expect(busy).toBeDisabled();
+      expect(screen.getByText(/complete sign-in in the new window/i)).toBeInTheDocument();
+
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+      resolveLogin();
+      expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+    });
+
+    it('recovers silently on a valid session (zero-click reload): no Sign in shown', async () => {
+      vi.mocked(fetchDataset).mockResolvedValueOnce(authError); // first fetch: 401
+      // A still-valid session: the silent (interactive:false) re-acquisition succeeds, so the
+      // re-fetch lands the data — no popup, no Sign in button.
+      const handler = vi.fn((_b: unknown, opts?: { interactive?: boolean }) => {
+        if (opts?.interactive === false) {
+          vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+        }
+        return Promise.resolve();
+      });
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+      render(<DatasetBody body={body} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+
+      expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^sign in$/i })).toBeNull();
+      expect(handler).toHaveBeenCalledWith(expect.anything(), { interactive: false });
+    });
+
+    it('shows the Sign in button for a handler registered without a predicate (back-compat)', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn()); // no canStartLogin → must default to showing the button
+      render(<DatasetBody body={body} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    });
+
+    it('resets the signing-in state for a synchronous (void) handler', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      configureDatasetAuth(vi.fn(), { canStartLogin: () => true }); // returns void → no auto-retry
+      render(<DatasetBody body={body} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^sign in$/i }));
+      const after = await screen.findByRole('button', { name: /^sign in$/i });
+      expect(after).not.toBeDisabled(); // not stuck on "Signing in…"
+    });
+
+    it('recovers the button when the handler rejects (no stuck busy, no unhandled rejection)', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue(authError);
+      const onAuthRequired = vi.fn().mockRejectedValue(new Error('popup closed'));
+      render(<DatasetBody body={body} onAuthRequired={onAuthRequired} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /^sign in$/i }));
+      const signIn = await screen.findByRole('button', { name: /^sign in$/i });
+      expect(signIn).not.toBeDisabled();
+      expect(screen.queryByTestId('spectrum-plot')).toBeNull();
+    });
+
+    it('re-fetches automatically after an async handler resolves', async () => {
+      vi.mocked(fetchDataset).mockResolvedValueOnce(authError);
+      const onAuthRequired = vi.fn().mockResolvedValue(undefined);
+      render(<DatasetBody body={body} onAuthRequired={onAuthRequired} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      const signIn = await screen.findByRole('button', { name: /sign in/i });
+
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+      fireEvent.click(signIn);
+
+      expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
+      expect(datasetCache.delete).toHaveBeenCalledWith(body.id);
+    });
   });
 });

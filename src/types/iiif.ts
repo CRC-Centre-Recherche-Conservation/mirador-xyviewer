@@ -52,11 +52,29 @@ export interface MetadataEntryV2 {
 /* Body                                                                       */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A IIIF `service` block (e.g. an Auth access/token service), loosely typed across
+ * the v2 (`@id`) and v3 (`id`) wire shapes. Preserved verbatim through normalization
+ * so consumers (e.g. IIIF Auth token resolution) can read the declared services.
+ */
+export interface IiifService {
+  '@id'?: string;
+  id?: string;
+  '@context'?: string | string[];
+  '@type'?: string;
+  type?: string;
+  profile?: string | string[];
+  service?: IiifService | IiifService[];
+  [key: string]: unknown;
+}
+
 /** Base body interface */
 interface BaseBody {
   id?: string;
   format?: string;
   label?: LocalizedString;
+  /** Declared IIIF service(s) on the resource, e.g. an Auth service. */
+  service?: IiifService | IiifService[];
 }
 
 /** Case 1: Manifest body - linked IIIF Manifest */

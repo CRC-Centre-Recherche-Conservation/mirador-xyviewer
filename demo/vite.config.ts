@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { demoAuthPlugin } from './vite-demo-auth';
 
 /**
  * Vite config for demo application
@@ -10,7 +11,7 @@ export default defineConfig(({ mode }) => ({
   root: resolve(__dirname),
   publicDir: resolve(__dirname, 'public'),
   base: mode === 'production' ? '/mirador-xyviewer/' : '/',
-  plugins: [react()],
+  plugins: [react(), demoAuthPlugin()],
   resolve: {
     alias: {
       '@': resolve(__dirname, '../src'),

@@ -23,6 +23,66 @@ import type { AnnotationBody, AnnotationTarget } from '../types/iiif';
 const firstBody = (body: AnnotationBody | AnnotationBody[]): AnnotationBody =>
   Array.isArray(body) ? body[0] : body;
 
+describe('mapBody — IIIF Auth service preservation (Phase 1b)', () => {
+  const authService = {
+    '@id': 'https://auth.museum/login',
+    profile: 'http://iiif.io/api/auth/1/login',
+    service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+  };
+
+  it('preserves a declared `service` on a v2 dctypes:Dataset body', () => {
+    const [anno] = normalizeAnnotationList({
+      '@type': 'sc:AnnotationList',
+      '@id': 'list-1',
+      resources: [
+        {
+          '@type': 'oa:Annotation',
+          '@id': 'anno-1',
+          on: 'canvas-1#xywh=0,0,1,1',
+          resource: {
+            '@id': 'https://data.lab/d.csv',
+            '@type': 'dctypes:Dataset',
+            format: 'text/csv',
+            service: authService,
+          },
+        },
+      ],
+    });
+    expect(firstBody(anno.body).service).toEqual(authService);
+  });
+
+  it('preserves `service` on a Dataset recognized via the MIME heuristic (no @type)', () => {
+    const [anno] = normalizeAnnotationList({
+      '@type': 'sc:AnnotationList',
+      '@id': 'list-1',
+      resources: [
+        {
+          '@type': 'oa:Annotation',
+          '@id': 'anno-1',
+          on: 'canvas-1#xywh=0,0,1,1',
+          resource: { '@id': 'https://data.lab/d.csv', format: 'text/csv', service: authService },
+        },
+      ],
+    });
+    expect(firstBody(anno.body).service).toEqual(authService);
+  });
+
+  it('preserves a declared `service` on a v3 Dataset body', () => {
+    const [anno] = normalizeAnnotationList({
+      type: 'AnnotationPage',
+      items: [
+        {
+          id: 'anno-1',
+          type: 'Annotation',
+          target: 'canvas-1',
+          body: { type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: authService },
+        },
+      ],
+    });
+    expect(firstBody(anno.body).service).toEqual(authService);
+  });
+});
+
 describe('adapterFor — registry recognition', () => {
   it('selects the Presentation 3 adapter for items[] or AnnotationPage', () => {
     expect(adapterFor({ items: [] })?.name).toBe('iiif-presentation-3');
