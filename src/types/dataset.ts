@@ -2,6 +2,8 @@
  * Dataset and Spectrum Types
  */
 
+import type { IiifService } from './iiif';
+
 /** Allowed MIME types for dataset fetching */
 export const ALLOWED_MIME_TYPES = [
   'text/csv',
@@ -59,6 +61,43 @@ export interface CacheEntry {
   expiresAt: number;
 }
 
+/**
+ * Per-request overrides for a dataset fetch. Lets a host opt into IIIF Auth for
+ * access-controlled datasets/spectra without changing the secure default.
+ *
+ * The fetcher's default is `credentials: 'omit'` and no extra headers; values
+ * here are merged over that default (see {@link DatasetRequestProvider}). For
+ * cross-origin requests, `credentials: 'include'` additionally requires the
+ * server to send `Access-Control-Allow-Credentials: true` and an explicit
+ * `Access-Control-Allow-Origin`.
+ */
+export interface DatasetRequestOptions {
+  /** Fetch credentials mode. Default `'omit'` (unchanged secure default). */
+  credentials?: RequestCredentials;
+  /** Extra request headers, e.g. `{ Authorization: 'Bearer …' }`. */
+  headers?: Record<string, string>;
+}
+
+/**
+ * Per-request context handed to a {@link DatasetRequestProvider}. Lets a provider do
+ * precise IIIF Auth matching from the resource's declared service, not just its URL.
+ */
+export interface DatasetRequestContext {
+  /** The dataset resource's declared IIIF Auth service(s), if any. */
+  service?: IiifService | IiifService[];
+}
+
+/**
+ * Resolves per-URL request options (sync or async). Registered once via
+ * `configureDatasetRequests`; mirrors the spirit of Mirador's own
+ * `requests.preprocessors`. Receives an optional {@link DatasetRequestContext} (the
+ * resource's declared service). Return `undefined` to leave the secure default.
+ */
+export type DatasetRequestProvider = (
+  url: string,
+  context?: DatasetRequestContext
+) => DatasetRequestOptions | undefined | Promise<DatasetRequestOptions | undefined>;
+
 /** Fetch status */
 export type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -67,6 +106,8 @@ export interface DatasetFetchResult {
   status: FetchStatus;
   data?: SpectrumData;
   error?: string;
+  /** True when the fetch failed with 401/403 — i.e. the resource needs auth. */
+  authRequired?: boolean;
 }
 
 /** Plotly trace configuration */

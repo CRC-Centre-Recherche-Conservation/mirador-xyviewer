@@ -108,6 +108,10 @@ const getExpandButton = (props: PlotMockProps): ModeBarButtonShape | undefined =
   return props.config?.modeBarButtonsToAdd?.find((b) => b.name === 'expandPlot');
 };
 
+const getDownloadButton = (props: PlotMockProps): ModeBarButtonShape | undefined => {
+  return props.config?.modeBarButtonsToAdd?.find((b) => b.name === 'downloadData');
+};
+
 describe('SpectrumPlot — expand to modal', () => {
   beforeEach(() => {
     plotCalls.length = 0;
@@ -382,5 +386,63 @@ describe('SpectrumPlot — expand to modal', () => {
       getExpandButton(getInlinePlotProps())!.click!();
     });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});
+
+describe('SpectrumPlot — download data file button', () => {
+  beforeEach(() => {
+    plotCalls.length = 0;
+    MockResizeObserver.instances = [];
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('does NOT add the download button when onDownloadSource is absent', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand />);
+    expect(getDownloadButton(getInlinePlotProps())).toBeUndefined();
+  });
+
+  it('adds a "downloadData" modebar button (with an icon + tooltip) when onDownloadSource is given', () => {
+    render(<SpectrumPlot data={makeData()} onDownloadSource={vi.fn()} labels={{ downloadButton: 'Download data file (.csv)' }} />);
+    const btn = getDownloadButton(getInlinePlotProps());
+    expect(btn).toBeDefined();
+    expect(btn?.title).toBe('Download data file (.csv)');
+    expect(btn?.icon).toBeDefined();
+    expect(typeof btn?.click).toBe('function');
+  });
+
+  it('invokes onDownloadSource when the button is clicked', async () => {
+    const onDownloadSource = vi.fn().mockResolvedValue(undefined);
+    render(<SpectrumPlot data={makeData()} onDownloadSource={onDownloadSource} />);
+    await act(async () => {
+      getDownloadButton(getInlinePlotProps())!.click!();
+    });
+    expect(onDownloadSource).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a second click while a download is still in flight (re-entrancy guard)', async () => {
+    let release: () => void = () => {};
+    const onDownloadSource = vi.fn(() => new Promise<void>((resolve) => { release = resolve; }));
+    render(<SpectrumPlot data={makeData()} onDownloadSource={onDownloadSource} />);
+    const btn = getDownloadButton(getInlinePlotProps())!;
+
+    await act(async () => { btn.click!(); }); // first click: download starts, stays pending
+    await act(async () => { btn.click!(); }); // second click while in flight: ignored
+    expect(onDownloadSource).toHaveBeenCalledTimes(1);
+
+    await act(async () => { release(); }); // download finishes
+    await act(async () => { btn.click!(); }); // now a fresh click goes through
+    expect(onDownloadSource).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the download button alongside expand when both are enabled', () => {
+    render(<SpectrumPlot data={makeData()} enableExpand onDownloadSource={vi.fn()} />);
+    const props = getInlinePlotProps();
+    expect(getExpandButton(props)).toBeDefined();
+    expect(getDownloadButton(props)).toBeDefined();
   });
 });

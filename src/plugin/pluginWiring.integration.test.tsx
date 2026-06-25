@@ -15,7 +15,12 @@ import {
 
 // vi.hoisted so the vi.mock factory (hoisted above top-level consts) can close
 // over `viewer` without a temporal-dead-zone ReferenceError.
-const { viewer } = vi.hoisted(() => ({ viewer: vi.fn((..._args: unknown[]) => ({})) }));
+// The instance exposes a store (setupDemoAuth subscribes to it for the image-auth reload).
+const { viewer } = vi.hoisted(() => ({
+  viewer: vi.fn((..._args: unknown[]) => ({
+    store: { getState: () => ({}), dispatch: () => {}, subscribe: () => () => {} },
+  })),
+}));
 vi.mock('mirador', () => ({
   default: { viewer },
   addWindow: vi.fn((c) => ({ type: 'ADD_WINDOW', ...c })),

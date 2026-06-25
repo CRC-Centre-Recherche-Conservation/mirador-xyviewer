@@ -8,5 +8,8 @@ export {
   fetchDataset,
   abortFetch,
   abortAllFetches,
-  validateDatasetUrl
+  validateDatasetUrl,
+  configureDatasetRequests,
 } from './datasetFetcher';
+export { configureDatasetAuth, getRegisteredAuthHandler, getRegisteredCanStartLogin } from './datasetAuth';
+export type { DatasetAuthHandler } from './datasetAuth';

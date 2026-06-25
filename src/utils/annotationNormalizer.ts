@@ -20,6 +20,7 @@ import type {
   AnnotationBody,
   AnnotationTarget,
   AnnotationV3,
+  IiifService,
   LocalizedString,
   LocalizedStringV2,
   MetadataEntry,
@@ -205,9 +206,11 @@ function mapBody(raw: unknown): AnnotationBody {
   const chars = typeof raw.chars === 'string' ? raw.chars : undefined;
   const label = v2ValueToLocalized(raw.label as LocalizedStringV2 | undefined);
 
-  const base: { format?: string; label?: LocalizedString } = {};
+  const base: { format?: string; label?: LocalizedString; service?: IiifService | IiifService[] } = {};
   if (format) base.format = format;
   if (label && typeof label !== 'string') base.label = label;
+  // Preserve a declared IIIF service (e.g. an Auth service) — needed for token resolution.
+  if (raw.service !== undefined) base.service = raw.service as IiifService | IiifService[];
 
   // Bare v3 `@type` passes through unchanged.
   if (rawType === 'Dataset' || rawType === 'Manifest' || rawType === 'TextualBody') {
@@ -368,6 +371,24 @@ export function expandAnnotations(annotations: AnnotationV3[]): AnnotationV3[] {
 /* -------------------------------------------------------------------------- */
 /* Public API                                                                 */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * True if this container is a IIIF Content Search response (search/1 or search/2)
+ * rather than a plain annotation page. A search response is structurally an
+ * `AnnotationList`/`AnnotationPage` too — so the adapters would happily read it —
+ * but it carries search-only data the display pipeline must NOT strip:
+ * `hits`/highlighting, pagination (`partOf`/`next`/`startIndex`) and `ignored`.
+ * The signals checked here are search-specific; a Presentation annotation page
+ * carries none of them. Used to bail out of the destructive postprocessor.
+ */
+export function isContentSearchResponse(page: unknown): boolean {
+  if (!isObject(page)) return false;
+  return (
+    contextIncludes(page, '/api/search/') ||
+    Array.isArray(page.hits) ||
+    'ignored' in page
+  );
+}
 
 /** Normalize one raw page/list (any registered IIIF format) into a flat array of normalized annotations. */
 export function normalizeAnnotationList(json: unknown): AnnotationV3[] {

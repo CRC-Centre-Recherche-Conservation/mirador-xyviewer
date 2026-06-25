@@ -16,6 +16,7 @@ Welcome to the mirador-xyviewer documentation. This plugin enables visualization
 | Guide | Description |
 |-------|-------------|
 | [Mirador Configuration](./MIRADOR-CONFIGURATION.md) | How to configure Mirador to use the plugins |
+| [IIIF Auth](./IIIF-AUTH.md) | Reuse Mirador's IIIF Auth session to unlock access-controlled datasets |
 | [Metadata Filters](./METADATA-FILTERS.md) | Filter annotations by metadata values |
 | [Developer Guide](./DEVELOPER-GUIDE.md) | Architecture overview and extension guide |
 

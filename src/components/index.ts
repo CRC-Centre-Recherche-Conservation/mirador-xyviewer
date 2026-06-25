@@ -5,8 +5,8 @@
 export { ManifestBody } from './ManifestBody';
 export type { ManifestBodyProps } from './ManifestBody';
 
-export { DatasetBody } from './DatasetBody';
-export type { DatasetBodyProps } from './DatasetBody';
+export { DatasetBody, configureDatasetAuth } from './DatasetBody';
+export type { DatasetBodyProps, DatasetAuthHandler } from './DatasetBody';
 
 export { TextualBody } from './TextualBody';
 export type { TextualBodyProps } from './TextualBody';

@@ -13,6 +13,7 @@ import { Box, Divider } from '@mui/material';
 import type {
   AnnotationBody,
   LocalizedString,
+  DatasetBody as DatasetBodyType,
 } from '../types/iiif';
 import {
   isManifestBody,
@@ -23,7 +24,7 @@ import {
 import { ManifestBody } from './ManifestBody';
 import { DatasetBody } from './DatasetBody';
 import { TextualBody } from './TextualBody';
-import type { SpectrumData } from '../types/dataset';
+import type { SpectrumData, DatasetRequestOptions } from '../types/dataset';
 
 export interface AnnotationBodyRendererProps {
   /** The annotation body (single or array) */
@@ -40,6 +41,10 @@ export interface AnnotationBodyRendererProps {
   onDataLoaded?: (id: string, data: SpectrumData) => void;
   /** Callback when spectrum visibility changes */
   onVisibilityChange?: (id: string, visible: boolean) => void;
+  /** Optional IIIF Auth overrides forwarded to dataset fetches. */
+  requestOptions?: DatasetRequestOptions;
+  /** Called when a dataset needs auth (401/403); surfaces a "Sign in" button. */
+  onAuthRequired?: (body: DatasetBodyType) => void | Promise<void>;
 }
 
 export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
@@ -50,6 +55,8 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
   isActive,
   onDataLoaded,
   onVisibilityChange,
+  requestOptions,
+  onAuthRequired,
 }) => {
   const bodies = normalizeBody(body);
 
@@ -66,6 +73,8 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
             isActive={isActive}
             onDataLoaded={onDataLoaded}
             onVisibilityChange={onVisibilityChange}
+            requestOptions={requestOptions}
+            onAuthRequired={onAuthRequired}
           />
         </React.Fragment>
       ))}
@@ -82,6 +91,8 @@ interface BodySwitchProps {
   isActive?: boolean;
   onDataLoaded?: (id: string, data: SpectrumData) => void;
   onVisibilityChange?: (id: string, visible: boolean) => void;
+  requestOptions?: DatasetRequestOptions;
+  onAuthRequired?: (body: DatasetBodyType) => void | Promise<void>;
 }
 
 const BodySwitch: React.FC<BodySwitchProps> = ({
@@ -92,6 +103,8 @@ const BodySwitch: React.FC<BodySwitchProps> = ({
   isActive,
   onDataLoaded,
   onVisibilityChange,
+  requestOptions,
+  onAuthRequired,
 }) => {
   // Case 1: Manifest - render clickable link
   if (isManifestBody(body)) {
@@ -114,6 +127,8 @@ const BodySwitch: React.FC<BodySwitchProps> = ({
         isActive={isActive}
         onDataLoaded={onDataLoaded}
         onVisibilityChange={onVisibilityChange}
+        requestOptions={requestOptions}
+        onAuthRequired={onAuthRequired}
       />
     );
   }

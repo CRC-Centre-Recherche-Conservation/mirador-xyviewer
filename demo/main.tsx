@@ -8,6 +8,7 @@
 import Mirador from 'mirador';
 import { miradorImageToolsPlugin } from 'mirador-image-tools';
 import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, annotationPostprocessor } from '../src';
+import { setupDemoAuth, rewriteBackendUrls } from './demo-auth';
 
 // The demo runs against the REAL published Avranches manuscript manifest — itself
 // IIIF Presentation v2 (sc:Manifest / sequences / canvases) and carrying NO
@@ -121,6 +122,9 @@ function initMirador() {
         allowWindowSideBar: true,
         sideBarOpenByDefault: true,
         defaultSideBarPanel: 'info',
+        // Widen the side panel (annotations / analyses) beyond Mirador's 235px default so the
+        // spectrum plots have room to breathe.
+        defaultSidebarPanelWidth: 360,
         // Show annotation markers on canvas for every window (else only on hover).
         highlightAllAnnotations: true,
         panels: {
@@ -156,12 +160,18 @@ function initMirador() {
       // Request postprocessors: inject the v2 annotation lists onto the published
       // manifest, and transform point annotations (xywh w=1,h=1) into SVG circles.
       requests: {
-        postprocessors: [injectAvranchesAnnotations, annotationPostprocessor],
+        // Demo auth: route the lab backend through /lab and declare each protected
+        // resource's own auth service (datasets here; maXRF images via Mirador's own flow).
+        postprocessors: [injectAvranchesAnnotations, rewriteBackendUrls, annotationPostprocessor],
       },
     },
     // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters + selection highlight)
     [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin]
   );
+
+  // Demo-only: the full carto-chimie auth story on REAL data — one Sign-in unlocks the
+  // spectra AND the maXRF maps, all proxied through /lab. See demo-auth.ts.
+  setupDemoAuth(miradorInstance.store);
 
   // Expose to window for DevTools inspection (dev only)
   if (isDev && typeof window !== 'undefined') {

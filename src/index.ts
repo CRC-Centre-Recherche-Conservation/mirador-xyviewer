@@ -24,6 +24,7 @@ export { scientificAnnotationPlugin as default } from './plugin';
 export {
   ManifestBody,
   DatasetBody,
+  configureDatasetAuth,
   TextualBody,
   SpectrumPlot,
   AnnotationBodyRenderer,
@@ -34,6 +35,7 @@ export {
 export type {
   ManifestBodyProps,
   DatasetBodyProps,
+  DatasetAuthHandler,
   TextualBodyProps,
   SpectrumPlotProps,
   SpectrumPlotLabels,
@@ -50,6 +52,7 @@ export {
   abortFetch,
   abortAllFetches,
   validateDatasetUrl,
+  configureDatasetRequests,
   parseDataset,
 } from './services';
 
@@ -58,6 +61,7 @@ export type {
   // IIIF types
   LocalizedString,
   MetadataEntry,
+  IiifService,
   ManifestBody as ManifestBodyType,
   DatasetBody as DatasetBodyType,
   TextualBody as TextualBodyType,
@@ -68,6 +72,9 @@ export type {
   SpectrumData,
   FetchStatus,
   DatasetFetchResult,
+  DatasetRequestOptions,
+  DatasetRequestContext,
+  DatasetRequestProvider,
   PlotlyTrace,
   PlotlyLayout,
   // Mirador types

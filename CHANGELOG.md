@@ -1,3 +1,38 @@
+# [1.1.0-alpha.3](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/compare/v1.1.0-alpha.2...v1.1.0-alpha.3) (2026-06-25)
+
+
+### Bug Fixes
+
+* **annotations:** never rewrite IIIF Content Search responses ([2abd566](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/2abd56667b22ed78ccf58d6efab0e8f10a986075))
+* **dataset:** download a protected resource via <a download>, signing in inline ([e4f909a](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/e4f909aec8368bc3f5f197791cace43b85b57a7b))
+* **mirador-auth:** match an access profile anywhere in a profile array ([e7f9af0](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/e7f9af087ef8cc4bd7e40668fa795f0436ce605b))
+* **mirador-auth:** open the login window synchronously from the click ([34341ca](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/34341cacafc30acf31e4a9ed7942986006b031f3))
+* **mirador-auth:** re-acquire on 401 instead of trusting a stale stored token ([06fa31b](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/06fa31ba317d3ed5389e92aca3e3e9427df9dd07))
+* **mirador-auth:** strip trailing dots in linear time (ReDoS) ([ea61cef](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/ea61cef37d0deeed0c12e2a6d1926d124b43aa45))
+
+
+### Features
+
+* **annotations:** preserve declared IIIF Auth service through normalization ([7fd4d6d](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/7fd4d6db12df3e88f9714a7181da335d5cab31b6))
+* **datasets:** download data file in the spectrum plot ([0fd5fb0](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/0fd5fb02fb49e38b7845bbbf50bb18125743849a))
+* **datasets:** download protected files with the token; recover silently on reload ([1a7a203](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/1a7a2030101a86cf2c6b2a7ebf0221a44421cf66))
+* **datasets:** hide the dead Sign-in button and add a signing-in state ([8f30adb](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/8f30adbd1fa8e45c1db2a2154f22f85bc2a12d0a))
+* **datasets:** IIIF Auth support for access-controlled datasets ([7bdad2e](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/7bdad2eb59eeedca88704dad1d8462095636c87a))
+* **datasets:** thread a per-request service context through dataset fetches ([38b82b9](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/38b82b9f11f6c2d08969b8cc2f21a2565edcf151))
+* **iiif:** add IiifService interface for Auth service representation ([653498f](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/653498ff7fff691cad983852f109216249374b23))
+* **mirador-auth:** add an SSRF blocklist for credentialed dataset hosts ([3282b3c](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/3282b3c6778c8fdb992c91ae5bd3e70c3d9ec71d))
+* **mirador-auth:** add origin-checked IIIF Auth 1.0 login driver ([a1794c3](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/a1794c3a42483a2996e0ea11a95b3906f7055465))
+* **mirador-auth:** discover the declared IIIF Auth access service ([2fbaed2](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/2fbaed287deca1887c891bb2245f237c4fd4053f))
+* **mirador-auth:** enforce the SSRF blocklist and scope host-driven login ([cc02bca](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/cc02bca76485f0d110b31f0aff4e90b7ffb2b8c6))
+* **mirador-auth:** expose a canStartLogin predicate for the Sign-in affordance ([9384c76](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/9384c765d19e885177936ffc7b3c40a1f2953eb5))
+* **mirador-auth:** forward declared service from Mirador wiring, document trust model ([e29bcad](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/e29bcad886ac5bff9962903448edc68e25b19790))
+* **mirador-auth:** make trustedOrigins optional with a host-driven default ([8349a69](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/8349a69e25488e614bbc0a161ec45699b8448208))
+* **mirador-auth:** reload the image ([a4759ce](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/a4759cec06f2bf4925d3f45cf38ce113c5de38d7))
+* **mirador-auth:** resolve tokens by the resource's declared auth service ([612373c](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/612373cb1f82a9fe35d719b3b4fbba80afd28dbb))
+* **mirador-auth:** reuse Mirador IIIF Auth session for same-host datasets ([3b36a2a](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/3b36a2ad167b2f35b45c2ab846e69d77e7245cd7))
+* **mirador-auth:** reuse the IIIF session — one login, silent reload re-acquire, popup ([97623b6](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/97623b606bc0b800fc63f762d40c57addb0910d2))
+* **mirador-auth:** trigger a trusted login on Sign-in for declared-service dataset ([b64fe83](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/commit/b64fe83f0784d72295ca71c0ebe6b1d3dde80b40))
+
 # [1.1.0-alpha.2](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/compare/v1.1.0-alpha.1...v1.1.0-alpha.2) (2026-06-19)
 
 
