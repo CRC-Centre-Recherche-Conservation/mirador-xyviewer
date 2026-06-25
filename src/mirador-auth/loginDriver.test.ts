@@ -148,36 +148,15 @@ describe('runIiifAuthLogin', () => {
     tokenServiceId: TOKEN_URL,
   };
 
-  it('reuses an existing session silently (no window) when the token service returns a token', async () => {
-    const dispatch = vi.fn();
-    const openWindow = vi.fn();
-    const p = runIiifAuthLogin(interactive, dispatch, { openWindow });
-    // Session still valid (e.g. after reload) → the silent attempt gets a token, no prompt.
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: { messageId: TOKEN_URL, accessToken: 'TKN' },
-        origin: 'https://auth.museum',
-      }),
-    );
-    await p;
-    expect(openWindow).not.toHaveBeenCalled();
-    expect(dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ json: expect.objectContaining({ accessToken: 'TKN' }) }),
-    );
-  });
-
-  it('opens the access window when there is no session, then requests + dispatches the token', async () => {
+  it('opens the access window synchronously from the gesture, then requests + dispatches the token', async () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
     const win = { closed: false };
     const openWindow = vi.fn(() => win);
 
     const p = runIiifAuthLogin(interactive, dispatch, { openWindow, pollIntervalMs: 10, tokenTimeoutMs: 5000 });
-    // No session yet → the silent attempt replies with no token → fall through to the window.
-    window.dispatchEvent(
-      new MessageEvent('message', { data: { messageId: TOKEN_URL }, origin: 'https://auth.museum' }),
-    );
-    await vi.advanceTimersByTimeAsync(0);
+    // The window opens directly from the call — no awaited silent pre-attempt that would
+    // consume the user gesture and get the popup blocked.
     expect(openWindow).toHaveBeenCalledWith('https://auth.museum/login');
 
     win.closed = true; // user finished authenticating; the login page closed
@@ -205,12 +184,7 @@ describe('runIiifAuthLogin', () => {
     const dispatch = vi.fn();
 
     const p = runIiifAuthLogin(interactive, dispatch, { pollIntervalMs: 10, tokenTimeoutMs: 5000 });
-    // No session → silent attempt gets no token → falls through to the access window.
-    window.dispatchEvent(
-      new MessageEvent('message', { data: { messageId: TOKEN_URL }, origin: 'https://auth.museum' }),
-    );
-    await vi.advanceTimersByTimeAsync(0);
-
+    // The popup opens synchronously from the gesture (no awaited silent pre-attempt).
     expect(openSpy).toHaveBeenCalledWith(
       'https://auth.museum/login',
       'iiif-auth-login',

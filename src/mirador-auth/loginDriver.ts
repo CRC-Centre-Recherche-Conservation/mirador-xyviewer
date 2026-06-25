@@ -158,19 +158,19 @@ export async function acquireTokenViaSession(
 
 /**
  * Drive a IIIF Auth 1.0 login for a declared access service and land the token in
- * Mirador's store. First reuse any existing session silently ({@link acquireTokenViaSession});
- * only if there's none, prompt: for an interactive profile (login/clickthrough) open the
- * access window and wait for the user to finish; for kiosk/external go straight to the token
- * service. Rejects if the window or token times out.
+ * Mirador's store. For an interactive profile (login/clickthrough) open the access window
+ * SYNCHRONOUSLY from the user gesture — so popup blockers allow it — and wait for the user
+ * to finish; for kiosk/external go straight to the token service. Silent session reuse is
+ * NOT retried here: it is handled upstream ({@link acquireTokenViaSession} via the wire's
+ * `interactive === false` path, and DatasetBody's one-shot silent attempt before Sign in).
+ * Awaiting it before `window.open` would consume the gesture and get the popup blocked.
+ * Rejects if the window or token times out.
  */
 export async function runIiifAuthLogin(
   discovered: DiscoveredAuthService,
   dispatch: (action: unknown) => void,
   deps: RunLoginDeps = {},
 ): Promise<void> {
-  // Reuse an existing session (after reload, or a sibling resource's login) — no window.
-  if (await acquireTokenViaSession(discovered, dispatch, deps)) return;
-
   const { authServiceId, profile, tokenServiceId } = discovered;
 
   if (INTERACTIVE_PROFILES.has(profile)) {
