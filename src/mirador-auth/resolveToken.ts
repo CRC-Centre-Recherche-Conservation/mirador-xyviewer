@@ -53,10 +53,13 @@ const ACCESS_PROFILES = new Set([
   'http://iiif.io/api/auth/0/external',
 ]);
 
-const profileOf = (s: Record<string, unknown>): string | undefined => {
+// Pick the first profile string that is one of `allowed` — like `hasTokenProfile`, scan the
+// whole array rather than blindly taking index 0 (a spec-allowed `['custom', '…/login']` must
+// still resolve the IIIF Auth profile).
+const profileOf = (s: Record<string, unknown>, allowed: Set<string>): string | undefined => {
   const p = s.profile;
-  if (typeof p === 'string') return p;
-  if (Array.isArray(p)) return p.find((x): x is string => typeof x === 'string');
+  if (typeof p === 'string') return allowed.has(p) ? p : undefined;
+  if (Array.isArray(p)) return p.find((x): x is string => typeof x === 'string' && allowed.has(x));
   return undefined;
 };
 
@@ -118,9 +121,9 @@ export function discoverAuthService(service: unknown): DiscoveredAuthService | u
   for (const access of asArray(service)) {
     if (typeof access !== 'object' || access === null) continue;
     const a = access as Record<string, unknown>;
-    const profile = profileOf(a);
+    const profile = profileOf(a, ACCESS_PROFILES);
     const authServiceId = idOf(a);
-    if (!profile || !authServiceId || !ACCESS_PROFILES.has(profile)) continue;
+    if (!profile || !authServiceId) continue;
     for (const nested of asArray(a.service)) {
       if (typeof nested === 'object' && nested !== null && hasTokenProfile(nested as Record<string, unknown>)) {
         const tokenServiceId = idOf(nested as Record<string, unknown>);

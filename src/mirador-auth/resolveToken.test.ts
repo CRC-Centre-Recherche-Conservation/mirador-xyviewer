@@ -359,6 +359,19 @@ describe('discoverAuthService', () => {
     }
   });
 
+  it('recognizes an access profile given as an array (the Auth value need not be first)', () => {
+    const svc = {
+      '@id': 'https://auth.museum/login',
+      profile: ['https://example.org/custom/profile', 'http://iiif.io/api/auth/1/login'],
+      service: [{ '@id': 'https://auth.museum/token', profile: 'http://iiif.io/api/auth/1/token' }],
+    };
+    expect(discoverAuthService(svc)).toEqual({
+      authServiceId: 'https://auth.museum/login',
+      profile: 'http://iiif.io/api/auth/1/login',
+      tokenServiceId: 'https://auth.museum/token',
+    });
+  });
+
   it('returns undefined when the declared service is not an access service', () => {
     expect(
       discoverAuthService({ '@id': 'https://x/token', profile: 'http://iiif.io/api/auth/1/token' }),
