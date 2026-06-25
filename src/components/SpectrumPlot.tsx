@@ -228,7 +228,8 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   // Inline config adds our custom modebar buttons (expand, download). Concat (not replace) so
   // any future modeBarButtonsToAdd in baseConfig is preserved.
   const inlineConfig = useMemo(() => {
-    type ModeBarButton = { name: string; title: string; icon: typeof EXPAND_ICON; click: () => void };
+    type ModeBarIcon = { width: number; height: number; path: string; transform?: string };
+    type ModeBarButton = { name: string; title: string; icon: ModeBarIcon; click: () => void };
     const extraButtons: ModeBarButton[] = [];
     if (enableExpand) {
       extraButtons.push({ name: 'expandPlot', title: t.expandButton, icon: EXPAND_ICON, click: handleOpen });

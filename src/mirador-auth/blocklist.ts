@@ -73,9 +73,20 @@ function toClassifiable(host: string): IpAddr | undefined {
 /** Special-use suffixes that are never publicly routable (RFC 6761/6762/8375, ICANN). */
 const INTERNAL_SUFFIXES = ['.localhost', '.local', '.internal', '.home.arpa'];
 
+/**
+ * Lowercase and strip trailing dots (FQDN form, e.g. `data.lab.` → `data.lab`). Linear scan
+ * instead of `/\.+$/` to avoid the polynomial backtracking that regex incurs on an
+ * attacker-influenced hostname with many dots (CodeQL js/polynomial-redos).
+ */
+function normalizeHost(host: string): string {
+  let end = host.length;
+  while (end > 0 && host.charCodeAt(end - 1) === 46 /* '.' */) end -= 1;
+  return host.slice(0, end).toLowerCase();
+}
+
 /** Whether a (non-IP) hostname is a special-use internal name that never resolves publicly. */
 function isInternalName(host: string): boolean {
-  const h = host.toLowerCase().replace(/\.+$/, '');
+  const h = normalizeHost(host);
   return h === 'localhost' || INTERNAL_SUFFIXES.some((s) => h.endsWith(s));
 }
 
@@ -95,8 +106,10 @@ function entryMatches(entry: string, host: string, addr: IpAddr | undefined): bo
   if (addr && entry === addr.range()) return true; // range name, e.g. 'loopback'
   // Exact hostname / IP literal — strip trailing dots (FQDN form), and for a wrapped IPv6 host
   // also match the unwrapped IPv4 it targets, so an exact-IP entry can't be bypassed by notation.
-  const norm = (s: string): string => s.toLowerCase().replace(/\.+$/, '');
-  return norm(entry) === norm(host) || (addr !== undefined && norm(entry) === addr.toString());
+  return (
+    normalizeHost(entry) === normalizeHost(host) ||
+    (addr !== undefined && normalizeHost(entry) === addr.toString())
+  );
 }
 
 /**
