@@ -3,7 +3,7 @@
  * Renders spectrum data using Plotly with support for multiple Y series
  */
 
-import React, { useMemo, useState, useLayoutEffect, useCallback, useId } from 'react';
+import React, { useMemo, useState, useLayoutEffect, useCallback, useId, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import {
   Box,
@@ -24,6 +24,15 @@ const EXPAND_ICON = {
   transform: 'matrix(1 0 0 -1 0 24)',
 };
 
+// Material "file_download" — a file with a down-arrow. Reads as "download the data file",
+// distinct from Plotly's camera (= PNG export) button. No Y-flip: the path is already drawn
+// arrow-down in standard SVG coords, and Plotly renders it as-is (flipping points it up).
+const DOWNLOAD_ICON = {
+  width: 24,
+  height: 24,
+  path: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
+};
+
 /** Color palette for multiple series */
 const SERIES_COLORS = [
   '#1976d2', // blue
@@ -42,6 +51,10 @@ const SERIES_COLORS = [
 export interface SpectrumPlotLabels {
   /** Tooltip of the "expand to modal" modebar button */
   expandButton?: string;
+  /** Tooltip + accessible label of the "download data file" modebar button (name the
+   * extension when known, e.g. "Download data file (.csv)", to keep it distinct from
+   * Plotly's "Download plot as png"). */
+  downloadButton?: string;
   /** aria-label of the dialog's close icon button */
   closeButton?: string;
   /** Fallback dialog title when data.label is empty and there is no single-series label */
@@ -54,6 +67,7 @@ export interface SpectrumPlotLabels {
 
 const DEFAULT_LABELS: Required<SpectrumPlotLabels> = {
   expandButton: 'Open in larger view',
+  downloadButton: 'Download data file',
   closeButton: 'close',
   defaultTitle: 'Spectrum',
   defaultXAxis: 'X',
@@ -69,6 +83,10 @@ export interface SpectrumPlotProps {
   color?: string;
   /** Show the "expand to modal" button overlay (default: false; opt-in to avoid nesting Dialogs in unaware consumers) */
   enableExpand?: boolean;
+  /** When provided, add a "download data file" button to the modebar that invokes this. The
+   * caller owns the actual download (auth/token/fetch) — this component stays auth-agnostic and
+   * never sees the URL or credentials, only the trigger. */
+  onDownloadSource?: () => void | Promise<void>;
   /** Optional label overrides for i18n. Any missing field falls back to its English default. */
   labels?: SpectrumPlotLabels;
 }
@@ -78,6 +96,7 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   height = 250,
   color,
   enableExpand = false,
+  onDownloadSource,
   labels,
 }) => {
   const t = useMemo(() => ({ ...DEFAULT_LABELS, ...labels }), [labels]);
@@ -88,6 +107,19 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
 
   const handleOpen = useCallback(() => setModalOpen(true), []);
   const handleClose = useCallback(() => setModalOpen(false), []);
+
+  // Guard re-entrancy: the modebar button has no disabled state, so ignore clicks while a
+  // download (which may be network/auth-gated) is already in flight to avoid double-fetches.
+  const downloadingRef = useRef(false);
+  const handleDownloadSource = useCallback(async () => {
+    if (!onDownloadSource || downloadingRef.current) return;
+    downloadingRef.current = true;
+    try {
+      await onDownloadSource();
+    } finally {
+      downloadingRef.current = false;
+    }
+  }, [onDownloadSource]);
 
   // Track modal content size so the plot fills the resizable Paper.
   // useLayoutEffect (not useEffect) runs synchronously after DOM mutations but
@@ -193,23 +225,26 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     ] as ('select2d' | 'lasso2d' | 'autoScale2d')[],
   }), []);
 
-  // Inline config adds the custom "expand" button to Plotly's modebar.
-  // Concat (not replace) so any future modeBarButtonsToAdd in baseConfig is preserved.
+  // Inline config adds our custom modebar buttons (expand, download). Concat (not replace) so
+  // any future modeBarButtonsToAdd in baseConfig is preserved.
   const inlineConfig = useMemo(() => {
-    if (!enableExpand) return baseConfig;
-    const expandBtn = {
-      name: 'expandPlot',
-      title: t.expandButton,
-      icon: EXPAND_ICON,
-      click: handleOpen,
-    };
-    const baseButtons =
-      (baseConfig as { modeBarButtonsToAdd?: Array<typeof expandBtn> }).modeBarButtonsToAdd ?? [];
-    return {
-      ...baseConfig,
-      modeBarButtonsToAdd: [...baseButtons, expandBtn],
-    };
-  }, [baseConfig, enableExpand, handleOpen, t.expandButton]);
+    type ModeBarButton = { name: string; title: string; icon: typeof EXPAND_ICON; click: () => void };
+    const extraButtons: ModeBarButton[] = [];
+    if (enableExpand) {
+      extraButtons.push({ name: 'expandPlot', title: t.expandButton, icon: EXPAND_ICON, click: handleOpen });
+    }
+    if (onDownloadSource) {
+      extraButtons.push({
+        name: 'downloadData',
+        title: t.downloadButton,
+        icon: DOWNLOAD_ICON,
+        click: handleDownloadSource,
+      });
+    }
+    if (extraButtons.length === 0) return baseConfig;
+    const baseButtons = (baseConfig as { modeBarButtonsToAdd?: ModeBarButton[] }).modeBarButtonsToAdd ?? [];
+    return { ...baseConfig, modeBarButtonsToAdd: [...baseButtons, ...extraButtons] };
+  }, [baseConfig, enableExpand, handleOpen, onDownloadSource, handleDownloadSource, t.expandButton, t.downloadButton]);
 
   // Clone traces/layout for the modal Plot. react-plotly.js mutates these
   // references on user interaction (zoom, pan, legend toggle), and sharing

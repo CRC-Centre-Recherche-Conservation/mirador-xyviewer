@@ -407,6 +407,15 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     setExpanded(prev => !prev);
   }, []);
 
+  // Tooltip for the plot's "download data file" button — name the extension when known so it
+  // reads distinctly from Plotly's "Download plot as png". Memoized objects keep Plotly's
+  // modebar config stable across renders (a fresh labels object would redraw the modebar).
+  const downloadLabel = useMemo(() => {
+    const ext = filenameFromUrl(body.id).match(/\.([A-Za-z0-9]+)$/)?.[1];
+    return ext ? `Download data file (.${ext.toLowerCase()})` : 'Download data file';
+  }, [body.id]);
+  const plotLabels = useMemo(() => ({ downloadButton: downloadLabel }), [downloadLabel]);
+
   // Render validation outcome. Distinguish a broken URL (a real error) from a
   // valid resource whose format we deliberately don't plot (e.g. binary /
   // proprietary): the latter is not an error — we say so and link to the
@@ -511,7 +520,12 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       <Collapse in={expanded && status === 'success' && data !== null}>
         {data && (
           <Box sx={{ mt: 1, width: '100%' }}>
-            <SpectrumPlot data={data} enableExpand />
+            <SpectrumPlot
+              data={data}
+              enableExpand
+              onDownloadSource={handleOpenResource}
+              labels={plotLabels}
+            />
           </Box>
         )}
       </Collapse>
