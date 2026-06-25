@@ -144,16 +144,31 @@ describe('wireMiradorDatasetAuth — login trigger (Phase 2)', () => {
     );
   });
 
-  it('skips the login popup when the service token is already stored (reuse the image session)', async () => {
-    const driver = vi.fn();
-    // The user already logged in for the image, so the crc-lab token is in the store.
-    const store = storeWith({ 'https://auth.museum/token': { json: { accessToken: 'TKN' } } });
+  it('still drives the login when a (now-stale) service token is in the store', async () => {
+    const driver = vi.fn().mockResolvedValue(undefined);
+    // A token is present, but the handler is only ever invoked AFTER the server rejected a
+    // request that carried it — so a stored token must not be trusted as a valid session.
+    const store = storeWith({ 'https://auth.museum/token': { json: { accessToken: 'STALE' } } });
     wireMiradorDatasetAuth(store, {
       trustedOrigins: ['https://data.lab', 'https://auth.museum'],
       loginDriver: driver,
     });
     await authHandler()({ type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE });
-    expect(driver).not.toHaveBeenCalled();
+    expect(driver).toHaveBeenCalled();
+  });
+
+  it('still re-acquires silently on 401 even when a stale token is stored', async () => {
+    const sessionAcquirer = vi.fn().mockResolvedValue(true);
+    const store = storeWith({ 'https://auth.museum/token': { json: { accessToken: 'STALE' } } });
+    wireMiradorDatasetAuth(store, {
+      trustedOrigins: ['https://data.lab', 'https://auth.museum'],
+      sessionAcquirer,
+    });
+    await authHandler()(
+      { type: 'Dataset', id: 'https://data.lab/d.csv', format: 'text/csv', service: SERVICE },
+      { interactive: false },
+    );
+    expect(sessionAcquirer).toHaveBeenCalled();
   });
 
   it('reuses the session silently (no window) when called with interactive:false', async () => {

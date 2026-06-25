@@ -1,7 +1,6 @@
 import { configureDatasetAuth, configureDatasetRequests } from '../services';
 import type { DatasetRequestOptions, DatasetRequestProvider } from '../types/dataset';
 import {
-  accessTokenForService,
   discoverAuthService,
   isSecureTransport,
   originOf,
@@ -171,8 +170,11 @@ export function wireMiradorDatasetAuth(
     async (body, opts) => {
       const discovered = discoverTrusted(body);
       if (!discovered) return; // no trusted declared service → manual "Open resource" + "Try again"
-      // Already hold this service's token (e.g. a sibling image login) → nothing to do.
-      if (accessTokenForService(store.getState(), discovered.tokenServiceId)) return;
+      // No short-circuit on a stored token: this handler runs only AFTER a 401 on a request
+      // that already carried that token, so a present token is the one the server just
+      // rejected (stale). Always fall through to a silent re-acquire / interactive login —
+      // the legitimate "session still valid" case is covered by acquireTokenViaSession inside
+      // both paths (no window when the session holds).
       try {
         // Silent mode (DatasetBody's auto-attempt on 401): only reuse a still-valid session,
         // never open a window — this is what restores access after a reload without a click.
