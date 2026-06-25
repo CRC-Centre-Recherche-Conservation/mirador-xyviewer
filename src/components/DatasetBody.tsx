@@ -58,6 +58,16 @@ const safeHost = (url: string): string | undefined => {
   }
 };
 
+/** The resource's own file name (last path segment), for a download's suggested name. */
+const filenameFromUrl = (url: string): string => {
+  try {
+    const name = new URL(url).pathname.split('/').pop();
+    return name ? decodeURIComponent(name) : '';
+  } catch {
+    return '';
+  }
+};
+
 interface ProtectedDatasetNoticeProps {
   label: string;
   format?: string;
@@ -348,23 +358,50 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     }
   }, [authHandler, body, handleFetch]);
 
-  // Open/download the raw file via an AUTHENTICATED fetch (the token rides along), so a
-  // protected file actually opens instead of a `<a href>` hitting a raw 401. If we're not
-  // authed yet, fall back to the sign-in flow rather than surfacing the server's 401 body.
+  // Download the raw file via an AUTHENTICATED fetch (the token rides along), via a synthetic
+  // <a download> click: browsers exempt downloads from popup blocking (unlike window.open after
+  // an await, which loses the user gesture and is blocked silently), and it keeps the real file
+  // name instead of a blob UUID.
+  const triggerDownload = useCallback(async () => {
+    const blob = await fetchDatasetBlob(body.id, requestOptions, { service: body.service });
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filenameFromUrl(body.id);
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  }, [body.id, body.service, requestOptions]);
+
+  // "Open resource": download the file, and if the server says we're not authed yet, run the
+  // login and download automatically once it completes — one click, not "sign in" then a
+  // second click on download. (Unlike handleSignIn, this re-attempts the download, not a plot
+  // reload.) The download itself rides a fresh <a download> so it is never popup-blocked.
   const handleOpenResource = useCallback(async () => {
     try {
-      const blob = await fetchDatasetBlob(body.id, requestOptions, { service: body.service });
-      const objectUrl = URL.createObjectURL(blob);
-      window.open(objectUrl, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      await triggerDownload();
     } catch (err) {
-      if ((err as { authRequired?: boolean }).authRequired) {
-        if (authHandler) handleSignIn();
-      } else {
+      if (!(err as { authRequired?: boolean }).authRequired || !authHandler) {
         console.debug('[mirador-xyviewer] could not open dataset resource:', err);
+        return;
+      }
+      setSigningIn(true);
+      try {
+        const maybePromise = authHandler(body);
+        if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
+          await maybePromise;
+        }
+        if (!mountedRef.current) return;
+        await triggerDownload();
+      } catch (signInErr) {
+        console.debug('[mirador-xyviewer] could not open dataset resource after sign-in:', signInErr);
+      } finally {
+        if (mountedRef.current) setSigningIn(false);
       }
     }
-  }, [body.id, body.service, requestOptions, authHandler, handleSignIn]);
+  }, [triggerDownload, authHandler, body]);
 
   const toggleExpanded = useCallback(() => {
     setExpanded(prev => !prev);

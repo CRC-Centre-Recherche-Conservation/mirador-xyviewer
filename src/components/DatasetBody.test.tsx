@@ -7,16 +7,17 @@
  * error + retry (cache cleared, refetch), and the cache-hit-on-mount path.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DatasetBody, configureDatasetAuth } from './DatasetBody';
 import type { DatasetBody as DatasetBodyType } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
-import { fetchDataset, validateDatasetUrl } from '../services/datasetFetcher';
+import { fetchDataset, fetchDatasetBlob, validateDatasetUrl } from '../services/datasetFetcher';
 import { datasetCache } from '../services/datasetCache';
 
 vi.mock('./SpectrumPlot', () => ({ SpectrumPlot: () => <div data-testid="spectrum-plot" /> }));
 vi.mock('../services/datasetFetcher', () => ({
   fetchDataset: vi.fn(),
+  fetchDatasetBlob: vi.fn(),
   abortFetch: vi.fn(),
   validateDatasetUrl: vi.fn(() => ({ valid: true })),
 }));
@@ -52,6 +53,37 @@ describe('DatasetBody', () => {
     // "Open resource" is an authenticated action (button), not a raw link — so a protected
     // file downloads with the token instead of a `<a href>` hitting a bare 401.
     expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
+  });
+
+  it('opens the resource via an <a download> click (not window.open) so popup blockers allow it', async () => {
+    vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+    vi.mocked(fetchDatasetBlob).mockResolvedValue(new Blob(['x'], { type: 'text/csv' }));
+
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:fake');
+    URL.revokeObjectURL = vi.fn();
+    const openSpy = vi.spyOn(window, 'open');
+    let downloadName: string | undefined;
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        downloadName = this.download;
+      });
+
+    try {
+      render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+      fireEvent.click(screen.getByRole('button', { name: /open resource/i }));
+
+      await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+      expect(downloadName).toBe('d.csv'); // the real file name, not a blob UUID
+      expect(openSpy).not.toHaveBeenCalled(); // never window.open (blocked after an await)
+    } finally {
+      clickSpy.mockRestore();
+      openSpy.mockRestore();
+      URL.createObjectURL = origCreate;
+      URL.revokeObjectURL = origRevoke;
+    }
   });
 
   it('renders an error Alert when the dataset URL itself is invalid', () => {
@@ -172,6 +204,61 @@ describe('DatasetBody', () => {
       expect(screen.queryByRole('button', { name: /sign in/i })).toBeNull();
       // The user can still pursue the resource via the authenticated open action.
       expect(screen.getByRole('button', { name: /open resource/i })).toBeInTheDocument();
+    });
+
+    it('signs in then downloads automatically when Open resource hits a 401 (one click)', async () => {
+      vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+      const blobAuthError = Object.assign(new Error('401'), { authRequired: true });
+      // First attempt is unauthenticated → 401; after the login the retry succeeds.
+      vi.mocked(fetchDatasetBlob)
+        .mockRejectedValueOnce(blobAuthError)
+        .mockResolvedValueOnce(new Blob(['x'], { type: 'text/csv' }));
+      const handler = vi.fn().mockResolvedValue(undefined);
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      try {
+        render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+        fireEvent.click(screen.getByRole('button', { name: /open resource/i }));
+
+        await waitFor(() => expect(handler).toHaveBeenCalled()); // the login ran
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled()); // download fired after login
+        expect(vi.mocked(fetchDatasetBlob)).toHaveBeenCalledTimes(2); // initial 401 + retry
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+      }
+    });
+
+    it('downloads directly without a login when already authenticated', async () => {
+      vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+      vi.mocked(fetchDatasetBlob).mockResolvedValue(new Blob(['x'], { type: 'text/csv' }));
+      const handler = vi.fn().mockResolvedValue(undefined);
+      configureDatasetAuth(handler, { canStartLogin: () => true });
+
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      try {
+        render(<DatasetBody body={{ ...body, format: 'application/octet-stream' }} />);
+        fireEvent.click(screen.getByRole('button', { name: /open resource/i }));
+
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled()); // downloaded straight away
+        expect(handler).not.toHaveBeenCalled(); // no login popup when already authed
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+      }
     });
 
     it('renders a protected record (not a red error) and names the host', async () => {
