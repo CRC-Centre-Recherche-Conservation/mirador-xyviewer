@@ -122,6 +122,9 @@ function initMirador() {
         allowWindowSideBar: true,
         sideBarOpenByDefault: true,
         defaultSideBarPanel: 'info',
+        // Widen the side panel (annotations / analyses) beyond Mirador's 235px default so the
+        // spectrum plots have room to breathe.
+        defaultSidebarPanelWidth: 360,
         // Show annotation markers on canvas for every window (else only on hover).
         highlightAllAnnotations: true,
         panels: {
