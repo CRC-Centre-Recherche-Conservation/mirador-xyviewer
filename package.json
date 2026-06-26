@@ -60,7 +60,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^7.0.0",
     "@mui/material": "^7.0.0",
-    "@redux-devtools/extension": "^3.3.0",
+    "@redux-devtools/extension": "^4.0.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
