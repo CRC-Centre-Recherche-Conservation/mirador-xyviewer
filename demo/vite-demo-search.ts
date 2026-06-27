@@ -13,6 +13,7 @@ import { join } from 'node:path';
 const SEARCH_PATH = '/demo-search';
 
 interface SearchEntry {
+  id: string;
   label: string;
   on: string;
 }
@@ -31,19 +32,27 @@ function buildIndex(publicDir: string): SearchEntry[] {
   const entries: SearchEntry[] = [];
   const lists = readdirSync(publicDir).filter((f) => /^annotations-v2-canvas-\d+\.json$/.test(f));
   for (const name of lists) {
-    let json: { resources?: Array<{ label?: unknown; on?: unknown }> };
+    let json: { resources?: Array<{ '@id'?: unknown; label?: unknown; on?: unknown }> };
     try {
       json = JSON.parse(readFileSync(join(publicDir, name), 'utf8'));
     } catch {
       continue;
     }
     for (const ann of json.resources ?? []) {
-      if (typeof ann.label === 'string' && typeof ann.on === 'string') {
-        entries.push({ label: ann.label, on: widenRegion(ann.on) });
+      const id = (ann as { '@id'?: unknown })['@id'];
+      if (typeof id === 'string' && typeof ann.label === 'string' && typeof ann.on === 'string') {
+        entries.push({ id, label: ann.label, on: widenRegion(ann.on) });
       }
     }
   }
   return entries;
+}
+
+/** Split a label around the (case-insensitive) query for IIIF hit before/match/after. */
+function highlightAround(label: string, q: string): { before: string; match: string; after: string } {
+  const i = label.toLowerCase().indexOf(q);
+  if (i < 0) return { before: '', match: label, after: '' };
+  return { before: label.slice(0, i), match: label.slice(i, i + q.length), after: label.slice(i + q.length) };
 }
 
 /** Build a Search API 1.0 response for the matched entries. */
@@ -56,18 +65,17 @@ function searchResponse(serviceId: string, q: string, matches: SearchEntry[]) {
     '@id': `${serviceId}?q=${encodeURIComponent(q)}`,
     '@type': 'sc:AnnotationList',
     within: { '@type': 'sc:Layer', total: matches.length },
-    resources: matches.map((m, i) => ({
-      '@id': `${serviceId}/anno/${i}`,
+    resources: matches.map((m) => ({
+      '@id': m.id,
       '@type': 'oa:Annotation',
-      motivation: 'sc:painting',
-      resource: { '@type': 'cnt:ContentAsText', chars: m.label },
+      motivation: 'oa:highlighting',
+      resource: { '@type': 'cnt:ContentAsText', label: m.label, chars: m.label },
       on: m.on,
     })),
-    hits: matches.map((_m, i) => ({
-      '@type': 'search:Hit',
-      annotations: [`${serviceId}/anno/${i}`],
-      match: q,
-    })),
+    hits: matches.map((m) => {
+      const { before, match, after } = highlightAround(m.label, q);
+      return { '@type': 'search:Hit', annotations: [m.id], before, match, after };
+    }),
   };
 }
 
