@@ -15,8 +15,16 @@ import {
   adapterFor,
   registerAnnotationAdapter,
   ANNOTATION_ADAPTERS,
+  isContentSearchResponse,
   type AnnotationAdapter,
 } from './annotationNormalizer';
+import {
+  searchV1,
+  searchV1Empty,
+  searchV2,
+  searchV2Empty,
+  plainAnnotationPage,
+} from '../test/fixtures/contentSearch';
 import { getLocalizedString } from './localization';
 import type { AnnotationBody, AnnotationTarget } from '../types/iiif';
 
@@ -569,5 +577,37 @@ describe('registry extensibility — a future IIIF format via registerAnnotation
       source: 'https://host/img.tif',
       selector: { type: 'FragmentSelector', value: 'xywh=10,20,1,1' },
     });
+  });
+});
+
+describe('isContentSearchResponse', () => {
+  it('detects search/1 via its array @context (search/1 fragment)', () => {
+    expect(isContentSearchResponse(searchV1)).toBe(true);
+  });
+  it('detects an empty search/1 with no hits and no ignored (array @context only)', () => {
+    expect(isContentSearchResponse(searchV1Empty)).toBe(true);
+  });
+  it('detects search/2 via its @context (with and without items)', () => {
+    expect(isContentSearchResponse(searchV2)).toBe(true);
+    expect(isContentSearchResponse(searchV2Empty)).toBe(true);
+  });
+  it('detects via a hits array even without a search @context', () => {
+    expect(
+      isContentSearchResponse({
+        '@context': 'http://iiif.io/api/presentation/2/context.json',
+        hits: [],
+      }),
+    ).toBe(true);
+  });
+  it('detects via an `ignored` key', () => {
+    expect(isContentSearchResponse({ type: 'AnnotationPage', items: [], ignored: [] })).toBe(true);
+  });
+  it('returns false for a normal Presentation-3 AnnotationPage (even one carrying partOf)', () => {
+    expect(isContentSearchResponse(plainAnnotationPage)).toBe(false);
+  });
+  it('returns false for non-objects', () => {
+    expect(isContentSearchResponse(null)).toBe(false);
+    expect(isContentSearchResponse(undefined)).toBe(false);
+    expect(isContentSearchResponse('x')).toBe(false);
   });
 });
