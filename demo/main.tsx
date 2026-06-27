@@ -61,6 +61,18 @@ function injectAvranchesAnnotations(url: string, action: Record<string, unknown>
   // Tag the title so v2/v3 are distinguishable in Mirador's catalog & window bar.
   manifest.label = tagLabel(manifest.label, 'IIIF v2');
 
+  // Advertise our mock Content Search service on the (external) v2 manifest.
+  const searchService = {
+    '@context': 'http://iiif.io/api/search/1/context.json',
+    '@id': new URL('/demo-search', window.location.origin).href,
+    profile: 'http://iiif.io/api/search/1/search',
+  };
+  const existing = (manifest as { service?: unknown }).service;
+  (manifest as { service?: unknown }).service = [
+    ...(Array.isArray(existing) ? existing : existing ? [existing] : []),
+    searchService,
+  ];
+
   for (const sequence of manifest.sequences) {
     for (const canvas of sequence.canvases ?? []) {
       const id = (canvas['@id'] ?? canvas.id) as string | undefined;
@@ -132,6 +144,7 @@ function initMirador() {
           info: true,
           attribution: true,
           canvas: true,
+          search: true,
         },
       },
       // Workspace configuration
