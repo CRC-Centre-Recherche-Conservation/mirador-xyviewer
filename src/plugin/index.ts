@@ -26,3 +26,8 @@ export {
   selectionHighlightPlugin,
   ConnectedSelectionHighlightPlugin,
 } from './SelectionHighlightPlugin';
+
+export {
+  searchResultFocusPlugin,
+  ConnectedSearchResultFocusPlugin,
+} from './SearchResultFocusPlugin';

@@ -67,6 +67,29 @@ declare module 'mirador' {
     json: unknown
   ): AnyAction;
 
+  // Mirador selectors used by SearchResultFocusPlugin
+  export function getSelectedAnnotationId(
+    state: unknown,
+    options: { windowId: string }
+  ): string | null | undefined;
+
+  export function getSearchAnnotationsForWindow(
+    state: unknown,
+    options: { windowId: string }
+  ): Array<{ resources?: Array<{ id?: string }> }>;
+
+  export function getCompanionWindowsForPosition(
+    state: unknown,
+    options: { windowId: string; position: string }
+  ): Array<{ id?: string; content?: string }>;
+
+  // Mirador updateCompanionWindow action creator
+  export function updateCompanionWindow(
+    windowId: string,
+    companionWindowId: string,
+    payload: { content: string; [key: string]: unknown }
+  ): AnyAction;
+
   // Mirador viewer factory
   export function viewer(
     config: unknown,

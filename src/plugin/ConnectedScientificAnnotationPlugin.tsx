@@ -25,6 +25,9 @@ import type { SpectrumData } from '../types/dataset';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
 
+/** Banner shown on an annotation surfaced only because it is selected while filtered out. */
+const FILTER_HIDDEN_BADGE = 'Shown because selected — hidden by the metadata filter';
+
 /**
  * Check if body is a scientific type (Manifest or Dataset)
  * @internal Exposed for tests; not part of the public API.
@@ -59,6 +62,35 @@ export function hasMetadata(annotation: IIIFAnnotation | undefined): boolean {
 export function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boolean {
   if (!annotation) return false;
   return hasScientificBody(annotation.body) || hasMetadata(annotation);
+}
+
+/**
+ * Annotations to render: the filter-visible ones, plus the currently-selected
+ * annotation even when the metadata filter has hidden it — so selecting it (via
+ * search hit, canvas click, or deep link) still surfaces its body.
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function computeVisibleAnnotations<T extends { id: string }>(
+  annotations: T[],
+  hiddenAnnotationIds: Set<string>,
+  selectedAnnotationId: string | undefined,
+): T[] {
+  return annotations.filter(
+    (ann) => !hiddenAnnotationIds.has(ann.id) || ann.id === selectedAnnotationId,
+  );
+}
+
+/**
+ * True when an annotation is shown ONLY because it is selected while the metadata
+ * filter would otherwise hide it (drives the "hidden by filter" badge).
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function shownOnlyBecauseSelected(
+  id: string,
+  hiddenAnnotationIds: Set<string>,
+  selectedAnnotationId: string | undefined,
+): boolean {
+  return hiddenAnnotationIds.has(id) && id === selectedAnnotationId;
 }
 
 /**
@@ -183,10 +215,11 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     }
   }, [windowId, selectedAnnotationId, selectAnnotation, deselectAnnotation]);
 
-  // Filter annotations based on filters
-  const visibleAnnotations = useMemo(() => {
-    return annotations.filter(ann => !hiddenAnnotationIds.has(ann.id));
-  }, [annotations, hiddenAnnotationIds]);
+  // Filter annotations, but keep the selected one even if the filter hid it.
+  const visibleAnnotations = useMemo(
+    () => computeVisibleAnnotations(annotations, hiddenAnnotationIds, selectedAnnotationId),
+    [annotations, hiddenAnnotationIds, selectedAnnotationId],
+  );
 
   // If no scientific annotations and no hidden annotations, render original component
   if (customRenderingIds.size === 0 && hiddenAnnotationIds.size === 0) {
@@ -201,6 +234,11 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         const isScientific = customRenderingIds.has(annotation.id);
         const isSelected = selectedAnnotationId === annotation.id;
         const isHovered = hoveredAnnotationIds.includes(annotation.id);
+        const showFilterBadge = shownOnlyBecauseSelected(
+          annotation.id,
+          hiddenAnnotationIds,
+          selectedAnnotationId,
+        );
 
         if (!isScientific) {
           // Render default annotation
@@ -220,6 +258,15 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                 bgcolor: isHovered && !isSelected ? 'action.hover' : undefined,
               }}
             >
+              {showFilterBadge && (
+                <Typography
+                  variant="caption"
+                  role="note"
+                  sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
+                >
+                  {FILTER_HIDDEN_BADGE}
+                </Typography>
+              )}
               <ListItemText
                 primary={
                   <Typography
@@ -265,6 +312,15 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
               },
             }}
           >
+            {showFilterBadge && (
+              <Typography
+                variant="caption"
+                role="note"
+                sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
+              >
+                {FILTER_HIDDEN_BADGE}
+              </Typography>
+            )}
             {/* Metadata */}
             <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
 
@@ -364,5 +420,8 @@ export const scientificAnnotationPlugin: MiradorPlugin = {
   mapStateToProps: mapStateToProps as MiradorPlugin['mapStateToProps'],
   mapDispatchToProps: mapDispatchToProps as unknown as MiradorPlugin['mapDispatchToProps'],
 };
+
+/** @internal Exposed for tests; not part of the public API. */
+export { ScientificAnnotationPluginComponent };
 
 export default scientificAnnotationPlugin;

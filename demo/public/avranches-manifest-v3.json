@@ -117,6 +117,16 @@
       }
     }
   ],
+  "service": [
+    {
+      "@context": "http://iiif.io/api/search/1/context.json",
+      "id": "/demo-search",
+      "@id": "/demo-search",
+      "type": "SearchService1",
+      "@type": "SearchService1",
+      "profile": "http://iiif.io/api/search/1/search"
+    }
+  ],
   "thumbnail": [
     {
       "id": "https://iiif.unicaen.fr/mrsh/bvmsm/AVRANCHES_MS059/AVRANCHES_MS059_0001.tif/full/200,/0/default.jpg",
