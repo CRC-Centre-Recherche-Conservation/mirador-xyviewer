@@ -7,7 +7,7 @@
 
 import Mirador from 'mirador';
 import { miradorImageToolsPlugin } from 'mirador-image-tools';
-import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, annotationPostprocessor } from '../src';
+import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, annotationPostprocessor } from '../src';
 import { setupDemoAuth, rewriteBackendUrls } from './demo-auth';
 
 // The demo runs against the REAL published Avranches manuscript manifest — itself
@@ -178,8 +178,8 @@ function initMirador() {
         postprocessors: [injectAvranchesAnnotations, rewriteBackendUrls, annotationPostprocessor],
       },
     },
-    // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters + selection highlight)
-    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin]
+    // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters + selection highlight + search result focus)
+    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin]
   );
 
   // Demo-only: the full carto-chimie auth story on REAL data — one Sign-in unlocks the
@@ -196,6 +196,7 @@ function initMirador() {
     console.log('%c[XYViewer] Image comparison plugin loaded', 'color: #4CAF50; font-weight: bold');
     console.log('%c[XYViewer] Metadata filters plugin loaded', 'color: #4CAF50; font-weight: bold');
     console.log('%c[XYViewer] Selection highlight plugin loaded', 'color: #4CAF50; font-weight: bold');
+    console.log('%c[XYViewer] Search result focus plugin loaded', 'color: #4CAF50; font-weight: bold');
     console.log('[XYViewer] Supported body types: Manifest, Dataset, TextualBody');
   }
 
