@@ -1,9 +1,10 @@
 /**
  * SelectionHighlightPlugin
  *
- * Adds visual feedback when an annotation is selected:
- * 1. Zoom/pan to center the selected annotation
- * 2. Animated pulse effect around the annotation
+ * Adds visual feedback when an annotation is selected: an animated pulse around
+ * the selected region. The selection is resolved against both the canvas
+ * annotation lists and Mirador's Content Search hit annotations, so clicking a
+ * search result pulses its region too. (No zoom/pan is performed.)
  */
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
@@ -86,6 +87,7 @@ interface CanvasWorld {
 interface TargetProps {
   windowId: string;
   annotations?: AnnotationList[];
+  searchAnnotations?: AnnotationList[];
   selectedAnnotationId?: string | null;
   viewer?: OSDViewer | null;
   canvasWorld?: CanvasWorld;
@@ -174,6 +176,23 @@ export function findAnnotationResource(annotations: AnnotationList[], annotation
     }
   }
   return null;
+}
+
+/**
+ * Resolve the selected annotation's resource, preferring the canvas annotation
+ * lists and falling back to Mirador's Content Search hit annotations — so the
+ * selection pulse also fires when a search result is clicked.
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function resolveSelectedResource(
+  annotations: AnnotationList[],
+  searchAnnotations: AnnotationList[],
+  annotationId: string,
+): AnnotationResource | null {
+  return (
+    findAnnotationResource(annotations, annotationId) ??
+    findAnnotationResource(searchAnnotations, annotationId)
+  );
 }
 
 /**
@@ -322,7 +341,7 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
   targetProps,
   TargetComponent,
 }) => {
-  const { annotations = [], selectedAnnotationId, viewer } = targetProps;
+  const { annotations = [], searchAnnotations = [], selectedAnnotationId, viewer } = targetProps;
 
   const [pulseTarget, setPulseTarget] = useState<{
     bounds: [number, number, number, number];
@@ -339,7 +358,7 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
       selectedAnnotationId &&
       selectedAnnotationId !== prevSelectedIdRef.current
     ) {
-      const resource = findAnnotationResource(annotations, selectedAnnotationId);
+      const resource = resolveSelectedResource(annotations, searchAnnotations, selectedAnnotationId);
 
       if (resource) {
         const bounds = getAnnotationBounds(resource);
@@ -353,7 +372,7 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
     }
 
     prevSelectedIdRef.current = selectedAnnotationId;
-  }, [selectedAnnotationId, annotations]);
+  }, [selectedAnnotationId, annotations, searchAnnotations]);
 
   const handlePulseComplete = useCallback(() => {
     setPulseTarget(null);
