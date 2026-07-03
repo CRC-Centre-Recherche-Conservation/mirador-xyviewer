@@ -9,6 +9,7 @@ This guide explains how to configure Mirador 4 to work with mirador-xyviewer.
 - [Optional Configuration](#optional-configuration)
 - [Full Configuration Example](#full-configuration-example)
 - [Troubleshooting](#troubleshooting)
+- [IIIF Content Search](#iiif-content-search)
 
 ## Basic Setup
 
@@ -483,3 +484,39 @@ window.miradorInstance = viewer;
 miradorInstance.store.getState()  // Get Redux state
 miradorInstance.store.dispatch(action)  // Dispatch action
 ```
+
+## IIIF Content Search
+
+This plugin does **not** implement Content Search — it relies on Mirador 4's built-in
+search and is designed to never corrupt search responses. To enable search alongside the
+plugin:
+
+1. Use a manifest that advertises a search service (profile
+   `http://iiif.io/api/search/1/search`). **Mirador 4 supports IIIF Search API 0 and 1
+   only — not 2.0.** A Search 2.0 service yields no results in Mirador 4.
+2. Show the search panel, e.g.:
+
+   ```js
+   window: {
+     panels: { search: true /* …other panels… */ },
+   }
+   ```
+
+### Interaction with scientific annotations
+
+- **`filteredMotivations` does not affect search.** Scientific annotations require
+  `supplementing` in `annotations.filteredMotivations`, but Mirador renders search hits
+  from a separate state slice that ignores annotation motivation — adding `supplementing`
+  neither helps nor hinders search-hit display.
+- **Index only text annotations.** Scientific bodies are `Dataset` (CSV/spectra) with no
+  searchable text; index transcription/commenting annotations in your search service, not
+  the scientific ones.
+- **The plugin leaves search responses untouched by design.** `annotationPostprocessor`
+  runs only on annotation responses (`annotationJson`), so search `hits`/pagination pass
+  through unchanged. If you call the exported `transformPointAnnotations` directly, pass it
+  only plain annotation pages — never a Content Search response.
+- **Selection feedback covers search hits.** Clicking a search result pulses its region via
+  `SelectionHighlightPlugin`, and selecting an annotation the metadata filter has hidden
+  surfaces it (with a "hidden by filter" badge) instead of dead-ending.
+
+See `demo/vite-demo-search.ts` and `demo/main.tsx` for a runnable example that wires a mock Content Search service into the demo.
