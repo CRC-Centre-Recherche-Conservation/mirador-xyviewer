@@ -6,7 +6,7 @@ import {
   ScientificAnnotationPluginComponent,
 } from './ConnectedScientificAnnotationPlugin';
 import { filtersStore } from '../state/filtersStore';
-import { datasetAnnotation } from '../test/fixtures/miradorState';
+import { datasetAnnotation, textualAnnotation } from '../test/fixtures/miradorState';
 
 vi.mock('../components/AnnotationBodyRenderer', () => ({
   AnnotationBodyRenderer: () => <div data-testid="body-renderer" />,
@@ -75,5 +75,46 @@ describe('hidden-but-selected annotation', () => {
 
     expect(screen.getByRole('note')).toHaveTextContent(/hidden by the metadata filter/i);
     expect(screen.getByTestId('body-renderer')).toBeInTheDocument();
+  });
+
+  it('renders the badge on the default (non-scientific) branch when a plain annotation is hidden-but-selected', () => {
+    const windowId = 'w1';
+    const canvasId = 'c-plain';
+    const annId = textualAnnotation.id; // plain text body, no metadata -> default rendering
+    // Build a one-value filter group and toggle it off so the annotation is hidden.
+    const forFilter = [{ id: annId, metadata: [{ label: { en: ['k'] }, value: { en: ['v'] } }] }];
+    filtersStore.initializeFromAnnotations(windowId, canvasId, forFilter);
+    for (const group of filtersStore.getGroups(windowId, canvasId)) {
+      for (const valueKey of group.values.keys()) {
+        filtersStore.toggleValue(windowId, canvasId, group.key, valueKey);
+      }
+    }
+    filtersStore.updateHiddenAnnotations(windowId, canvasId, forFilter);
+    expect(filtersStore.getHiddenAnnotationIds(windowId, canvasId).has(annId)).toBe(true);
+
+    render(
+      <ScientificAnnotationPluginComponent
+        targetProps={
+          {
+            annotations: [{ id: annId, content: 'plain annotation', tags: [], targetId: 't' }],
+            windowId,
+            canvasId,
+            selectedAnnotationId: annId,
+            selectAnnotation: vi.fn(),
+            deselectAnnotation: vi.fn(),
+            hoverAnnotation: vi.fn(),
+          } as never
+        }
+        TargetComponent={(() => <div data-testid="target" />) as never}
+        dispatch={vi.fn()}
+        addWindow={vi.fn()}
+        annotationResources={{ [annId]: textualAnnotation }}
+      />,
+    );
+
+    // Default branch: the raw content plus the badge, and NO scientific body renderer.
+    expect(screen.getByRole('note')).toHaveTextContent(/hidden by the metadata filter/i);
+    expect(screen.getByText('plain annotation')).toBeInTheDocument();
+    expect(screen.queryByTestId('body-renderer')).not.toBeInTheDocument();
   });
 });
