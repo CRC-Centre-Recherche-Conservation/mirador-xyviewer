@@ -252,12 +252,10 @@ async function performFetch(
   const chunks: Uint8Array[] = [];
   let totalSize = 0;
 
-  let done = false;
-  while (!done) {
+  while (true) {
     const result = await reader.read();
-    done = result.done;
 
-    if (done || !result.value) break;
+    if (result.done || !result.value) break;
     const value = result.value;
 
     totalSize += value.length;
