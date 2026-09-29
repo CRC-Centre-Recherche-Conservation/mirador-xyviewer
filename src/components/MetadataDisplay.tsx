@@ -200,7 +200,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             }
 
             return (
-              <Box key={url || index} sx={{ ml: 1, mb: 0.25 }}>
+              <Box key={url} sx={{ ml: 1, mb: 0.25 }}>
                 <Link
                   href={url}
                   target="_blank"
