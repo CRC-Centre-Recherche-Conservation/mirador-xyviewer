@@ -34,13 +34,12 @@ export function escapeHtml(text: string): string {
 }
 
 /**
- * Sanitize text content, stripping any potential HTML
+ * Sanitize text content for safe plain-text rendering
  */
 export function sanitizeText(text: string): string {
-  // Remove any HTML tags
-  const stripped = text.replace(/<[^>]*>/g, '');
-  // Escape remaining special characters
-  return escapeHtml(stripped);
+  // Escape special characters directly to prevent HTML/script injection.
+  // This avoids incomplete multi-character tag stripping patterns.
+  return escapeHtml(text);
 }
 
 /**
