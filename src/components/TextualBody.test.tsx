@@ -1,14 +1,16 @@
 /**
- * Tests for the TextualBody component (Pattern B).
+ * Tests for the TextualBody component.
  *
- * Covers the two render paths: plain text (tags stripped + HTML-escaped via
- * sanitizeText) and text/html (sanitized via sanitizeHtml + dangerouslySetInnerHTML).
- * Includes XSS-strip regressions and the language-attribute passthrough.
+ * text/plain renders as an escaped React text child; text/html goes through
+ * Mirador's SanitizedHtml. jsdom never fires onerror, so assertions target the DOM.
  */
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TextualBody } from './TextualBody';
 import type { TextualBody as TextualBodyType } from '../types/iiif';
+
+const PAYLOAD =
+  '<img src=x onerror="window.__x=1"><b>ok</b><a href="javascript:alert(1)">l</a>';
 
 const body = (overrides: Partial<TextualBodyType> = {}): TextualBodyType => ({
   type: 'TextualBody',
@@ -23,19 +25,17 @@ describe('TextualBody', () => {
       expect(screen.getByText('Hello world')).toBeInTheDocument();
     });
 
-    it('strips HTML tags from plain text (default format)', () => {
-      render(<TextualBody body={body({ value: 'Hello <b>bold</b>' })} />);
-      // Tags removed by sanitizeText, so the text is the tag-stripped string.
-      expect(screen.getByText('Hello bold')).toBeInTheDocument();
+    it('renders special characters verbatim without double escaping', () => {
+      const value = 'x "S" l\'eau a/b <5>';
+      const { container } = render(<TextualBody body={body({ value, format: 'text/plain' })} />);
+      expect(container.textContent).toBe(value);
     });
 
-    it('neutralizes a script tag in plain-text mode', () => {
-      // Regression: a <script> body must never produce a <script> element.
-      const { container } = render(
-        <TextualBody body={body({ value: 'Hello <script>alert(1)</script> world' })} />,
-      );
+    it('shows markup as text and creates no elements', () => {
+      const value = 'Hello <script>alert(1)</script> world';
+      const { container } = render(<TextualBody body={body({ value })} />);
       expect(container.querySelector('script')).toBeNull();
-      expect(screen.getByText('Hello alert(1) world')).toBeInTheDocument();
+      expect(container.textContent).toBe(value);
     });
 
     it('applies the language attribute', () => {
@@ -45,24 +45,38 @@ describe('TextualBody', () => {
   });
 
   describe('text/html', () => {
-    it('renders a sanitized safe tag', () => {
+    it('renders a safe tag', () => {
       const { container } = render(
-        <TextualBody body={body({ value: '<strong>Bold</strong>', format: 'text/html' })} />,
+        <TextualBody body={body({ value: '<b>Bold</b>', format: 'text/html' })} />,
       );
-      const strong = container.querySelector('strong');
-      expect(strong).not.toBeNull();
-      expect(strong!.textContent).toBe('Bold');
+      expect(container.querySelector('b')!.textContent).toBe('Bold');
+    });
+
+    it('strips handlers and javascript: hrefs but keeps safe markup', () => {
+      const { container } = render(
+        <TextualBody body={body({ value: PAYLOAD, format: 'text/html' })} />,
+      );
+      expect(container.querySelector('[onerror]')).toBeNull();
+      expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
+      expect(container.querySelector('b')!.textContent).toBe('ok');
     });
 
     it('strips a script tag but keeps surrounding safe content', () => {
-      // Regression: sanitizeHtml drops <script> while preserving allowed markup.
       const { container } = render(
         <TextualBody
-          body={body({ value: '<strong>ok</strong><script>alert(1)</script>', format: 'text/html' })}
+          body={body({ value: '<b>ok</b><script>alert(1)</script>', format: 'text/html' })}
         />,
       );
       expect(container.querySelector('script')).toBeNull();
-      expect(container.querySelector('strong')!.textContent).toBe('ok');
+      expect(container.querySelector('b')!.textContent).toBe('ok');
+    });
+
+    it('keeps only text with the noHtml rule set', () => {
+      const { container } = render(
+        <TextualBody body={body({ value: PAYLOAD, format: 'text/html' })} ruleSet="noHtml" />,
+      );
+      expect(container.querySelector('img, b, a')).toBeNull();
+      expect(container.textContent).toContain('ok');
     });
   });
 });

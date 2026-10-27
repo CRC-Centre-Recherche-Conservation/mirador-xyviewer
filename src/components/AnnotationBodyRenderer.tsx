@@ -45,6 +45,8 @@ export interface AnnotationBodyRendererProps {
   requestOptions?: DatasetRequestOptions;
   /** Called when a dataset needs auth (401/403); surfaces a "Sign in" button. */
   onAuthRequired?: (body: DatasetBodyType) => void | Promise<void>;
+  /** Mirador HTML sanitization rule set for text/html bodies (default 'iiif'). */
+  ruleSet?: string;
 }
 
 export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
@@ -57,6 +59,7 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
   onVisibilityChange,
   requestOptions,
   onAuthRequired,
+  ruleSet,
 }) => {
   const bodies = normalizeBody(body);
 
@@ -75,6 +78,7 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
             onVisibilityChange={onVisibilityChange}
             requestOptions={requestOptions}
             onAuthRequired={onAuthRequired}
+            ruleSet={ruleSet}
           />
         </React.Fragment>
       ))}
@@ -93,6 +97,8 @@ interface BodySwitchProps {
   onVisibilityChange?: (id: string, visible: boolean) => void;
   requestOptions?: DatasetRequestOptions;
   onAuthRequired?: (body: DatasetBodyType) => void | Promise<void>;
+  /** Mirador HTML sanitization rule set for text/html bodies (default 'iiif'). */
+  ruleSet?: string;
 }
 
 const BodySwitch: React.FC<BodySwitchProps> = ({
@@ -105,6 +111,7 @@ const BodySwitch: React.FC<BodySwitchProps> = ({
   onVisibilityChange,
   requestOptions,
   onAuthRequired,
+  ruleSet,
 }) => {
   // Case 1: Manifest - render clickable link
   if (isManifestBody(body)) {
@@ -135,7 +142,7 @@ const BodySwitch: React.FC<BodySwitchProps> = ({
 
   // Case 3: TextualBody - render static text
   if (isTextualBody(body)) {
-    return <TextualBody body={body} />;
+    return <TextualBody body={body} ruleSet={ruleSet} />;
   }
 
   // Fallback: Unknown body type - render as JSON for debugging

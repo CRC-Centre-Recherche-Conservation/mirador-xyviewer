@@ -139,6 +139,10 @@ export function AnnotationBodyRenderer({ body, annotation, addWindow }: Props) {
 }
 ```
 
+### HTML sanitization
+
+Annotation HTML (plain annotation content and `text/html` bodies) is never injected by the plugin itself: it goes through Mirador's `SanitizedHtml` with the host's `htmlSanitizationRuleSet` (default `iiif`). `text/plain` bodies are React text children, so React escapes them. `escapeHtml` and `sanitizeText` in `utils/security.ts` are only for non-React string contexts; do not apply them to React children.
+
 ### DatasetBody
 
 Handles loading and displaying spectral data.

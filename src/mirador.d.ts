@@ -6,6 +6,12 @@
 declare module 'mirador' {
   import type { Dispatch, Store, AnyAction } from 'redux';
 
+  // Mirador's HTML sanitizer component (rule sets: iiif, liberal, mirador2, noHtml).
+  export const SanitizedHtml: import('react').ComponentType<{
+    htmlString: string;
+    ruleSet: string;
+  }>;
+
   // Mirador addWindow thunk action creator
   export function addWindow(config: {
     manifestId: string;

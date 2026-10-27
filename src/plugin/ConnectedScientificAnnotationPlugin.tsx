@@ -11,8 +11,8 @@
 
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { addWindow as miradorAddWindow } from 'mirador';
-import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
+import { addWindow as miradorAddWindow, SanitizedHtml } from 'mirador';
+import { Box, Typography, MenuItem, ListItemText, Chip } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { filtersStore } from '../state/filtersStore';
@@ -99,7 +99,7 @@ export function shownOnlyBecauseSelected(
 interface TargetProps {
   annotations?: Array<{
     id: string;
-    content: string;
+    content: string | null;
     tags: string[];
     targetId: string;
   }>;
@@ -111,6 +111,8 @@ interface TargetProps {
   deselectAnnotation: (windowId: string, annotationId: string) => void;
   hoverAnnotation: (windowId: string, annotationIds: string[]) => void;
   containerRef?: React.RefObject<HTMLElement>;
+  /** Mirador's HTML sanitization rule set (iiif, liberal, mirador2, noHtml). */
+  htmlSanitizationRuleSet?: string;
 }
 
 interface PluginWrapperProps {
@@ -141,7 +143,9 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     selectAnnotation,
     deselectAnnotation,
     hoverAnnotation,
+    htmlSanitizationRuleSet,
   } = targetProps;
+  const ruleSet = htmlSanitizationRuleSet ?? 'iiif';
 
   // Refs for scrolling to annotations
   const annotationRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -269,11 +273,12 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
               )}
               <ListItemText
                 primary={
-                  <Typography
-                    variant="body2"
-                    dangerouslySetInnerHTML={{ __html: annotation.content }}
-                  />
+                  <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
                 }
+                secondary={annotation.tags?.map((tag) => (
+                  <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
+                ))}
+                slotProps={{ primary: { variant: 'body2' } }}
               />
             </MenuItem>
           );
@@ -334,6 +339,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                 isActive={isSelected}
                 onDataLoaded={handleDataLoaded}
                 onVisibilityChange={handleVisibilityChange}
+                ruleSet={ruleSet}
               />
             )}
 

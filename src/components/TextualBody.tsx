@@ -2,33 +2,25 @@
  * TextualBody Component
  * Case 3: Renders static text content from annotations
  *
- * Supports both text/plain and text/html formats:
- * - text/plain: Escapes all HTML entities
- * - text/html: Sanitizes HTML to allow only safe tags
+ * - text/plain: rendered as a React text child (escaped by React)
+ * - text/html: sanitized by Mirador's SanitizedHtml with the configured rule set
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
+import { SanitizedHtml } from 'mirador';
 import { Box, Typography } from '@mui/material';
 import type { TextualBody as TextualBodyType } from '../types/iiif';
-import { sanitizeText, sanitizeHtml } from '../utils/security';
 
 export interface TextualBodyProps {
   /** The textual body from the annotation */
   body: TextualBodyType;
+  /** Mirador HTML sanitization rule set (iiif, liberal, mirador2, noHtml) */
+  ruleSet?: string;
 }
 
-export const TextualBody: React.FC<TextualBodyProps> = ({ body }) => {
+export const TextualBody: React.FC<TextualBodyProps> = ({ body, ruleSet = 'iiif' }) => {
   const isHtmlFormat = body.format === 'text/html';
 
-  // Sanitize content based on format
-  const safeContent = useMemo(() => {
-    if (isHtmlFormat) {
-      return sanitizeHtml(body.value);
-    }
-    return sanitizeText(body.value);
-  }, [body.value, isHtmlFormat]);
-
-  // For HTML format, render with dangerouslySetInnerHTML (content is sanitized)
   if (isHtmlFormat) {
     return (
       <Box sx={{ my: 1 }}>
@@ -45,8 +37,9 @@ export const TextualBody: React.FC<TextualBodyProps> = ({ body }) => {
             '& ul, & ol': { pl: 2 },
           }}
           lang={body.language}
-          dangerouslySetInnerHTML={{ __html: safeContent }}
-        />
+        >
+          <SanitizedHtml ruleSet={ruleSet} htmlString={body.value} />
+        </Typography>
       </Box>
     );
   }
@@ -63,7 +56,7 @@ export const TextualBody: React.FC<TextualBodyProps> = ({ body }) => {
         }}
         lang={body.language}
       >
-        {safeContent}
+        {body.value}
       </Typography>
     </Box>
   );
