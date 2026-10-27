@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { createPortal } from 'react-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
 import {
   computeVisibleAnnotations,
   shownOnlyBecauseSelected,
@@ -10,7 +11,10 @@ import { datasetAnnotation, textualAnnotation } from '../test/fixtures/miradorSt
 
 vi.mock('../components/AnnotationBodyRenderer', () => ({
   AnnotationBodyRenderer: ({ ruleSet }: { ruleSet?: string }) => (
-    <div data-testid="body-renderer" data-ruleset={ruleSet} />
+    <div data-testid="body-renderer" data-ruleset={ruleSet}>
+      <button>Retry</button>
+      {createPortal(<div data-testid="portal-area">dialog</div>, document.body)}
+    </div>
   ),
 }));
 vi.mock('../components/MetadataDisplay', () => ({
@@ -218,5 +222,49 @@ describe('plain annotation HTML sanitization', () => {
       { [datasetAnnotation.id]: datasetAnnotation },
     );
     expect(container.querySelector('li')).not.toBeNull();
+  });
+});
+
+describe('scientific annotation interactions', () => {
+  const renderOne = () => {
+    const selectAnnotation = vi.fn();
+    const annId = datasetAnnotation.id;
+    render(
+      <ScientificAnnotationPluginComponent
+        targetProps={
+          {
+            annotations: [{ id: annId, content: 'x', tags: [], targetId: 't' }],
+            windowId: 'w1',
+            canvasId: 'c-int',
+            selectAnnotation,
+            deselectAnnotation: vi.fn(),
+            hoverAnnotation: vi.fn(),
+          } as never
+        }
+        TargetComponent={(() => <div data-testid="target" />) as never}
+        dispatch={vi.fn()}
+        addWindow={vi.fn()}
+        annotationResources={{ [annId]: datasetAnnotation }}
+      />,
+    );
+    return selectAnnotation;
+  };
+
+  it('selects on a click in the body but not on a nested button or portaled content', () => {
+    const select = renderOne();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByTestId('portal-area'));
+    expect(select).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('body-renderer'));
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let MenuList handle keys coming from the annotation body or its dialog', () => {
+    renderOne();
+    for (const el of [screen.getByRole('button', { name: 'Retry' }), screen.getByTestId('portal-area')]) {
+      for (const key of ['ArrowDown', 'End']) {
+        expect(fireEvent.keyDown(el, { key })).toBe(true); // not defaultPrevented
+      }
+    }
   });
 });

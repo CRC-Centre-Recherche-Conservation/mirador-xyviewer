@@ -218,6 +218,8 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     responsive: true,
     displayModeBar: true,
     displaylogo: false,
+    // plotly.js 4 defaults this to true; never offer to send data to plot.ly.
+    showSendToCloud: false,
     modeBarButtonsToRemove: [
       'select2d',
       'lasso2d',

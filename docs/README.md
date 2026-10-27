@@ -25,7 +25,7 @@ Welcome to the mirador-xyviewer documentation. This plugin enables visualization
 ### 1. Install
 
 ```bash
-npm install mirador mirador-xyviewer
+npm install mirador mirador-xyviewer @mui/material @mui/icons-material plotly.js react-plotly.js
 ```
 
 ### 2. Configure

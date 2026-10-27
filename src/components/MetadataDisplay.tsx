@@ -92,8 +92,8 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
       {labelText && (
         <Typography
           variant="subtitle1"
-          fontWeight="bold"
           sx={{
+            fontWeight: 'bold',
             mb: 0.5,
             color: 'primary.main',
             fontSize: '1rem'
