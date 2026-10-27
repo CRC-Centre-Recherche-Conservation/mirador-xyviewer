@@ -40,3 +40,14 @@ coverage/
 # Temporary
 tmp/
 temp/
+
+# Claude Code (local AI tooling — keep out of the repo)
+CLAUDE.local.md
+**/CLAUDE.md
+.claude/
+.mcp.json
+# Plugin outputs (superpowers plans/specs, worktrees)
+.superpowers/
+docs/superpowers/
+.worktrees/
+worktrees/
