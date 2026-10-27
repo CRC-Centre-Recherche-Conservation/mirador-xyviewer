@@ -211,4 +211,4 @@ Apache License 2.0 - see [LICENSE](LICENSE)
 ## Related Projects
 
 - [Mirador](https://github.com/ProjectMirador/mirador) - IIIF image viewer
-- [mirador-image-tools](https://github.com/ProjectMirador/mirador-image-tools) - Image manipulation tools for Mirador
+- [mirador-image-tools](https://github.com/ProjectMirador/mirador-image-tools) - Optional companion plugin for image manipulation tools (install it separately)

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
 import { resolve } from 'path';
+import { isExternal } from './config/externals';
 
 export default defineConfig({
   plugins: [
@@ -29,28 +30,10 @@ export default defineConfig({
       fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'esm' : format}.js`,
     },
     rollupOptions: {
-      external: [
-        'react',
-        'react-dom',
-        'react-redux',
-        'mirador',
-        '@mui/material',
-        '@emotion/react',
-        '@emotion/styled',
-        'plotly.js',
-        'react-plotly.js',
-      ],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          'react-redux': 'ReactRedux',
-          mirador: 'Mirador',
-          '@mui/material': 'MaterialUI',
-          'plotly.js': 'Plotly',
-          'react-plotly.js': 'createPlotlyComponent',
-        },
-      },
+      // Every peer/host package and its subpaths stays out of the bundle.
+      external: isExternal,
+      // 'auto' unwraps __esModule default exports of external CJS deps.
+      output: { exports: 'named', interop: 'auto' },
     },
     sourcemap: true,
   },
