@@ -10,9 +10,15 @@ vi.mock('mirador', () => ({
   }),
 }));
 
-import { acquireTokenViaSession, requestAccessTokenViaIframe, runIiifAuthLogin } from './loginDriver';
+import {
+  acquireTokenViaSession,
+  requestAccessTokenViaIframe,
+  runIiifAuthLogin,
+  withOrigin,
+} from './loginDriver';
 
 const TOKEN_URL = 'https://auth.museum/token';
+const ENC_ORIGIN = encodeURIComponent(window.location.origin);
 
 afterEach(() => {
   vi.useRealTimers();
@@ -35,8 +41,9 @@ describe('requestAccessTokenViaIframe', () => {
     const p = requestAccessTokenViaIframe(TOKEN_URL);
     const iframe = document.querySelector('iframe');
     expect(iframe).not.toBeNull();
-    expect(iframe!.getAttribute('src')).toContain(`messageId=${encodeURIComponent(TOKEN_URL)}`);
-    expect(iframe!.getAttribute('src')).toContain('origin=');
+    expect(iframe!.getAttribute('src')).toBe(
+      `${TOKEN_URL}?origin=${ENC_ORIGIN}&messageId=${encodeURIComponent(TOKEN_URL)}`,
+    );
 
     window.dispatchEvent(
       new MessageEvent('message', {
@@ -157,7 +164,7 @@ describe('runIiifAuthLogin', () => {
     const p = runIiifAuthLogin(interactive, dispatch, { openWindow, pollIntervalMs: 10, tokenTimeoutMs: 5000 });
     // The window opens directly from the call — no awaited silent pre-attempt that would
     // consume the user gesture and get the popup blocked.
-    expect(openWindow).toHaveBeenCalledWith('https://auth.museum/login');
+    expect(openWindow).toHaveBeenCalledWith(`https://auth.museum/login?origin=${ENC_ORIGIN}`);
 
     win.closed = true; // user finished authenticating; the login page closed
     await vi.advanceTimersByTimeAsync(10); // poll detects close → token iframe is set up
@@ -186,7 +193,7 @@ describe('runIiifAuthLogin', () => {
     const p = runIiifAuthLogin(interactive, dispatch, { pollIntervalMs: 10, tokenTimeoutMs: 5000 });
     // The popup opens synchronously from the gesture (no awaited silent pre-attempt).
     expect(openSpy).toHaveBeenCalledWith(
-      'https://auth.museum/login',
+      `https://auth.museum/login?origin=${ENC_ORIGIN}`,
       'iiif-auth-login',
       expect.stringContaining('popup'),
     );
@@ -227,5 +234,46 @@ describe('runIiifAuthLogin', () => {
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({ json: expect.objectContaining({ accessToken: 'EXT' }) }),
     );
+  });
+});
+
+describe('withOrigin', () => {
+  it('adds ? when there is no query', () => {
+    expect(withOrigin('https://a.example/login')).toBe(`https://a.example/login?origin=${ENC_ORIGIN}`);
+  });
+
+  it('adds & when a query exists and keeps the fragment last', () => {
+    expect(withOrigin('https://a.example/t?x=1#f')).toBe(`https://a.example/t?x=1&origin=${ENC_ORIGIN}#f`);
+  });
+
+  it('replaces an existing origin param, including a percent-encoded key', () => {
+    expect(withOrigin('https://a.example/t?origin=https%3A%2F%2Fevil&x=1')).toBe(
+      `https://a.example/t?x=1&origin=${ENC_ORIGIN}`,
+    );
+    expect(withOrigin('https://a.example/t?%6Frigin=evil')).toBe(`https://a.example/t?origin=${ENC_ORIGIN}`);
+  });
+
+  it('adds extra params and replaces an existing one of the same key', () => {
+    expect(withOrigin('https://a.example/t?messageId=x#f', { messageId: 'a b' })).toBe(
+      `https://a.example/t?origin=${ENC_ORIGIN}&messageId=a+b#f`,
+    );
+  });
+
+  it('falls back to string append for a non-absolute URL', () => {
+    expect(withOrigin('/login?x=1#f')).toBe(`/login?x=1&origin=${ENC_ORIGIN}#f`);
+    expect(withOrigin('/login')).toBe(`/login?origin=${ENC_ORIGIN}`);
+  });
+});
+
+describe('token iframe URL with an existing query', () => {
+  it('carries exactly one origin and one messageId, fragment last', () => {
+    const url = 'https://auth.museum/token?x=1&origin=evil&messageId=old#f';
+    const p = requestAccessTokenViaIframe(url, { timeoutMs: 100, messageId: 'm' });
+    const src = new URL(document.querySelector('iframe')!.getAttribute('src')!);
+    expect(src.searchParams.getAll('origin')).toEqual([window.location.origin]);
+    expect(src.searchParams.getAll('messageId')).toEqual(['m']);
+    expect(src.searchParams.get('x')).toBe('1');
+    expect(src.hash).toBe('#f');
+    p.catch(() => {});
   });
 });

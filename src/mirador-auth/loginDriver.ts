@@ -26,6 +26,32 @@ export interface RequestAccessTokenOptions {
 }
 
 /**
+ * Add `origin=<this page's origin>` (required by IIIF Auth 1.0 §2.1.2 on access and token
+ * service URLs) plus optional `extra` params, keeping the other query params and the fragment.
+ * Any `origin` (or extra key) already on the URL is replaced: the client's own values win.
+ */
+export function withOrigin(url: string, extra: Record<string, string> = {}): string {
+  const params: Record<string, string> = { origin: window.location.origin, ...extra };
+  try {
+    const u = new URL(url);
+    for (const [k, v] of Object.entries(params)) {
+      u.searchParams.delete(k);
+      u.searchParams.append(k, v);
+    }
+    return u.toString();
+  } catch {
+    // Not an absolute URL: plain string append.
+    const hashAt = url.indexOf('#');
+    const fragment = hashAt >= 0 ? url.slice(hashAt) : '';
+    const rest = hashAt >= 0 ? url.slice(0, hashAt) : url;
+    const query = Object.entries(params)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join('&');
+    return `${rest}${rest.includes('?') ? '&' : '?'}${query}${fragment}`;
+  }
+}
+
+/**
  * Load the token service in a hidden iframe and resolve with the access-token message
  * it posts back (the browser sends the access cookie with the iframe request, so this
  * only succeeds after the user has authenticated at the access service). Rejects on
@@ -45,10 +71,7 @@ export function requestAccessTokenViaIframe(
   return new Promise<AccessTokenMessage>((resolve, reject) => {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    const sep = tokenServiceUrl.includes('?') ? '&' : '?';
-    iframe.src =
-      `${tokenServiceUrl}${sep}origin=${encodeURIComponent(window.location.origin)}` +
-      `&messageId=${encodeURIComponent(messageId)}`;
+    iframe.src = withOrigin(tokenServiceUrl, { messageId });
 
     const cleanup = (): void => {
       window.removeEventListener('message', onMessage);
@@ -150,6 +173,10 @@ export async function acquireTokenViaSession(
       dispatch(resolveAccessTokenRequest(authServiceId, tokenServiceId, message));
       return true;
     }
+    // Error code only (e.g. invalidOrigin, missingCredentials); never token values.
+    if (typeof message.error === 'string') {
+      console.debug('[mirador-auth] token service error:', message.error);
+    }
   } catch {
     // timeout / no reply → treat as "no session"
   }
@@ -175,7 +202,7 @@ export async function runIiifAuthLogin(
 
   if (INTERACTIVE_PROFILES.has(profile)) {
     const openWindow = deps.openWindow ?? openLoginPopup;
-    const win = openWindow(authServiceId);
+    const win = openWindow(withOrigin(authServiceId));
     // Fail fast on a blocked popup instead of falling through to a ~30s token-iframe timeout.
     if (!win) throw new Error('IIIF Auth login window was blocked — allow popups for this site');
     await waitForWindowClose(win, deps);
