@@ -9,7 +9,9 @@ import { filtersStore } from '../state/filtersStore';
 import { datasetAnnotation, textualAnnotation } from '../test/fixtures/miradorState';
 
 vi.mock('../components/AnnotationBodyRenderer', () => ({
-  AnnotationBodyRenderer: () => <div data-testid="body-renderer" />,
+  AnnotationBodyRenderer: ({ ruleSet }: { ruleSet?: string }) => (
+    <div data-testid="body-renderer" data-ruleset={ruleSet} />
+  ),
 }));
 vi.mock('../components/MetadataDisplay', () => ({
   MetadataDisplay: () => <div data-testid="metadata" />,
@@ -116,5 +118,105 @@ describe('hidden-but-selected annotation', () => {
     expect(screen.getByRole('note')).toHaveTextContent(/hidden by the metadata filter/i);
     expect(screen.getByText('plain annotation')).toBeInTheDocument();
     expect(screen.queryByTestId('body-renderer')).not.toBeInTheDocument();
+  });
+});
+
+describe('plain annotation HTML sanitization', () => {
+  const PAYLOAD =
+    '<img src=x onerror="window.__x=1"><b>ok</b><a href="javascript:alert(1)">l</a>';
+
+  const renderPlugin = (
+    annotations: Array<{ id: string; content: string | null; tags: string[]; targetId: string }>,
+    resources: Record<string, unknown>,
+    extra: Record<string, unknown> = {},
+  ) =>
+    render(
+      <ScientificAnnotationPluginComponent
+        targetProps={
+          {
+            annotations,
+            windowId: 'w1',
+            canvasId: 'c-san',
+            selectAnnotation: vi.fn(),
+            deselectAnnotation: vi.fn(),
+            hoverAnnotation: vi.fn(),
+            ...extra,
+          } as never
+        }
+        TargetComponent={(() => <div data-testid="target" />) as never}
+        dispatch={vi.fn()}
+        addWindow={vi.fn()}
+        annotationResources={resources as never}
+      />,
+    );
+
+  const plain = (id: string, content: string | null = PAYLOAD) => ({
+    id,
+    content,
+    tags: [],
+    targetId: 't',
+  });
+
+  const expectSafe = (container: HTMLElement) => {
+    expect(container.querySelector('img[onerror]')).toBeNull();
+    expect(container.querySelector('[onerror]')).toBeNull();
+    expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
+  };
+
+  it('sanitizes plain annotations next to a scientific one', () => {
+    const { container } = renderPlugin(
+      [plain(datasetAnnotation.id, 'x'), plain('plain-1')],
+      { [datasetAnnotation.id]: datasetAnnotation },
+    );
+    expectSafe(container);
+    expect(container.querySelector('b')!.textContent).toBe('ok');
+  });
+
+  it('sanitizes plain content when the only custom annotation is metadata-only', () => {
+    const metaOnly = { id: 'meta-1', type: 'Annotation', metadata: [{ label: { en: ['k'] }, value: { en: ['v'] } }] };
+    const { container } = renderPlugin([plain('meta-1', 'x'), plain('plain-1')], {
+      'meta-1': metaOnly,
+    });
+    expectSafe(container);
+    expect(container.querySelector('b')!.textContent).toBe('ok');
+  });
+
+  it('sanitizes plain content when annotations are hidden only by filters', () => {
+    const forFilter = [{ id: 'hid', metadata: [{ label: { en: ['k'] }, value: { en: ['v'] } }] }];
+    filtersStore.initializeFromAnnotations('w1', 'c-san', forFilter);
+    for (const group of filtersStore.getGroups('w1', 'c-san')) {
+      for (const valueKey of group.values.keys()) {
+        filtersStore.toggleValue('w1', 'c-san', group.key, valueKey);
+      }
+    }
+    filtersStore.updateHiddenAnnotations('w1', 'c-san', forFilter);
+    const { container } = renderPlugin([plain('hid', 'x'), plain('plain-1')], {});
+    expectSafe(container);
+    expect(container.querySelector('b')!.textContent).toBe('ok');
+  });
+
+  it('renders tags as chips', () => {
+    renderPlugin(
+      [plain(datasetAnnotation.id, 'x'), { ...plain('plain-1', 'x'), tags: ['alpha'] }],
+      { [datasetAnnotation.id]: datasetAnnotation },
+    );
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+  });
+
+  it('keeps only text with the noHtml rule set', () => {
+    const { container } = renderPlugin(
+      [plain(datasetAnnotation.id, 'x'), plain('plain-1')],
+      { [datasetAnnotation.id]: datasetAnnotation },
+      { htmlSanitizationRuleSet: 'noHtml' },
+    );
+    expect(container.querySelector('img, b, a')).toBeNull();
+  });
+
+  it('does not crash on null content', () => {
+    const { container } = renderPlugin(
+      [plain(datasetAnnotation.id, 'x'), plain('plain-1', null)],
+      { [datasetAnnotation.id]: datasetAnnotation },
+    );
+    expect(container.querySelector('li')).not.toBeNull();
   });
 });

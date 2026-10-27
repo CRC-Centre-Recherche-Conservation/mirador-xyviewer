@@ -145,15 +145,18 @@ Configure how HTML in annotations is sanitized:
 const viewer = Mirador.viewer({
   id: 'mirador-container',
   annotations: {
-    htmlSanitizationRuleSet: 'iiif',  // or 'liberal' or 'none'
+    htmlSanitizationRuleSet: 'iiif',  // or 'liberal', 'mirador2', 'noHtml'
   },
 }, [scientificAnnotationPlugin]);
 ```
 
 Options:
-- `'iiif'` - Strict, IIIF-compliant sanitization (recommended)
+- `'iiif'` - Strict, IIIF-compliant sanitization (default, recommended)
 - `'liberal'` - More permissive
-- `'none'` - No sanitization (not recommended)
+- `'mirador2'` - Mirador 2 compatible rules
+- `'noHtml'` - Strip all markup, keep text only
+
+The plugin honours this setting for plain annotations and `text/html` bodies (rendered through Mirador's `SanitizedHtml`). `text/plain` bodies are always shown as literal text.
 
 ### Workspace Settings
 

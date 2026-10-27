@@ -16,7 +16,7 @@ import {
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import WarningIcon from '@mui/icons-material/Warning';
 import type { ManifestBody as ManifestBodyType, LocalizedString } from '../types/iiif';
-import { escapeHtml, isValidUrl } from '../utils/security';
+import { isValidUrl } from '../utils/security';
 
 export interface ManifestBodyProps {
   /** The manifest body from the annotation */
@@ -87,7 +87,7 @@ export const ManifestBody: React.FC<ManifestBodyProps> = ({
             noWrap
             sx={{ maxWidth: 200 }}
           >
-            {escapeHtml(displayLabel)}
+            {displayLabel}
           </Typography>
         </Button>
       </Tooltip>

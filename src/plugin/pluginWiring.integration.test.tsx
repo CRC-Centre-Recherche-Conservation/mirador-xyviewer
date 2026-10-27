@@ -23,6 +23,7 @@ const { viewer } = vi.hoisted(() => ({
 }));
 vi.mock('mirador', () => ({
   default: { viewer },
+  SanitizedHtml: () => null,
   addWindow: vi.fn((c) => ({ type: 'ADD_WINDOW', ...c })),
   updateWindow: vi.fn((id, p) => ({ type: 'UPDATE_WINDOW', id, ...p })),
 }));

@@ -58,6 +58,13 @@ describe('MetadataDisplay', () => {
   });
 
   describe('seeAlso', () => {
+    it('renders no anchor for a javascript: URL', () => {
+      const { container } = render(
+        <MetadataDisplay seeAlso={{ id: 'javascript:alert(1)', type: 'Dataset' }} />,
+      );
+      expect(container.querySelector('a')).toBeNull();
+    });
+
     it('renders a string-id reference as a link', () => {
       const seeAlso: SeeAlsoEntry = { id: 'https://example.org/see', type: 'Dataset' };
       render(<MetadataDisplay seeAlso={seeAlso} />);
