@@ -46,7 +46,7 @@
     .devtools-hint {
       position: fixed;
       bottom: 10px;
-      right: 10px;
+      left: 76px; /* clear of the workspace rail and window controls */
       background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 8px 12px;
@@ -58,16 +58,6 @@
       transition: opacity 0.3s;
     }
 
-    .open-file-button {
-      position: fixed;
-      bottom: 10px;
-      left: 76px; /* clear of Mirador's workspace rail */
-      z-index: 10000;
-      padding: 6px 12px;
-      font: 13px sans-serif;
-      cursor: pointer;
-    }
-
     .devtools-hint.visible {
       opacity: 1;
     }
@@ -75,9 +65,6 @@
 </head>
 <body>
   <div id="mirador-container"></div>
-  <button id="open-file-button" class="open-file-button" type="button"
-    title="Open a IIIF Content State or manifest from a local .json file">Open file…</button>
-  <input id="open-file-input" type="file" accept=".json,.jsonld,application/json,application/ld+json" hidden>
   <div id="devtools-hint" class="devtools-hint">
     Open DevTools (F12) → React DevTools & Redux DevTools for debugging
   </div>
