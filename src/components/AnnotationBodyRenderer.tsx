@@ -24,6 +24,8 @@ import {
 import { ManifestBody } from './ManifestBody';
 import { DatasetBody } from './DatasetBody';
 import { TextualBody } from './TextualBody';
+import { pickLanguageKey } from '../utils/localization';
+import { useLanguagePreferences } from '../utils/LanguageContext';
 import type { SpectrumData, DatasetRequestOptions } from '../types/dataset';
 
 export interface AnnotationBodyRendererProps {
@@ -49,6 +51,47 @@ export interface AnnotationBodyRendererProps {
   ruleSet?: string;
 }
 
+/**
+ * Among TextualBodies that differ only by language (same type, purpose and format),
+ * keep the reader's language (IIIF §4.4 / W3C `language`). Bodies without a
+ * language, bodies that are alone in their group and non-textual bodies are kept;
+ * order is preserved.
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function selectLanguageVariants(
+  bodies: AnnotationBody[],
+  preferredLanguages: string[]
+): AnnotationBody[] {
+  const groups = new Map<string, string[]>();
+  const groupKey = (b: AnnotationBody & { language: string }) =>
+    JSON.stringify([b.type, [b.purpose ?? []].flat().sort(), b.format ?? '']);
+
+  for (const b of bodies) {
+    if (!isTextualBody(b) || !b.language) continue;
+    const k = groupKey(b as AnnotationBody & { language: string });
+    const langs = groups.get(k) ?? [];
+    if (!langs.some((l) => l.toLowerCase() === b.language!.toLowerCase())) langs.push(b.language);
+    groups.set(k, langs);
+  }
+
+  const chosen = new Map<string, string>();
+  for (const [k, langs] of groups) {
+    if (langs.length < 2) continue;
+    // Null prototype: `language` is untrusted and may be "__proto__".
+    const map = Object.create(null) as LocalizedString;
+    for (const l of langs) map[l] = [l];
+    const picked = pickLanguageKey(map, preferredLanguages);
+    if (picked) chosen.set(k, picked.toLowerCase());
+  }
+  if (chosen.size === 0) return bodies;
+
+  return bodies.filter((b) => {
+    if (!isTextualBody(b) || !b.language) return true;
+    const picked = chosen.get(groupKey(b as AnnotationBody & { language: string }));
+    return picked === undefined || b.language.toLowerCase() === picked;
+  });
+}
+
 export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
   body,
   annotationLabel,
@@ -61,7 +104,11 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
   onAuthRequired,
   ruleSet,
 }) => {
-  const bodies = normalizeBody(body);
+  const prefs = useLanguagePreferences();
+  const bodies = React.useMemo(
+    () => selectLanguageVariants(normalizeBody(body), prefs),
+    [body, prefs]
+  );
 
   return (
     <Box>

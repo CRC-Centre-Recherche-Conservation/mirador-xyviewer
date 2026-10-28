@@ -67,6 +67,13 @@ describe('mapStateToProps', () => {
   });
 });
 
+describe('mapStateToProps language', () => {
+  it('passes Mirador config.language through', () => {
+    const state = { ...miradorState, config: { ...miradorState.config, language: 'fr' } };
+    expect(mapStateToProps(state, { windowId: 'window-1' }).language).toBe('fr');
+  });
+});
+
 describe('plugin export', () => {
   it('targets OpenSeadragonViewer in add mode with mapStateToProps wired', () => {
     expect(metadataFiltersPlugin.target).toBe('OpenSeadragonViewer');

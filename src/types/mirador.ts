@@ -62,6 +62,8 @@ export interface MiradorManifest {
 
 /** Mirador config */
 export interface MiradorConfig {
+  /** Mirador UI language (defaults to 'en'); also the reader's language for IIIF language maps. */
+  language?: string;
   annotations?: {
     htmlSanitizationRuleSet?: string;
     [key: string]: unknown;

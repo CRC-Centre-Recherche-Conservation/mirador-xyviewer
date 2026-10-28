@@ -356,6 +356,11 @@ describe('ImageComparisonPlugin', () => {
       expect(label).toBe('English Label');
     });
 
+    it('follows the reader language when preferences are given', () => {
+      const localizedLabel: LocalizedString = { en: ['English Label'], fr: ['Etiquette'] };
+      expect(getCanvasLabel(localizedLabel, 0, ['fr', 'none'])).toBe('Etiquette');
+    });
+
     it('should fall back to other language if English not available', () => {
       const localizedLabel: LocalizedString = {
         fr: ['French Label'],

@@ -104,7 +104,12 @@ export {
 // Utilities
 export {
   getLocalizedString,
+  getLocalizedStrings,
   getAllLocalizedStrings,
+  resolvePreferredLanguages,
+  pickLanguageKey,
+  LanguageProvider,
+  useLanguagePreferences,
   isValidUrl,
   escapeHtml,
   sanitizeText,

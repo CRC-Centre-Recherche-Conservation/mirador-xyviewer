@@ -82,6 +82,11 @@ describe('mapStateToProps', () => {
 });
 
 describe('plugin export', () => {
+  it('passes Mirador config.language through', () => {
+    const state = { ...miradorState, config: { ...miradorState.config, language: 'fr' } };
+    expect(mapStateToProps(state, { targetProps: { windowId: 'window-1' } }).language).toBe('fr');
+  });
+
   it('targets CanvasAnnotations in wrap mode with mapStateToProps wired', () => {
     expect(scientificAnnotationPlugin.target).toBe('CanvasAnnotations');
     expect(scientificAnnotationPlugin.mode).toBe('wrap');

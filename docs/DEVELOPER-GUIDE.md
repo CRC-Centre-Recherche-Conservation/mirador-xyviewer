@@ -578,6 +578,22 @@ Components do not use `react-i18next`. User-facing strings are overridable props
 <SpectrumPlot data={data} labels={{ expandButton: 'Agrandir', closeButton: 'Fermer' }} />
 ```
 
+### Reader language (IIIF Presentation 3 §4.4)
+
+All language-map rendering goes through `src/utils/localization.ts`:
+
+- `resolvePreferredLanguages(configured?)` builds the ordered list: configured language(s), then `navigator.languages`, then `none`, `@none`.
+- `pickLanguageKey(map, prefs)` picks ONE key: per preference the exact key (case-insensitive), the primary subtag (`fr-CA` → `fr`), then a regional variant (`fr` → `fr-FR`, also a sibling `pt-PT` → `pt-BR` when no `pt-PT`/`pt` exists); then `none`, `@none`, then the first non-empty key. Empty arrays are ignored.
+- `getLocalizedStrings` returns every value of the chosen language; `getLocalizedString` keeps its signature and returns the first. `getAllLocalizedStrings` mixes languages and is not §4.4-compliant for display.
+
+**Where the language comes from.** Mirador always defines `config.language` (default `'en'`), so "host did not set a language" cannot be told apart from "host chose English". The configured value is therefore authoritative (Mirador's per-window Info-panel locale selector is not followed); `navigator.languages` only acts as a fallback after it, or when there is no store. Hosts wanting the browser language set `language` themselves.
+
+**Wiring.** The plugins read `state.config.language` (what Mirador's `getConfig(state)` returns, kept as a plain property read so `mapStateToProps` stays testable with plain state objects) in `mapStateToProps`. `ConnectedScientificAnnotationPlugin` provides it via `LanguageProvider`; components read it with `useLanguagePreferences()` (default: browser language, so they work without a store). `MetadataDisplay`, `DatasetBody` and `AnnotationBodyRenderer` consume the context; `ImageComparisonPlugin` resolves canvas labels in `mapStateToProps`.
+
+**Text bodies.** `selectLanguageVariants` groups `TextualBody` by (type, purpose, format); when a group holds two or more languages only the reader's is rendered. Bodies without a language are always kept; order is preserved.
+
+**Filters.** `filtersStore.initializeFromAnnotations(w, c, annotations, force, prefs)` keys labels and values (`entryKeys`) in the reader's language and stores the prefs. Calling it with different prefs rebuilds the groups, which resets the selection (keys differ per language). `FilterValue.key` is the key to pass to `toggleValue`; external callers must not assume keys are language-independent.
+
 ### Build externals and peer policy
 
 `config/externals.ts` decides what stays out of `dist/`: every `peerDependencies` entry plus `redux` (type-only import), matched with their subpaths (`react/jsx-runtime`, `@mui/material/styles`, ...). Only `papaparse` and `ipaddr.js` are bundled. `config/externals.test.ts` guards this: when you import a new host-provided package, declare it as a peer.

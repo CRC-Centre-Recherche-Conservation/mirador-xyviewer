@@ -11,7 +11,7 @@ import CompareIcon from '@mui/icons-material/Compare';
 import { ImageComparisonSlider, type CanvasInfo } from '../components/ImageComparisonSlider';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { LocalizedString } from '../types/iiif';
-import { getLocalizedString } from '../utils/localization';
+import { getLocalizedString, resolvePreferredLanguages } from '../utils/localization';
 
 /**
  * Extract image URL from IIIF canvas
@@ -104,7 +104,10 @@ interface IIIFManifest {
  * Extract canvases from manifest
  * @internal Exposed for tests; not part of the public API.
  */
-export function extractCanvases(manifest: IIIFManifest | null | undefined): CanvasInfo[] {
+export function extractCanvases(
+  manifest: IIIFManifest | null | undefined,
+  preferredLanguages?: string[]
+): CanvasInfo[] {
   if (!manifest) return [];
 
   const canvases: CanvasInfo[] = [];
@@ -117,7 +120,7 @@ export function extractCanvases(manifest: IIIFManifest | null | undefined): Canv
       if (imageUrl) {
         canvases.push({
           id,
-          label: getCanvasLabel(canvas.label, index),
+          label: getCanvasLabel(canvas.label, index, preferredLanguages),
           imageUrl,
           thumbnailUrl: extractThumbnailUrl(canvas) || undefined,
         });
@@ -135,7 +138,7 @@ export function extractCanvases(manifest: IIIFManifest | null | undefined): Canv
           if (imageUrl) {
             canvases.push({
               id,
-              label: getCanvasLabel(canvas.label, index),
+              label: getCanvasLabel(canvas.label, index, preferredLanguages),
               imageUrl,
               thumbnailUrl: extractThumbnailUrl(canvas) || undefined,
             });
@@ -152,10 +155,14 @@ export function extractCanvases(manifest: IIIFManifest | null | undefined): Canv
  * Get canvas label as string
  * @internal Exposed for tests; not part of the public API.
  */
-export function getCanvasLabel(label: LocalizedString | string | undefined, index: number): string {
+export function getCanvasLabel(
+  label: LocalizedString | string | undefined,
+  index: number,
+  preferredLanguages?: string[]
+): string {
   if (!label) return `Image ${index + 1}`;
   if (typeof label === 'string') return label;
-  return getLocalizedString(label) || `Image ${index + 1}`;
+  return getLocalizedString(label, preferredLanguages) || `Image ${index + 1}`;
 }
 
 /** Plugin component props */
@@ -271,7 +278,7 @@ function mapStateToProps(
   const manifest = manifestData?.json as IIIFManifest | undefined;
 
   // Extract canvases
-  const canvases = extractCanvases(manifest);
+  const canvases = extractCanvases(manifest, resolvePreferredLanguages(state.config?.language));
 
   // Get window config with safe boolean extraction
   const imageComparisonEnabled = window?.imageComparisonEnabled !== false;

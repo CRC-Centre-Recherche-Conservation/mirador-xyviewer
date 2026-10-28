@@ -22,7 +22,28 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
 - **Point Annotations**: Automatic conversion of analysis points to visible markers
 - **Metadata Filters**: Filter annotations by metadata values
+- **Reader language**: IIIF language maps (labels, metadata, localized text bodies) follow Mirador's `language` setting (IIIF Presentation 3 §4.4)
 - **Selection Highlight**: Pulse animation to locate selected annotations on the image (technique, date, operator, etc.)
+
+## Reader language
+
+Labels, metadata and `TextualBody` variants that differ only by language are shown in
+one language, following IIIF Presentation 3 §4.4. Preference order: Mirador's
+`language` config (also the language switcher), then the browser's `navigator.languages`,
+then values tagged `none` / `@none`, then the first available language. Regional
+tags match their primary subtag in both directions (`fr-CA` → `fr`, `fr` → `fr-FR`, and `pt-PT` → `pt-BR` when neither `pt-PT` nor `pt` exists),
+and every value of the chosen language is displayed.
+
+```js
+Mirador.viewer({ id: 'mirador', language: 'fr' /* ... */ }, plugins);
+```
+
+Notes: Mirador always defines `language` (default `'en'`), so a host that never sets it
+behaves as English even for a French browser; set it explicitly. The metadata filter
+selection resets when the language changes, because filter keys are language-specific.
+Exported components used outside Mirador fall back to the browser language and accept
+a `LanguageProvider` to override it. Fallback UI strings such as the `seeAlso` link
+label are English and overridable via props (`fallbackLinkLabel`, `seeAlsoHeading`).
 
 ## IIIF API compatibility
 
