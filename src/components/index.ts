@@ -30,3 +30,6 @@ export { ImageComparisonSlider } from './ImageComparisonSlider';
 export type { ImageComparisonSliderProps, CanvasInfo } from './ImageComparisonSlider';
 
 export { MetadataFiltersPanel } from './MetadataFiltersPanel';
+
+export { ErrorBoundary, ErrorNotice, DEFAULT_ERROR_NOTICE } from './ErrorBoundary';
+export type { ErrorBoundaryProps } from './ErrorBoundary';

@@ -13,9 +13,10 @@ import type { AnnotationBody } from '../types/iiif';
 
 vi.mock('./ManifestBody', () => ({ ManifestBody: () => <div data-testid="manifest-body" /> }));
 vi.mock('./DatasetBody', () => ({ DatasetBody: () => <div data-testid="dataset-body" /> }));
-vi.mock('./TextualBody', () => ({ TextualBody: ({ ruleSet }: { ruleSet?: string }) => (
-    <div data-testid="textual-body" data-ruleset={ruleSet} />
-  ) }));
+vi.mock('./TextualBody', () => ({ TextualBody: ({ ruleSet, body }: { ruleSet?: string; body: { id?: string } }) => {
+    if (body.id === 'bad') throw new Error('bad body');
+    return <div data-testid="textual-body" data-ruleset={ruleSet} />;
+  } }));
 
 const baseProps = {
   dispatch: vi.fn(),
@@ -86,5 +87,27 @@ describe('AnnotationBodyRenderer', () => {
       <AnnotationBodyRenderer body={{ type: 'TextualBody', value: 'hi' }} ruleSet="noHtml" {...baseProps} />,
     );
     expect(screen.getByTestId('textual-body')).toHaveAttribute('data-ruleset', 'noHtml');
+  });
+});
+
+describe('AnnotationBodyRenderer containment', () => {
+  it('shows a notice for a body that throws and still renders its siblings', () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const ThrowOnce = { type: 'TextualBody', value: 'v', id: 'bad' } as AnnotationBody;
+    render(
+      <AnnotationBodyRenderer
+        body={[
+          { type: 'Dataset', id: 'https://x/d.csv', format: 'text/csv' },
+          ThrowOnce,
+          { type: 'Manifest', id: 'https://x/m.json' },
+        ]}
+        {...baseProps}
+      />,
+    );
+    expect(screen.getByTestId('dataset-body')).toBeInTheDocument();
+    expect(screen.getByTestId('manifest-body')).toBeInTheDocument();
+    expect(screen.queryByTestId('textual-body')).toBeNull();
+    expect(screen.getByRole('note')).toHaveTextContent('could not be displayed');
+    errSpy.mockRestore();
   });
 });

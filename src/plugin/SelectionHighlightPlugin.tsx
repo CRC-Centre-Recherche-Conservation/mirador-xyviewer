@@ -11,6 +11,7 @@ import React, { useEffect, useRef, useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
 import type { MiradorPlugin } from '../types/mirador';
 import { MAX_SVG_LENGTH, extractNumbers, parsePoint, parseXYWH, svgAttr } from '../utils/annotationSelectors';
+import { containPlugin } from './containPlugin';
 
 /** Default point radius (matches annotationTransformer.ts) */
 const DEFAULT_POINT_RADIUS = 12;
@@ -553,7 +554,7 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
  * Plugin definition for Mirador
  * Wraps AnnotationsOverlay to intercept selection changes and add visual feedback
  */
-export const selectionHighlightPlugin: MiradorPlugin = {
+export const selectionHighlightPlugin: MiradorPlugin = containPlugin({
   target: 'AnnotationsOverlay',
   mode: 'wrap',
   name: 'SelectionHighlightPlugin',
@@ -561,7 +562,7 @@ export const selectionHighlightPlugin: MiradorPlugin = {
     targetProps: Record<string, unknown>;
     TargetComponent: React.ComponentType<unknown>;
   }>,
-};
+});
 
 export { SelectionHighlightPluginComponent as ConnectedSelectionHighlightPlugin };
 

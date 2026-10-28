@@ -24,6 +24,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Metadata Filters**: Filter annotations by metadata values
 - **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as an "Evidence" button that selects the linked annotation, and `Choice` alternatives (any producer; WADM §4.1, §4.3)
 - **Reader language**: IIIF language maps (labels, metadata, localized text bodies) follow Mirador's `language` setting (IIIF Presentation 3 §4.4)
+- **Error containment**: A rendering error in a plugin, annotation or body is contained (the viewer keeps running); `ErrorBoundary` is exported for hosts embedding the standalone components
 - **Selection Highlight**: Pulse animation to locate selected annotations on the image (technique, date, operator, etc.)
 
 ## Reader language

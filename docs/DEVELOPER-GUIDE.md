@@ -112,6 +112,22 @@ const myPlugin = {
 };
 ```
 
+### Error containment
+
+Mirador isolates errors per window, viewer area and companion window, not per plugin. Mirador 4.3's `CompanionWindowFactory` passes `fallbackComponent` (lowercase f) to `react-error-boundary`, so its fallback is not applied there. A rendering error from malformed producer data therefore replaces the whole Mirador window (or blanks the canvas area). This library adds three layers:
+
+- **Plugin level** (`src/plugin/containPlugin.tsx`): every exported plugin has its component wrapped in an `ErrorBoundary`. A `wrap` plugin that throws falls back to Mirador's original `TargetComponent` (nothing if that throws too); an `add` plugin renders nothing. The plugin object keeps its shape (`target`, `mode`, `mapDispatchToProps`; `mapStateToProps` stays a function but is wrapped so a throw there, e.g. while parsing producer data, is contained too). The boundary resets when the window, the visible canvases or the selected annotation changes.
+- **Item level**: each annotation in the list and each body in `AnnotationBodyRenderer` has its own boundary showing "This annotation could not be displayed."; sibling items keep rendering.
+- **Standalone components** (`DatasetBody`, `SpectrumPlot`, ...) are not wrapped. Hosts can use the exported `ErrorBoundary`:
+
+```tsx
+<ErrorBoundary resetKey={annotationId} fallback={<ErrorNotice />}>
+  <DatasetBody body={body} />
+</ErrorBoundary>
+```
+
+The library's own log line has a `[mirador-xyviewer]` prefix and only the error name. React 19 still reports each caught error through the root's `onCaughtError` (`console.error` by default, message included); Mirador owns the root, so hosts that need to silence it must pass `onCaughtError` to their own `createRoot`.
+
 ### Scientific Annotation Plugin
 
 Location: `src/plugin/ConnectedScientificAnnotationPlugin.tsx`

@@ -16,6 +16,7 @@ import {
 } from 'mirador';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
+import { containPlugin } from './containPlugin';
 
 /**
  * True when the current selection is a search-result annotation and the left
@@ -122,7 +123,7 @@ export const ConnectedSearchResultFocusPlugin = connect(
   mapDispatchToProps,
 )(SearchResultFocusPluginComponent);
 
-export const searchResultFocusPlugin: MiradorPlugin = {
+export const searchResultFocusPlugin: MiradorPlugin = containPlugin({
   target: 'AnnotationsOverlay',
   mode: 'wrap',
   name: 'SearchResultFocusPlugin',
@@ -132,7 +133,7 @@ export const searchResultFocusPlugin: MiradorPlugin = {
   }>,
   mapStateToProps: mapStateToProps as MiradorPlugin['mapStateToProps'],
   mapDispatchToProps: mapDispatchToProps as unknown as MiradorPlugin['mapDispatchToProps'],
-};
+});
 
 export { SearchResultFocusPluginComponent };
 export default searchResultFocusPlugin;
