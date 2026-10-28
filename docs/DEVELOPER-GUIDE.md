@@ -106,11 +106,13 @@ Mirador 4 plugins use a **component wrapping** system:
 const myPlugin = {
   component: MyPluginComponent,
   target: 'TargetComponent',    // Component to wrap
-  mode: 'wrap' | 'add',         // wrap = replace, add = alongside
+  mode: 'wrap' | 'add',         // wrap = around the target, add = alongside
   mapStateToProps: (state, ownProps) => ({ /* props from Redux */ }),
   mapDispatchToProps: { /* action creators */ }
 };
 ```
+
+Several `wrap` plugins on one target are nested in registration order: the first is the outermost, and each receives the rest of the chain as `children`. A wrap plugin must render `children ?? <TargetComponent {...targetProps} />`, never `TargetComponent` alone, or it drops the plugins registered after it. A plugin that changes the target's props (the metadata filter overlay swaps `annotations`) must apply the change to the nested elements in `children` too.
 
 ### Error containment
 

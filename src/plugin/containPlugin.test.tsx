@@ -46,6 +46,17 @@ describe('containPlugin', () => {
     expect(screen.getByText('root')).toBeInTheDocument();
   });
 
+  it('wrap: falls back to the rest of the wrap chain (children) when the plugin throws', () => {
+    const C = comp(make('wrap'));
+    render(
+      <C targetProps={{ windowId: 'w1' }} TargetComponent={Target}>
+        <div data-testid="chain">next plugin</div>
+      </C>,
+    );
+    expect(screen.getByTestId('chain')).toBeInTheDocument();
+    expect(screen.queryByTestId('target')).toBeNull();
+  });
+
   it('wrap: renders nothing when the fallback throws too', () => {
     const C = comp(make('wrap'));
     const { container } = render(<C targetProps={{}} TargetComponent={Throwing} />);

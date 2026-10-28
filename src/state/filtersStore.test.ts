@@ -728,3 +728,37 @@ describe('filtersStore reader language', () => {
     expect(filtersStore.getGroups(w, c)[0].label).toBe('Technique d\u2019analyse');
   });
 });
+
+describe('annotations without metadata', () => {
+  const w = 'w-nometa';
+  const c = 'c1';
+  const m = (label: string, value: string) => [{ label: { en: [label] }, value: { en: [value] } }];
+  const annotations = [
+    { id: 'xrf', metadata: m('Technique', 'XRF') },
+    { id: 'raman', metadata: m('Technique', 'Raman') },
+    { id: 'other', metadata: m('Operator', 'Smith') },
+    { id: 'cls-none' },
+    { id: 'cls-empty', metadata: [] },
+  ];
+
+  it('does not count them under None', async () => {
+    const { filtersStore, NONE_KEY } = await import('./filtersStore');
+    filtersStore.initializeFromAnnotations(w, c, annotations, true, ['en']);
+    const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'technique')!;
+    expect(technique.values.get(NONE_KEY)).toMatchObject({ count: 1, visibleCount: 1 });
+  });
+
+  it('never hides them, whatever is deselected', async () => {
+    const { filtersStore, NONE_KEY } = await import('./filtersStore');
+    filtersStore.initializeFromAnnotations(w, c, annotations, true, ['en']);
+    filtersStore.toggleValue(w, c, 'technique', NONE_KEY);
+    filtersStore.toggleValue(w, c, 'technique', 'xrf');
+    filtersStore.toggleValue(w, c, 'operator', NONE_KEY);
+    const hidden = filtersStore.updateHiddenAnnotations(w, c, annotations);
+    expect([...hidden].sort()).toEqual(['other', 'raman', 'xrf']);
+    expect(filtersStore.isAnnotationVisible(w, c, 'cls-none')).toBe(true);
+    expect(filtersStore.isAnnotationVisible(w, c, 'cls-empty')).toBe(true);
+    const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'technique')!;
+    expect(technique.values.get(NONE_KEY)!.visibleCount).toBe(0);
+  });
+});

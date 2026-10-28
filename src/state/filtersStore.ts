@@ -86,7 +86,7 @@ export function normalizeKey(text: string): string {
   return text.toLowerCase().trim().replace(/\s+/g, '_');
 }
 
-/** Key of the synthetic "None" value (annotations lacking a label). */
+/** Key of the synthetic "None" value (annotations with metadata but none for the group). */
 export const NONE_KEY = '__none__';
 
 /**
@@ -101,6 +101,16 @@ export function entryKeys(
   const labelText = getLocalizedString(entry.label, prefs) || 'Unknown';
   const valueText = getLocalizedString(entry.value, prefs) || '';
   return { labelText, labelKey: normalizeKey(labelText), valueText, valueKey: normalizeKey(valueText) };
+}
+
+/**
+ * Whether an annotation carries any metadata entry. Those without (or with only
+ * empty values, see the loops below) are outside
+ * filtering: never hidden, never counted under "None".
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function hasMetadata(annotation: { metadata?: unknown[] }): boolean {
+  return Array.isArray(annotation.metadata) && annotation.metadata.length > 0;
 }
 
 /**
@@ -235,6 +245,8 @@ class FiltersStore {
     const allGroupKeys = Array.from(state.groups.keys());
 
     for (const annotation of annotations) {
+      if (!hasMetadata(annotation)) continue;
+
       // Get the label keys this annotation has
       const annotationLabelKeys = new Set<string>();
       if (annotation.metadata) {
@@ -245,6 +257,9 @@ class FiltersStore {
           }
         }
       }
+
+      // No usable metadata: outside filtering.
+      if (annotationLabelKeys.size === 0) continue;
 
       // For each group, check if annotation is missing a value
       for (const labelKey of allGroupKeys) {
@@ -391,6 +406,9 @@ class FiltersStore {
     }
 
     for (const annotation of annotations) {
+      // No metadata: outside filtering, always visible and uncounted.
+      if (!hasMetadata(annotation)) continue;
+
       let shouldHide = false;
 
       // Get the label keys this annotation has
@@ -403,6 +421,9 @@ class FiltersStore {
           }
         }
       }
+
+      // No usable metadata: outside filtering.
+      if (annotationLabelKeys.size === 0) continue;
 
       // Check if annotation matches any deselected filter
       if (annotation.metadata) {

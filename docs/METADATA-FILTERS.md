@@ -62,7 +62,12 @@ Clicking the filter button opens a draggable/resizable panel with:
 The filter uses **AND** logic across groups and **OR** logic within groups:
 
 1. An annotation is **hidden** if ANY of its metadata values are deselected
-2. Annotations missing metadata for a group are tracked via a "None" filter value
+2. Annotations that have metadata but none for a group are tracked via a "None" filter value
+3. Annotations with **no usable metadata** (no `metadata` array, an empty one, or only entries with an empty value in the reader's languages) are outside
+   filtering: never hidden by any filter, and not counted under any group's "None" (count or
+   visible count). This keeps annotations such as classifications or identified materials visible
+   when "None" is deselected. Motivations play no role: filtering never depends on `motivation`
+   (analyses may be `commenting` in v2 or `supplementing` in v3).
 
 ### Example
 
@@ -168,7 +173,7 @@ Common metadata labels for physicochemical analysis:
 
 ### Enabling the Filter Plugin
 
-The metadata filter plugin is a **separate, optional plugin**. Add it alongside other plugins:
+The metadata filter plugin is a **separate, optional plugin** (an array of two Mirador plugins: the panel and the canvas overlay). Add it alongside other plugins:
 
 ```typescript
 import Mirador from 'mirador';
@@ -184,8 +189,34 @@ const viewer = Mirador.viewer({
       manifestId: 'https://example.org/manifest.json',
     }
   ],
-}, [scientificAnnotationPlugin, metadataFiltersPlugin]);
+}, [scientificAnnotationPlugin, ...metadataFiltersPlugin]);
 ```
+
+### Hiding Filtered Shapes on the Canvas
+
+`metadataFiltersPlugin` also removes filtered annotations from the shapes Mirador draws on the
+image, live as filters change. Nothing else to register:
+
+```typescript
+const viewer = Mirador.viewer(config, [scientificAnnotationPlugin, ...metadataFiltersPlugin]);
+```
+
+It is exported as an array of two Mirador plugins (a Mirador plugin has a single target: the
+filters button attaches to `OpenSeadragonViewer`, the shapes live in `AnnotationsOverlay`).
+Spread it (`...metadataFiltersPlugin`), the same convention as `miradorImageToolsPlugin`. Passing it unspread only works through `Mirador.viewer`; hosts that build the store and React tree themselves (`createPluggableStore`, `<PluginProvider plugins>`) must spread it. In TypeScript the export is a `MiradorPlugin[]`, so read `.target` on its elements, not on the export. Behaviour:
+
+- Hidden ids are the same ids as the panel's, including multi-target annotations expanded to `id#target-N`.
+- The selected annotation stays drawn, as in the panel.
+- Content Search hits (`searchAnnotations`) are never filtered.
+- Only canvases whose filters are initialized are affected; each canvas uses its own hidden set. Filters are set for the window's current canvas; another visible canvas (book view) keeps the filters last set on it, which can only be changed after navigating to it.
+- Without `metadataFiltersPlugin`, or while nothing is hidden, the overlay is untouched.
+
+### Opening From a Content State
+
+A IIIF Content State targeting an annotation is resolved to its target canvas and region only
+(`extractContentStateTargets` keeps no annotation id), so the window zooms there but Mirador
+does not select the annotation. If an active filter hides it, it is hidden both in the panel and
+on the canvas until the filter value is re-selected or the filters are reset. Nothing couples the two modules.
 
 ### Using Only the Filter Plugin
 
@@ -194,7 +225,7 @@ If you want only the filter functionality without scientific annotation features
 ```typescript
 import { metadataFiltersPlugin } from 'mirador-xyviewer';
 
-const viewer = Mirador.viewer(config, [metadataFiltersPlugin]);
+const viewer = Mirador.viewer(config, [...metadataFiltersPlugin]);
 ```
 
 ### Combining with Other Plugins
@@ -212,13 +243,13 @@ import {
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
   imageComparisonPlugin,
-  metadataFiltersPlugin
+  ...metadataFiltersPlugin
 ]);
 
 // Or pick only what you need
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
-  metadataFiltersPlugin
+  ...metadataFiltersPlugin
 ]);
 ```
 
@@ -235,7 +266,7 @@ const viewer = Mirador.viewer({
       filtersEnabled: false,  // Disable filters for this window
     }
   ],
-}, [metadataFiltersPlugin]);
+}, [...metadataFiltersPlugin]);
 ```
 
 ## Best Practices

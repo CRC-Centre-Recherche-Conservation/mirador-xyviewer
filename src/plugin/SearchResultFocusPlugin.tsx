@@ -42,6 +42,8 @@ interface TargetProps {
 interface PluginWrapperProps {
   targetProps: TargetProps;
   TargetComponent: React.ComponentType<TargetProps>;
+  /** Rest of Mirador's wrap chain, when other plugins wrap the same target. */
+  children?: React.ReactNode;
   selectedAnnotationId?: string | null;
   searchAnnotationIds: Set<string>;
   leftCompanionWindowId?: string;
@@ -57,6 +59,7 @@ interface PluginWrapperProps {
 const SearchResultFocusPluginComponent: React.FC<PluginWrapperProps> = ({
   targetProps,
   TargetComponent,
+  children,
   selectedAnnotationId,
   searchAnnotationIds,
   leftCompanionWindowId,
@@ -85,7 +88,7 @@ const SearchResultFocusPluginComponent: React.FC<PluginWrapperProps> = ({
     updateCompanionWindow,
   ]);
 
-  return <TargetComponent {...targetProps} />;
+  return <>{children ?? <TargetComponent {...targetProps} />}</>;
 };
 
 interface SearchAnnotationList {
