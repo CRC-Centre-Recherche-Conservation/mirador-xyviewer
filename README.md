@@ -223,6 +223,8 @@ Mirador.viewer({
 ]);
 ```
 
+`annotationPostprocessor` also covers annotation pages embedded in a manifest. If you inject manifests yourself with `receiveManifest` (which skips request postprocessors), pass the JSON through `transformEmbeddedAnnotationPages(json)` first.
+
 `annotationPostprocessor` converts IIIF Presentation 2 annotations to the W3C model, so their motivations reach Mirador without the `oa:` prefix (`oa:commenting` becomes `commenting`; `sc:painting` is kept). If you restrict `annotations.filteredMotivations`, list the bare names.
 
 ## Documentation

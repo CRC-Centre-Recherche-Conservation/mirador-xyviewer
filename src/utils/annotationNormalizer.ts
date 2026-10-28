@@ -626,7 +626,7 @@ export function normalizeAnnotationResources(
   // No prototype: annotation ids come from producers (e.g. "__proto__").
   const out: Record<string, AnnotationV3> = Object.create(null);
   for (const ann of expandAnnotations(all)) {
-    // Embedded pages skip the postprocessor, so apply the same display pass here.
+    // Keep the panel copy consistent for pages that missed the manifest pass (over budget, or injected without the helper).
     normalizeTargetSelector(ann as unknown as Record<string, unknown>);
     out[ann.id] = ann;
   }

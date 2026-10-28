@@ -130,7 +130,7 @@ export function getAnnotationBounds(resource: AnnotationResource): [number, numb
     if (bounds) return bounds;
   }
 
-  // PointSelector not (yet) turned into a circle, e.g. an embedded page.
+  // PointSelector not (yet) turned into a circle, e.g. an embedded page over the budget or injected without the manifest pass.
   for (const s of selectors) {
     const p = parsePoint(s);
     if (p) {

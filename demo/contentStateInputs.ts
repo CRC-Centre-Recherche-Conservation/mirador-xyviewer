@@ -13,6 +13,7 @@ import {
   parseContentStateQuery,
   readContentStateFile,
   resolveContentState,
+  transformEmbeddedAnnotationPages,
 } from '../src';
 import type { ContentStateInput, ContentStateTarget } from '../src';
 
@@ -91,8 +92,10 @@ export function createContentStateOpener(store: DemoStore) {
     const manifests = new Map<string, unknown>();
     for (const t of result.targets) {
       if (options.fromFile && t.manifestId && t.manifestJson) {
-        store.dispatch(receiveManifest(t.manifestId, t.manifestJson));
-        manifests.set(t.manifestId, t.manifestJson);
+        // receiveManifest skips request postprocessors: run the embedded-page pass here.
+        const manifest = transformEmbeddedAnnotationPages(t.manifestJson);
+        store.dispatch(receiveManifest(t.manifestId, manifest));
+        manifests.set(t.manifestId, manifest);
       }
     }
 
