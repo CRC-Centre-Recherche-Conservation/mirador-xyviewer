@@ -32,6 +32,9 @@ export {
   AnnotationBodyRenderer,
   MetadataDisplay,
   ImageComparisonSlider,
+  ErrorBoundary,
+  ErrorNotice,
+  DEFAULT_ERROR_NOTICE,
 } from './components';
 
 export type {
@@ -48,6 +51,7 @@ export type {
   MetadataDisplayProps,
   ImageComparisonSliderProps,
   CanvasInfo,
+  ErrorBoundaryProps,
 } from './components';
 
 // Services for advanced usage

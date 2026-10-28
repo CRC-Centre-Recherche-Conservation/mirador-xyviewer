@@ -31,6 +31,7 @@ import {
   stringLanguages,
   normalizeBody,
 } from '../types/iiif';
+import { ErrorBoundary, ErrorNotice } from './ErrorBoundary';
 import { ManifestBody } from './ManifestBody';
 import { DatasetBody } from './DatasetBody';
 import { TextualBody } from './TextualBody';
@@ -190,22 +191,24 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
       {segments.map((segment, index) => (
         <React.Fragment key={index}>
           {index > 0 && <Divider sx={{ my: 1 }} />}
-          <SegmentView
-            segment={segment}
-            annotationLabel={annotationLabel}
-            dispatch={dispatch}
-            addWindow={addWindow}
-            isActive={isActive}
-            onDataLoaded={onDataLoaded}
-            onVisibilityChange={onVisibilityChange}
-            requestOptions={requestOptions}
-            onAuthRequired={onAuthRequired}
-            ruleSet={ruleSet}
-            windowId={windowId}
-            selectAnnotation={selectAnnotation}
-            canvasAnnotationIds={canvasAnnotationIds}
-            labels={labels}
-          />
+          <ErrorBoundary resetKey={segment} label="annotation body" fallback={<ErrorNotice />}>
+            <SegmentView
+              segment={segment}
+              annotationLabel={annotationLabel}
+              dispatch={dispatch}
+              addWindow={addWindow}
+              isActive={isActive}
+              onDataLoaded={onDataLoaded}
+              onVisibilityChange={onVisibilityChange}
+              requestOptions={requestOptions}
+              onAuthRequired={onAuthRequired}
+              ruleSet={ruleSet}
+              windowId={windowId}
+              selectAnnotation={selectAnnotation}
+              canvasAnnotationIds={canvasAnnotationIds}
+              labels={labels}
+            />
+          </ErrorBoundary>
         </React.Fragment>
       ))}
     </Box>

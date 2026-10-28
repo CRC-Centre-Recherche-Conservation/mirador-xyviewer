@@ -17,6 +17,7 @@ import type {
 } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
 import type { MiradorPlugin } from '../types/mirador';
+import { containPlugin } from './containPlugin';
 
 /**
  * Target component props
@@ -258,13 +259,13 @@ const ScientificAnnotationItem: React.FC<ScientificAnnotationItemProps> = ({
 /**
  * Plugin definition for Mirador
  */
-export const scientificAnnotationPlugin: MiradorPlugin = {
+export const scientificAnnotationPlugin: MiradorPlugin = containPlugin({
   target: 'CanvasAnnotations',
   mode: 'wrap',
   component: ScientificAnnotationPanel as React.ComponentType<{
     targetProps: Record<string, unknown>;
     TargetComponent: React.ComponentType<unknown>;
   }>,
-};
+});
 
 export default scientificAnnotationPlugin;

@@ -12,6 +12,7 @@ import { ImageComparisonSlider, type CanvasInfo } from '../components/ImageCompa
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { LocalizedString } from '../types/iiif';
 import { getLocalizedString, resolvePreferredLanguages } from '../utils/localization';
+import { containPlugin } from './containPlugin';
 
 /**
  * Extract image URL from IIIF canvas
@@ -313,7 +314,7 @@ export const ConnectedImageComparisonPlugin = (connect as any)(
 /**
  * Plugin definition for Mirador
  */
-export const imageComparisonPlugin: MiradorPlugin = {
+export const imageComparisonPlugin: MiradorPlugin = containPlugin({
   target: 'OpenSeadragonViewer',
   mode: 'add',
   name: 'ImageComparisonPlugin',
@@ -323,6 +324,6 @@ export const imageComparisonPlugin: MiradorPlugin = {
   }>,
   mapStateToProps: mapStateToProps as unknown as MiradorPlugin['mapStateToProps'],
   mapDispatchToProps: mapDispatchToProps as unknown as MiradorPlugin['mapDispatchToProps'],
-};
+});
 
 export default imageComparisonPlugin;

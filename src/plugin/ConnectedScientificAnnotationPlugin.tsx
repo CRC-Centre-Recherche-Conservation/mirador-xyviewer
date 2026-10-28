@@ -16,6 +16,7 @@ import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/ma
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { LanguageProvider } from '../utils/LanguageContext';
+import { ErrorBoundary, ErrorNotice } from '../components/ErrorBoundary';
 import { AnnotationSignIn } from '../components/AnnotationSignIn';
 import { getAnnotationAuth } from '../services/annotationAuth';
 import type { AnnotationPageRef } from '../services/annotationAuth';
@@ -29,6 +30,10 @@ import { isSpecificResourceBody, isChoiceBody } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
+import { containPlugin } from './containPlugin';
+
+/** Evaluates its render function in its own render so an enclosing boundary catches parent-built expressions. */
+const InsideBoundary: React.FC<{ children: () => React.ReactNode }> = ({ children }) => <>{children()}</>;
 
 /** Banner shown on an annotation surfaced only because it is selected while filtered out. */
 const FILTER_HIDDEN_BADGE = 'Shown because selected — hidden by the metadata filter';
@@ -311,15 +316,21 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                     {FILTER_HIDDEN_BADGE}
                   </Typography>
                 )}
-                <ListItemText
-                  primary={
-                    <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
-                  }
-                  secondary={annotation.tags?.map((tag) => (
-                    <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
-                  ))}
-                  slotProps={{ primary: { variant: 'body2' } }}
-                />
+                <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
+                  <InsideBoundary>
+                    {() => (
+                      <ListItemText
+                        primary={
+                          <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
+                        }
+                        secondary={annotation.tags?.map((tag) => (
+                          <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
+                        ))}
+                        slotProps={{ primary: { variant: 'body2' } }}
+                      />
+                    )}
+                  </InsideBoundary>
+                </ErrorBoundary>
               </MenuItem>
             );
           }
@@ -378,45 +389,53 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                   {FILTER_HIDDEN_BADGE}
                 </Typography>
               )}
-              {/* Metadata */}
-              <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
+              <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
+                <InsideBoundary>
+                  {() => (
+                    <>
+                      {/* Metadata */}
+                      <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
 
-              {/* Body renderer */}
-              {body && (
-                <AnnotationBodyRenderer
-                  body={body}
-                  annotationLabel={label}
-                  dispatch={dispatch}
-                  addWindow={addWindow}
-                  isActive={isSelected}
-                  onDataLoaded={handleDataLoaded}
-                  onVisibilityChange={handleVisibilityChange}
-                  ruleSet={ruleSet}
-                  windowId={windowId}
-                  selectAnnotation={selectAnnotation}
-                  canvasAnnotationIds={canvasAnnotationIds}
-                />
-              )}
+                      {/* Body renderer */}
+                      {body && (
+                        <AnnotationBodyRenderer
+                          body={body}
+                          annotationLabel={label}
+                          dispatch={dispatch}
+                          addWindow={addWindow}
+                          isActive={isSelected}
+                          onDataLoaded={handleDataLoaded}
+                          onVisibilityChange={handleVisibilityChange}
+                          ruleSet={ruleSet}
+                          windowId={windowId}
+                          selectAnnotation={selectAnnotation}
+                          canvasAnnotationIds={canvasAnnotationIds}
+                        />
+                      )}
 
-              {/* Tags */}
-              {annotation.tags.length > 0 && (
-                <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  {annotation.tags.map((tag, idx) => (
-                    <Typography
-                      key={idx}
-                      variant="caption"
-                      sx={{
-                        px: 0.75,
-                        py: 0.25,
-                        bgcolor: 'action.hover',
-                        borderRadius: 1,
-                      }}
-                    >
-                      {tag}
-                    </Typography>
-                  ))}
-                </Box>
-              )}
+                      {/* Tags */}
+                      {annotation.tags.length > 0 && (
+                        <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {annotation.tags.map((tag, idx) => (
+                            <Typography
+                              key={idx}
+                              variant="caption"
+                              sx={{
+                                px: 0.75,
+                                py: 0.25,
+                                bgcolor: 'action.hover',
+                                borderRadius: 1,
+                              }}
+                            >
+                              {tag}
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                    </>
+                  )}
+                </InsideBoundary>
+              </ErrorBoundary>
             </Box>
           );
         })}
@@ -507,7 +526,7 @@ export const ConnectedScientificAnnotationPlugin = connect(
 /**
  * Plugin definition for Mirador
  */
-export const scientificAnnotationPlugin: MiradorPlugin = {
+export const scientificAnnotationPlugin: MiradorPlugin = containPlugin({
   target: 'CanvasAnnotations',
   mode: 'wrap',
   name: 'ScientificAnnotationPlugin',
@@ -517,7 +536,7 @@ export const scientificAnnotationPlugin: MiradorPlugin = {
   }>,
   mapStateToProps: mapStateToProps as MiradorPlugin['mapStateToProps'],
   mapDispatchToProps: mapDispatchToProps as unknown as MiradorPlugin['mapDispatchToProps'],
-};
+});
 
 /** @internal Exposed for tests; not part of the public API. */
 export { ScientificAnnotationPluginComponent };

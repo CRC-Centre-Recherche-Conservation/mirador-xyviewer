@@ -17,6 +17,7 @@ import { resolvePreferredLanguages } from '../utils/localization';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { IIIFAnnotation, LocalizedString } from '../types/iiif';
+import { containPlugin } from './containPlugin';
 
 /** Plugin component props */
 interface MetadataFiltersPluginProps {
@@ -408,7 +409,7 @@ export const ConnectedMetadataFiltersPlugin = (connect as any)(
 /**
  * Plugin definition for Mirador
  */
-export const metadataFiltersPlugin: MiradorPlugin = {
+export const metadataFiltersPlugin: MiradorPlugin = containPlugin({
   target: 'OpenSeadragonViewer',
   mode: 'add',
   name: 'MetadataFiltersPlugin',
@@ -417,6 +418,6 @@ export const metadataFiltersPlugin: MiradorPlugin = {
     TargetComponent: React.ComponentType<unknown>;
   }>,
   mapStateToProps: mapStateToProps as unknown as MiradorPlugin['mapStateToProps'],
-};
+});
 
 export default metadataFiltersPlugin;
