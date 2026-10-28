@@ -196,7 +196,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             }
 
             // 2. Pick the link text
-            let displayLabel = '';
+            let displayLabel: string;
             if (typeof item.id === 'object' && item.id.url_label) {
               displayLabel = item.id.url_label; // url_label wins when present
             } else {

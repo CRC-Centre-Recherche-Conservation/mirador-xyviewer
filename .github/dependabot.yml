@@ -38,6 +38,14 @@ updates:
         update-types:
           - minor
           - patch
+      # --- lint group (ESLint migration): keep eslint and its companions in one PR.
+      lint:
+        patterns:
+          - eslint
+          - '@eslint/*'
+          - typescript-eslint
+          - globals
+      # --- end lint group
 
   # GitHub Actions versions — keep workflows on supported action versions.
   - package-ecosystem: github-actions

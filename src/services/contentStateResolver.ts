@@ -107,6 +107,8 @@ export async function fetchContentStateJson(uri: string, options: FetchContentSt
       throw new Error('The response is not valid JSON.');
     }
   } catch (e) {
+    // Error `cause` is not in the configured lib target.
+    // eslint-disable-next-line preserve-caught-error
     if (controller.signal.aborted) throw new Error('The request timed out.');
     throw e instanceof Error ? e : new Error('The request failed.');
   } finally {
