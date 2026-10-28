@@ -9,6 +9,7 @@ import Mirador from 'mirador';
 import { miradorImageToolsPlugin } from 'mirador-image-tools';
 import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, annotationPostprocessor } from '../src';
 import { setupDemoAuth, rewriteBackendUrls } from './demo-auth';
+import { contentStateFromLocation, createContentStateOpener, setupContentStateInputs } from './contentStateInputs';
 
 // The demo runs against the REAL published Avranches manuscript manifest — itself
 // IIIF Presentation v2 (sc:Manifest / sequences / canvases) and carrying NO
@@ -105,11 +106,14 @@ function initMirador() {
     }
   }
 
+  // ?iiif-content= / ?manifest= replace the default window (see contentStateInputs.ts).
+  const requestedState = contentStateFromLocation();
+
   // Initialize Mirador with our plugin
   const miradorInstance = Mirador.viewer(
     {
       id: 'mirador-container',
-      windows: [
+      windows: requestedState ? [] : [
         {
           manifestId: EMMSM_MANIFEST,
           // Open directly on an annotated folio (canvas 10) so the analyses show.
@@ -175,6 +179,14 @@ function initMirador() {
   // Demo-only: the full carto-chimie auth story on REAL data — one Sign-in unlocks the
   // spectra AND the maXRF maps, all proxied through /lab. See demo-auth.ts.
   setupDemoAuth(miradorInstance.store);
+
+  // IIIF Content State 1.0: query string, paste, drag and drop, "Open file…".
+  setupContentStateInputs(
+    miradorInstance.store,
+    document.getElementById('open-file-button'),
+    document.getElementById('open-file-input') as HTMLInputElement | null
+  );
+  if (requestedState) void createContentStateOpener(miradorInstance.store)(requestedState);
 
   // Expose to window for DevTools inspection (dev only)
   if (isDev && typeof window !== 'undefined') {

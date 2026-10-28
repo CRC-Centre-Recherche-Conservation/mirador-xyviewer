@@ -54,6 +54,14 @@ export {
   validateDatasetUrl,
   configureDatasetRequests,
   parseDataset,
+  resolveContentState,
+  fetchContentStateJson,
+  readContentStateFile,
+} from './services';
+export type {
+  ContentStateFetcher,
+  FetchContentStateOptions,
+  ResolveContentStateOptions,
 } from './services';
 
 // Types
@@ -104,6 +112,27 @@ export {
   annotationPostprocessor,
   createAnnotationPostprocessor,
   transformPointAnnotations,
+  // IIIF Content State 1.0
+  parseContentStateInput,
+  parseContentStateQuery,
+  decodeContentState,
+  encodeContentState,
+  contentStateTextFromDataTransfer,
+  extractContentStateTargets,
+  buildMiradorWindows,
+  regionToBounds,
+  findCanvasSize,
+  CONTENT_STATE_MAX_BYTES,
+  CONTENT_STATE_MAX_TARGETS,
+} from './utils';
+export type {
+  ContentStateInput,
+  ContentStateRegion,
+  ContentStateTarget,
+  ContentStateResult,
+  ContentStateWindowConfig,
+  ParseContentStateOptions,
+  BuildWindowsOptions,
 } from './utils';
 
 // Constants
