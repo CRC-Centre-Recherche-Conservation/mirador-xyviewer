@@ -10,6 +10,7 @@ This guide explains how to configure Mirador 4 to work with mirador-xyviewer.
 - [Full Configuration Example](#full-configuration-example)
 - [Troubleshooting](#troubleshooting)
 - [IIIF Content Search](#iiif-content-search)
+- [Opening a IIIF Content State](#opening-a-iiif-content-state)
 
 ## Basic Setup
 
@@ -530,3 +531,80 @@ plugin:
   surfaces it (with a "hidden by filter" badge) instead of dead-ending.
 
 See `demo/vite-demo-search.ts` and `demo/main.tsx` for a runnable example that wires a mock Content Search service into the demo.
+
+## Opening a IIIF Content State
+
+Mirador 4 has no [IIIF Content State 1.0](https://iiif.io/api/content-state/1.0/) support
+(no `iiif-content` parameter, no paste or drop handling). mirador-xyviewer provides it as
+library helpers, independent of any producer: the host reads the content state however it
+likes (query string, paste, drop, file) and the library turns it into Mirador windows.
+
+Requires Mirador >= 4.2 (zoom to a region uses `initialViewerConfig.bounds`).
+
+### What is understood
+
+| Input (spec) | Handling |
+|---|---|
+| `iiif-content` as an unencoded URI (§3.1.1) | Fetched, then processed by the `type` of the response (§4) |
+| `iiif-content` as encoded JSON (§3.1.2, §6) | base64url without padding of `encodeURIComponent(json)`; padding, `+/` and legacy base64 of raw JSON are tolerated |
+| Full Annotation with `motivation: contentState`, a bare target, or an Annotation with another motivation (§2.2) | Its `target` is processed |
+| `Manifest` / `Collection` / `Canvas` / `Range` (§4) | Manifest or collection opened; Canvas and Range open their `partOf` (dereferenced when missing) |
+| Canvas, `Canvas#xywh=`, `SpecificResource` with a selector | Canvas opened, zoomed to the region |
+| Selectors | `FragmentSelector` `xywh=` (also `pixel:` and `percent:`), `PointSelector`, `SvgSelector` (bounding box of its shapes, arcs included), `ImageApiSelector` region, and arrays of them (union) |
+| Several targets (an array) | **One window per target**, so a comparison of two canvases opens two windows |
+| Paste, drop of `text/plain` or `text/uri-list` (§3.3, §3.4), local file (§3.5) | `parseContentStateInput` / `contentStateTextFromDataTransfer` / `readContentStateFile` |
+
+Percent regions need the canvas size: pass `canvasSize` to `buildMiradorWindows`
+(`findCanvasSize(manifestJson, canvasId)` reads it from a Presentation 2 or 3 manifest);
+without it the canvas opens unzoomed.
+
+### Host example
+
+```typescript
+import Mirador, { addWindow } from 'mirador';
+import {
+  parseContentStateQuery,
+  resolveContentState,
+  buildMiradorWindows,
+} from 'mirador-xyviewer';
+
+const viewer = Mirador.viewer({ id: 'mirador', windows: [] });
+
+// ?iiif-content=<uri or encoded JSON> (or ?manifest=<uri>)
+const input = parseContentStateQuery(window.location.search);
+if (input) {
+  const { targets, warnings } = await resolveContentState(input);
+  for (const config of buildMiradorWindows(targets)) {
+    viewer.store.dispatch(addWindow(config));
+  }
+  if (!targets.length) console.warn(warnings);
+}
+```
+
+`resolveContentState` never throws: problems come back in `warnings`, and unusable input
+gives no targets. Each window config is `{ manifestId, canvasId?, view?, initialViewerConfig?: { bounds } }`,
+with `bounds` in canvas pixels (`[x, y, width, height]`, padded; points get a small view).
+A target without a manifest (a lone Canvas) is skipped unless you pass
+`defaultManifestId`. Content states opened from a local file carry the manifest document in
+`target.manifestJson`; dispatch Mirador's `receiveManifest(id, json)` before `addWindow`
+if the manifest is not reachable by URL (it then bypasses request postprocessors).
+
+### Security
+
+- Only `http(s)` URIs are accepted; `javascript:`, `data:`, `file:` and others are rejected, in
+  inputs and in every `id` of a content state.
+- Fetches use `credentials: 'omit'`, a 10 s timeout and a 1 MB cap (`CONTENT_STATE_MAX_BYTES`),
+  follow at most 3 nested references with loop detection, and make at most 10 requests per
+  resolution (`maxFetches`), so a crafted link cannot fan out.
+- Pass `isAllowedUrl` to `resolveContentState` (or `fetchContentStateJson`) to veto addresses,
+  also checked on the final URL after redirects; hosts can plug in a private-network blocklist
+  such as the one in `mirador-auth`.
+- A content state is only ever parsed as JSON and read as data; SVG selectors are scanned as
+  text, never inserted in the DOM. At most 20 targets are kept.
+- When pasting or dropping, ignore input fields so you do not hijack typing, and only stop
+  propagation of what you must consume (Mirador has its own drop target via react-dnd, and
+  stopping propagation of a drop keeps it from clearing its overlay, so let text and links
+  through and leave `?manifest=` links to Mirador).
+
+The demo (`demo/contentStateInputs.ts`) wires `?iiif-content=`, `?manifest=`, paste, drop
+and an "Open file…" button this way.

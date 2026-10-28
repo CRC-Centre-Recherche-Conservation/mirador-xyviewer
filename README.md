@@ -35,7 +35,7 @@ responses, so it composes cleanly with the rest of the IIIF stack:
 | Image 2.x / 3.0 | ✅ Full | Served by Mirador/OpenSeadragon; the plugin never calls it directly |
 | Content Search 1.0 / 2.0 | ✅ Untouched | The annotation post-processor is gated to annotation responses only — search `hits`/pagination are preserved. See [Enabling IIIF Content Search](docs/MIRADOR-CONFIGURATION.md#iiif-content-search) for setup and caveats. |
 | Authorization Flow 1.0 / 2.0 | ⚠️ Opt-in | Manifest/image auth is handled by Mirador. Access-controlled **datasets** need [`configureDatasetRequests`](#protected-datasets-iiif-auth) |
-| Content State 1.0 | ⚠️ Not in Mirador | Mirador 4 has no Content State support and the plugin does not interfere; demo support is planned ([#69](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/issues/69)) |
+| Content State 1.0 | ✅ Plugin helpers | Mirador itself has no Content State support. The library parses, resolves and turns content states into Mirador windows, see [Opening a IIIF Content State](docs/MIRADOR-CONFIGURATION.md#opening-a-iiif-content-state) |
 | Change Discovery 1.0 | — Out of scope | Server-side discovery; not a viewer concern |
 
 ### Protected datasets (IIIF Auth)

@@ -13,3 +13,13 @@ export {
 } from './datasetFetcher';
 export { configureDatasetAuth, getRegisteredAuthHandler, getRegisteredCanStartLogin } from './datasetAuth';
 export type { DatasetAuthHandler } from './datasetAuth';
+export {
+  resolveContentState,
+  fetchContentStateJson,
+  readContentStateFile,
+} from './contentStateResolver';
+export type {
+  ContentStateFetcher,
+  FetchContentStateOptions,
+  ResolveContentStateOptions,
+} from './contentStateResolver';

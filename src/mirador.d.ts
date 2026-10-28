@@ -25,6 +25,9 @@ declare module 'mirador' {
     readonly fragmentSelector: number[] | string | null | undefined;
   }
 
+  // Mirador receiveManifest action creator - stores a manifest document under an id
+  export function receiveManifest(manifestId: string, manifestJson: unknown): AnyAction;
+
   // Mirador updateWindow action creator
   export function updateWindow(
     windowId: string,
@@ -50,7 +53,7 @@ declare module 'mirador' {
     }
   ): AnyAction;
 
-  // Mirador getViewer selector - returns OpenSeadragon viewer instance
+  // Mirador getViewer selector - returns the window's viewport state ({ x, y, zoom, bounds, ... }), not the OSD instance
   export function getViewer(
     state: unknown,
     options: { windowId: string }

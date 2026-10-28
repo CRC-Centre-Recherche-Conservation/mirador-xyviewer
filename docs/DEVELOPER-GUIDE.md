@@ -299,6 +299,15 @@ export async function fetchDataset(
 }
 ```
 
+### Content State
+
+`utils/contentState.ts` (pure: input classification, base64url codec, selectors to regions,
+target extraction, Mirador window configs) and `services/contentStateResolver.ts` (guarded
+fetch, URI following with depth and loop limits, file reading) implement IIIF Content State
+1.0. They are public API and know nothing about any producer. See
+[Opening a IIIF Content State](MIRADOR-CONFIGURATION.md#opening-a-iiif-content-state) for
+usage and the security model; `demo/contentStateInputs.ts` is a reference host.
+
 ### Dataset Parser
 
 CSV/TSV parsing with LTTB downsampling.
