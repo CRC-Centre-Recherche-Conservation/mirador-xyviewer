@@ -321,6 +321,78 @@ For plain text or HTML annotations.
 }
 ```
 
+### 4. SpecificResource (Controlled Terms, Classifications)
+
+A `SpecificResource` body points to another resource (a thesaurus concept, a controlled-list
+item...) as defined by the W3C Web Annotation Data Model (§4.1). It works with any producer.
+The `purpose` (§3.3.5) says what the reference is for: `classifying`, `identifying`,
+`describing`, `assessing`, `tagging`... An unknown or absent purpose is rendered the same way.
+
+Bodies that are not `linking` are shown as chips, grouped by purpose in source order. The chip
+label comes from the body's `label`, else the `source`'s `label`, in the reader's language, and
+falls back to the source id. `source` may be a string or an object. The chip is a link (new tab,
+`rel="noopener noreferrer"`) only when the source id is an `http(s)` URL.
+
+```json
+{
+  "motivation": "classifying",
+  "body": [
+    {
+      "type": "SpecificResource",
+      "purpose": "classifying",
+      "source": "https://thesaurus.example.org/resource/lead-white",
+      "label": { "en": ["lead white"], "fr": ["blanc de plomb"] }
+    },
+    {
+      "type": "SpecificResource",
+      "purpose": "assessing",
+      "source": {
+        "id": "https://vocab.example.org/confidence/reliable",
+        "type": "Concept",
+        "label": { "en": ["Reliable"], "fr": ["Fiable"] }
+      }
+    }
+  ]
+}
+```
+
+In IIIF Presentation 2, an `oa:SpecificResource` resource with a `full` source and an
+`oa:hasPurpose` is normalized to the same model.
+
+**Evidence (linking).** A `SpecificResource` with `"purpose": "linking"` is shown as an
+"Evidence" button (label overridable through the `labels` prop of `AnnotationBodyRenderer`).
+It selects the linked annotation, matched by id (or by its `#target-N` form when a multi-target
+annotation was expanded), when that annotation is on the current canvas. Otherwise the button
+is disabled with an explanatory tooltip.
+
+```json
+{
+  "type": "SpecificResource",
+  "purpose": "linking",
+  "source": { "id": "https://iiif.example.org/annotation/xrf-point-1", "type": "Annotation" }
+}
+```
+
+### 5. Choice (Alternatives)
+
+A `Choice` body (W3C §4.3, IIIF cookbook recipe 0346) lists alternatives of which one is shown:
+the item whose `language` matches the reader's language, else the first. The item is rendered
+like any other body (nesting is bounded).
+
+```json
+{
+  "body": {
+    "type": "Choice",
+    "items": [
+      { "type": "TextualBody", "language": "en", "value": "Red layer" },
+      { "type": "TextualBody", "language": "fr", "value": "Couche rouge" }
+    ]
+  }
+}
+```
+
+Body objects of an unknown `type` are ignored (nothing is rendered).
+
 ### Multiple Bodies
 
 An annotation can have multiple bodies:

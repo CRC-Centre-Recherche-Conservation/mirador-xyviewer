@@ -40,7 +40,10 @@ This guide explains the plugin architecture and how to extend mirador-xyviewer.
 │  AnnotationBodyRenderer (router)                            │
 │  ├─ ManifestBody      → Opens linked manifests              │
 │  ├─ DatasetBody       → Loads/displays spectra              │
-│  └─ TextualBody       → Renders text content                │
+│  ├─ TextualBody       → Renders text content                │
+│  ├─ SpecificResourceBody → Chips grouped by purpose         │
+│  ├─ EvidenceLinkBody  → Selects a linked annotation         │
+│  └─ Choice            → Renders one item (reader language)  │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
@@ -627,6 +630,15 @@ All language-map rendering goes through `src/utils/localization.ts`:
 **Text bodies.** `selectLanguageVariants` groups `TextualBody` by (type, purpose, format); when a group holds two or more languages only the reader's is rendered. Bodies without a language are always kept; order is preserved.
 
 **Filters.** `filtersStore.initializeFromAnnotations(w, c, annotations, force, prefs)` keys labels and values (`entryKeys`) in the reader's language and stores the prefs. Calling it with different prefs rebuilds the groups, which resets the selection (keys differ per language). `FilterValue.key` is the key to pass to `toggleValue`; external callers must not assume keys are language-independent.
+
+### Web Annotation bodies
+
+`AnnotationBodyRenderer` groups the bodies of one annotation into blocks: all non-linking `SpecificResource` bodies form one chip block (`SpecificResourceBody`, grouped by purpose in source order, no dividers between chips), all `linking` ones one button block (`EvidenceLinkBody`), every other body its own block. Unknown body types and absent bodies render nothing (`console.debug`).
+
+- **Chips.** Label = `body.label ?? source.label` (`srLabel`), picked with `useLanguagePreferences()`, else the source id (`srSourceId`). The chip is an anchor only when the id passes `isValidUrl`, and it stops click propagation so it does not select the annotation.
+- **Evidence.** The plugin passes `windowId`, Mirador's `selectAnnotation` and the ids of the canvas annotations. `resolveLinkedAnnotationId` matches the exact id, else the `#target-N` form made by `expandAnnotations`. No match: disabled button with a tooltip. Labels are overridable through the `labels` prop (`evidence`, `evidenceUnavailable`, `purposes`).
+- **Choice.** `pickChoiceItem` keeps the item whose `language` matches the reader's preferences, else the first, then routes it through the normal renderer (depth bounded by `MAX_CHOICE_DEPTH`).
+- **Plugin trigger.** `shouldUseCustomRendering` is also true for `SpecificResource` and `Choice` bodies, so characterization annotations get the rich rendering instead of Mirador's plain-text list.
 
 ### Build externals and peer policy
 

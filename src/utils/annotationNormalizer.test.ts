@@ -215,6 +215,16 @@ describe('normalizeAnnotationList — body mapping', () => {
   });
   const bodyOf = (resource: unknown) => firstBody(normalizeAnnotationList(wrap(resource))[0].body);
 
+  it('oa:Choice → Choice with default and alternatives as items', () => {
+    const b = bodyOf({
+      '@type': 'oa:Choice',
+      default: { '@type': 'cnt:ContentAsText', chars: 'Hello', language: 'en' },
+      item: [{ '@type': 'cnt:ContentAsText', chars: 'Bonjour', language: 'fr' }],
+    }) as { type: string; items: Array<{ value: string }> };
+    expect(b.type).toBe('Choice');
+    expect(b.items.map((i) => i.value)).toEqual(['Hello', 'Bonjour']);
+  });
+
   it('dctypes:Dataset + text/csv → Dataset, format preserved', () => {
     expect(bodyOf({ '@id': 'x', '@type': 'dctypes:Dataset', format: 'text/csv' })).toMatchObject({
       type: 'Dataset', id: 'x', format: 'text/csv',

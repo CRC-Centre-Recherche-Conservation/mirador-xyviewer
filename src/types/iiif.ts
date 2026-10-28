@@ -109,8 +109,19 @@ export interface SpecificResourceBody extends BaseBody {
   selector?: unknown;
 }
 
+/** Case 5: Choice (WADM §4.3, IIIF cookbook 0346) - alternatives of which one is shown. */
+export interface ChoiceBody extends BaseBody {
+  type: 'Choice';
+  items: AnnotationBody[];
+}
+
 /** Union of all supported body types (normalized model == v3). */
-export type AnnotationBodyV3 = ManifestBody | DatasetBody | TextualBody | SpecificResourceBody;
+export type AnnotationBodyV3 =
+  | ManifestBody
+  | DatasetBody
+  | TextualBody
+  | SpecificResourceBody
+  | ChoiceBody;
 export type AnnotationBody = AnnotationBodyV3;
 
 /** Raw v2 annotation body (the `resource` field; arrays handled by the mapper). */
@@ -240,7 +251,45 @@ export function isTextualBody(body: AnnotationBody): body is TextualBody {
   return body.type === 'TextualBody';
 }
 
-/** Helper to normalize body to array */
-export function normalizeBody(body: AnnotationBody | AnnotationBody[]): AnnotationBody[] {
+export function isSpecificResourceBody(body: AnnotationBody): body is SpecificResourceBody {
+  return body.type === 'SpecificResource';
+}
+
+export function isChoiceBody(body: AnnotationBody): body is ChoiceBody {
+  return body.type === 'Choice' && Array.isArray((body as ChoiceBody).items);
+}
+
+/** Purposes of a body, keeping only strings (producer data is untrusted). */
+export function stringPurposes(body: { purpose?: unknown }): string[] {
+  return [body.purpose ?? []].flat().filter((p): p is string => typeof p === 'string' && p !== '');
+}
+
+/** A SpecificResource whose purpose includes `linking` (a pointer to another resource, e.g. evidence). */
+export function isLinkingBody(body: AnnotationBody): body is SpecificResourceBody {
+  return isSpecificResourceBody(body) && stringPurposes(body).includes('linking');
+}
+
+/** BCP47 language tags of a body: `language` may be a string or an array; other values are ignored. */
+export function stringLanguages(body: object): string[] {
+  return [(body as { language?: unknown }).language ?? []].flat().filter((l): l is string => typeof l === 'string' && l !== '');
+}
+
+/** Id of a SpecificResource's source, whether `source` is a string or an object. */
+export function srSourceId(body: SpecificResourceBody): string {
+  const { source } = body;
+  if (typeof source === 'string') return source;
+  return typeof source?.id === 'string' ? source.id : '';
+}
+
+/** Label of a SpecificResource: its own, else its source's. */
+export function srLabel(body: SpecificResourceBody): LocalizedString | undefined {
+  if (body.label) return body.label;
+  const { source } = body;
+  return typeof source === 'object' && source ? source.label : undefined;
+}
+
+/** Helper to normalize body to array (absent bodies give an empty list) */
+export function normalizeBody(body: AnnotationBody | AnnotationBody[] | null | undefined): AnnotationBody[] {
+  if (body == null) return [];
   return Array.isArray(body) ? body : [body];
 }
