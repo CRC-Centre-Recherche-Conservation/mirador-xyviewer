@@ -82,22 +82,24 @@ const viewer = Mirador.viewer(
 With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
 every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
 and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
-use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
+use; anything missing is loaded but not displayed. Use the bare W3C names: `annotationPostprocessor`
+converts IIIF v2 (Open Annotation) annotations to the W3C model, so `oa:commenting` reaches Mirador as
+`commenting` (`sc:painting` is kept). The `oa:` forms only matter for v2 annotations that do not go
+through `annotationPostprocessor`.
 
 ```javascript
 annotations: {
   filteredMotivations: [
     'commenting', 'tagging', 'painting', 'classifying', 'identifying',
-    'describing', 'assessing', 'linking', 'supplementing',
+    'describing', 'assessing', 'linking', 'supplementing', 'sc:painting',
+    // Only for v2 annotations that bypass annotationPostprocessor:
     'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
-    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
+    'oa:describing', 'oa:assessing', 'oa:linking',
   ],
 }
 ```
 
 Without this, annotations will load but won't display in the UI.
-
-> **v2 motivations:** Open Annotation motivations reach Mirador without the `oa:` prefix (`oa:commenting` becomes `commenting`, `oa:classifying` becomes `classifying`); `sc:painting` is unchanged. Keep both forms in `filteredMotivations` as above. A host that filters on the `oa:` form of a motivation other than `oa:commenting` / `oa:tagging` must add the bare form.
 
 ### Point Annotation Postprocessor
 
@@ -391,15 +393,19 @@ const viewer = Mirador.viewer(config, [
 **Solution:** With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
 every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
 and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
-use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
+use; anything missing is loaded but not displayed. Use the bare W3C names: `annotationPostprocessor`
+converts IIIF v2 (Open Annotation) annotations to the W3C model, so `oa:commenting` reaches Mirador as
+`commenting` (`sc:painting` is kept). The `oa:` forms only matter for v2 annotations that do not go
+through `annotationPostprocessor`.
 
 ```javascript
 annotations: {
   filteredMotivations: [
     'commenting', 'tagging', 'painting', 'classifying', 'identifying',
-    'describing', 'assessing', 'linking', 'supplementing',
+    'describing', 'assessing', 'linking', 'supplementing', 'sc:painting',
+    // Only for v2 annotations that bypass annotationPostprocessor:
     'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
-    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
+    'oa:describing', 'oa:assessing', 'oa:linking',
   ],
 }
 ```
