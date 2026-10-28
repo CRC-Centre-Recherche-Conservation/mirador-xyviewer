@@ -72,8 +72,9 @@ If no token matches, the fetch keeps the secure default (`credentials: 'omit'`, 
 
 **Write side — login trigger.** When a dataset fetch fails with `401/403`, the panel shows
 a quiet **protected record** with a **Sign in** button. Clicking it (for a resource that
-declares its auth `service`) opens the IIIF Auth login window, retrieves the token into
-Mirador's store, and **auto-retries** the fetch. Datasets that declare no (trusted) auth
+declares its auth `service`) opens the IIIF Auth login window (with the page's `origin=`
+appended, as IIIF Auth 1.0 §2.1.2 requires), retrieves the token into Mirador's store, and
+**auto-retries** the fetch. Datasets that declare no (trusted) auth
 service fall back to a manual "Open resource" → "Try again" path.
 
 ## Trust model

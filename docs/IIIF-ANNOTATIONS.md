@@ -519,18 +519,20 @@ Before publishing your annotations, verify:
 
 ## Mirador Configuration
 
-Remember to configure Mirador to display your annotations:
+With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
+every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
+and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
+use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
 
-```typescript
-const viewer = Mirador.viewer({
-  annotations: {
-    filteredMotivations: [
-      'oa:commenting', 'oa:tagging', 'sc:painting',
-      'commenting', 'tagging',
-      'supplementing'  // Required for physicochemical annotations
-    ]
-  }
-}, [scientificAnnotationPlugin]);
+```javascript
+annotations: {
+  filteredMotivations: [
+    'commenting', 'tagging', 'painting', 'classifying', 'identifying',
+    'describing', 'assessing', 'linking', 'supplementing',
+    'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
+    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
+  ],
+}
 ```
 
 ## Protected datasets (IIIF Auth)

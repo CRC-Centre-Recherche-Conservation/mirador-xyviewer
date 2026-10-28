@@ -13,7 +13,9 @@ import type { AnnotationBody } from '../types/iiif';
 
 vi.mock('./ManifestBody', () => ({ ManifestBody: () => <div data-testid="manifest-body" /> }));
 vi.mock('./DatasetBody', () => ({ DatasetBody: () => <div data-testid="dataset-body" /> }));
-vi.mock('./TextualBody', () => ({ TextualBody: () => <div data-testid="textual-body" /> }));
+vi.mock('./TextualBody', () => ({ TextualBody: ({ ruleSet }: { ruleSet?: string }) => (
+    <div data-testid="textual-body" data-ruleset={ruleSet} />
+  ) }));
 
 const baseProps = {
   dispatch: vi.fn(),
@@ -71,5 +73,12 @@ describe('AnnotationBodyRenderer', () => {
     expect(screen.getByTestId('textual-body')).toBeInTheDocument();
     // One <hr> divider sits between the two bodies (index > 0).
     expect(container.querySelectorAll('hr')).toHaveLength(1);
+  });
+
+  it('forwards ruleSet to TextualBody', () => {
+    render(
+      <AnnotationBodyRenderer body={{ type: 'TextualBody', value: 'hi' }} ruleSet="noHtml" {...baseProps} />,
+    );
+    expect(screen.getByTestId('textual-body')).toHaveAttribute('data-ruleset', 'noHtml');
   });
 });

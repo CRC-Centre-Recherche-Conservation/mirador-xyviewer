@@ -11,8 +11,8 @@
 
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { addWindow as miradorAddWindow } from 'mirador';
-import { Box, Typography, MenuItem, ListItemText } from '@mui/material';
+import { addWindow as miradorAddWindow, SanitizedHtml } from 'mirador';
+import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { filtersStore } from '../state/filtersStore';
@@ -99,7 +99,7 @@ export function shownOnlyBecauseSelected(
 interface TargetProps {
   annotations?: Array<{
     id: string;
-    content: string;
+    content: string | null;
     tags: string[];
     targetId: string;
   }>;
@@ -111,6 +111,8 @@ interface TargetProps {
   deselectAnnotation: (windowId: string, annotationId: string) => void;
   hoverAnnotation: (windowId: string, annotationIds: string[]) => void;
   containerRef?: React.RefObject<HTMLElement>;
+  /** Mirador's HTML sanitization rule set (iiif, liberal, mirador2, noHtml). */
+  htmlSanitizationRuleSet?: string;
 }
 
 interface PluginWrapperProps {
@@ -141,7 +143,9 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     selectAnnotation,
     deselectAnnotation,
     hoverAnnotation,
+    htmlSanitizationRuleSet,
   } = targetProps;
+  const ruleSet = htmlSanitizationRuleSet ?? 'iiif';
 
   // Refs for scrolling to annotations
   const annotationRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -228,7 +232,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 
   // Render mixed annotations - scientific ones custom, others default
   return (
-    <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+    <MenuList disablePadding>
       {visibleAnnotations.map((annotation) => {
         const resource = annotationResources[annotation.id];
         const isScientific = customRenderingIds.has(annotation.id);
@@ -269,11 +273,12 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
               )}
               <ListItemText
                 primary={
-                  <Typography
-                    variant="body2"
-                    dangerouslySetInnerHTML={{ __html: annotation.content }}
-                  />
+                  <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
                 }
+                secondary={annotation.tags?.map((tag) => (
+                  <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
+                ))}
+                slotProps={{ primary: { variant: 'body2' } }}
               />
             </MenuItem>
           );
@@ -294,7 +299,19 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
               if (el) annotationRefs.current.set(annotation.id, el);
               else annotationRefs.current.delete(annotation.id);
             }}
-            onClick={() => handleAnnotationClick(annotation.id)}
+            onClick={(e: React.MouseEvent<HTMLElement>) => {
+              const target = e.target as Element;
+              // Ignore portaled content (expand dialog) bubbling through the React tree.
+              if (!e.currentTarget.contains(target)) return;
+              // Buttons inside the body (Retry, Sign in, ...) must not also select the annotation.
+              const control = target.closest?.('button, a, [role="button"]');
+              if (control && e.currentTarget.contains(control)) return;
+              handleAnnotationClick(annotation.id);
+            }}
+            // Keep MenuList roving focus / typeahead away from the body and its dialog.
+            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+              if (e.target !== e.currentTarget) e.stopPropagation();
+            }}
             onMouseEnter={() => handleAnnotationHover(annotation.id)}
             onMouseLeave={() => handleAnnotationHover(null)}
             sx={{
@@ -334,6 +351,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                 isActive={isSelected}
                 onDataLoaded={handleDataLoaded}
                 onVisibilityChange={handleVisibilityChange}
+                ruleSet={ruleSet}
               />
             )}
 
@@ -359,7 +377,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           </Box>
         );
       })}
-    </Box>
+    </MenuList>
   );
 };
 

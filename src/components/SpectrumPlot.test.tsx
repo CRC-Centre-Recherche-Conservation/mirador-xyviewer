@@ -134,6 +134,11 @@ describe('SpectrumPlot — expand to modal', () => {
     expect(getInlinePlotProps().config?.modeBarButtonsToAdd).toBeUndefined();
   });
 
+  it('disables the plotly.js 4 "send to cloud" modebar button', () => {
+    render(<SpectrumPlot data={makeData()} />);
+    expect(getInlinePlotProps().config).toMatchObject({ showSendToCloud: false });
+  });
+
   it('adds a custom "expandPlot" modebar button when enableExpand is true', () => {
     render(<SpectrumPlot data={makeData()} enableExpand />);
     const btn = getExpandButton(getInlinePlotProps());

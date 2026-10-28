@@ -7,6 +7,7 @@ import React from 'react';
 import { Box, Typography, Link } from '@mui/material';
 import type { MetadataEntry, LocalizedString, SeeAlsoEntry } from '../types/iiif';
 import { getLocalizedString } from '../utils/localization';
+import { isValidUrl } from '../utils/security';
 
 export interface MetadataDisplayProps {
   /** Label of the annotation */
@@ -39,13 +40,6 @@ function extractUrlFromValue(value: string): { text: string; url: string | null 
   }
 
   return { text: value, url: null };
-}
-
-/**
- * Check if a string is a valid URL
- */
-function isValidUrl(str: string): boolean {
-  return /^https?:\/\//.test(str);
 }
 
 export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
@@ -98,8 +92,8 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
       {labelText && (
         <Typography
           variant="subtitle1"
-          fontWeight="bold"
           sx={{
+            fontWeight: 'bold',
             mb: 0.5,
             color: 'primary.main',
             fontSize: '1rem'
@@ -194,7 +188,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             }
 
             // 3. Affichage conditionnel
-            if (!url) {
+            if (!url || !isValidUrl(url)) {
               console.warn(`L'élément seeAlso à l'index ${index} n'a pas d'URL valide.`, item);
               return null;
             }

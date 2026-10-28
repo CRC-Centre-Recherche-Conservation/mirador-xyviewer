@@ -16,8 +16,20 @@ This guide explains how to configure Mirador 4 to work with mirador-xyviewer.
 ### Installation
 
 ```bash
-npm install mirador mirador-xyviewer
+npm install mirador mirador-xyviewer @mui/icons-material plotly.js react-plotly.js
 ```
+
+**Peer requirements:** `mirador` ^4.2.2, `@mui/material` and `@mui/icons-material` ^7 or ^9
+(same major as your Mirador build: 4.2.2-4.2.4 use MUI 7, 4.2.5 accepts 7 or 9, 4.2.6 should stay on 7 because it pins `@mui/icons-material` 7, 4.3+ needs 9),
+`plotly.js` ^3 or ^4, `react-plotly.js` ^2.6, ^3 or ^4, React 18 or 19.
+
+#### Migration: requiring Mirador 4.2.2+
+
+- Upgrade Mirador to 4.2.2 or later.
+- Install `@mui/icons-material` next to `@mui/material` (now a peer dependency), same major.
+- Upgrade `plotly.js` to 3 or 4. With `plotly.js` 3+, `react-plotly.js` 2.6, 3 or 4 all work.
+- `react-i18next` is no longer a peer dependency of this package (Mirador still needs it).
+- The Plotly "send to cloud" modebar button is explicitly disabled, so plotly.js 4 does not enable it by default.
 
 ### HTML Container
 
@@ -67,24 +79,20 @@ const viewer = Mirador.viewer(
 
 ### Annotation Motivation Filter
 
-**This is critical.** Mirador filters annotations by `motivation`. Physicochemical annotations use `supplementing`, which is NOT in the default list.
+With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
+every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
+and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
+use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
 
 ```javascript
-const viewer = Mirador.viewer({
-  id: 'mirador-container',
-  annotations: {
-    filteredMotivations: [
-      // Default motivations
-      'oa:commenting',
-      'oa:tagging',
-      'sc:painting',
-      'commenting',
-      'tagging',
-      // Add this for physicochemical annotations
-      'supplementing',
-    ],
-  },
-}, [scientificAnnotationPlugin]);
+annotations: {
+  filteredMotivations: [
+    'commenting', 'tagging', 'painting', 'classifying', 'identifying',
+    'describing', 'assessing', 'linking', 'supplementing',
+    'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
+    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
+  ],
+}
 ```
 
 Without this, annotations will load but won't display in the UI.
@@ -147,15 +155,18 @@ Configure how HTML in annotations is sanitized:
 const viewer = Mirador.viewer({
   id: 'mirador-container',
   annotations: {
-    htmlSanitizationRuleSet: 'iiif',  // or 'liberal' or 'none'
+    htmlSanitizationRuleSet: 'iiif',  // or 'liberal', 'mirador2', 'noHtml'
   },
 }, [scientificAnnotationPlugin]);
 ```
 
 Options:
-- `'iiif'` - Strict, IIIF-compliant sanitization (recommended)
+- `'iiif'` - Strict, IIIF-compliant sanitization (default, recommended)
 - `'liberal'` - More permissive
-- `'none'` - No sanitization (not recommended)
+- `'mirador2'` - Mirador 2 compatible rules
+- `'noHtml'` - Strip all markup, keep text only
+
+The plugin honours this setting for plain annotations and `text/html` bodies (rendered through Mirador's `SanitizedHtml`). `text/plain` bodies are always shown as literal text.
 
 ### Workspace Settings
 
@@ -236,14 +247,7 @@ const viewer = Mirador.viewer(
     // Annotation configuration
     annotations: {
       htmlSanitizationRuleSet: 'iiif',
-      filteredMotivations: [
-        'oa:commenting',
-        'oa:tagging',
-        'sc:painting',
-        'commenting',
-        'tagging',
-        'supplementing',  // Required for physicochemical annotations
-      ],
+      // Leave filteredMotivations unset to show every motivation (see Troubleshooting)
     },
 
     // Request postprocessors
@@ -368,12 +372,13 @@ const viewer = Mirador.viewer(config, [
 
 ```javascript
 import { scientificAnnotationPlugin, metadataFiltersPlugin } from 'mirador-xyviewer';
-import miradorImageToolsPlugin from 'mirador-image-tools';
+// Optional companion plugin: npm install mirador-image-tools
+import { miradorImageToolsPlugin } from 'mirador-image-tools';
 
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
   metadataFiltersPlugin,
-  ...miradorImageToolsPlugin,  // Image manipulation tools
+  ...miradorImageToolsPlugin,  // Array of plugins: spread it
 ]);
 ```
 
@@ -383,14 +388,18 @@ const viewer = Mirador.viewer(config, [
 
 **Symptom:** Annotations load (visible in Redux DevTools) but don't appear.
 
-**Solution:** Add `supplementing` to `filteredMotivations`:
+**Solution:** With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
+every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
+and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
+use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
 
 ```javascript
 annotations: {
   filteredMotivations: [
-    'oa:commenting', 'oa:tagging', 'sc:painting',
-    'commenting', 'tagging',
-    'supplementing'  // Add this
+    'commenting', 'tagging', 'painting', 'classifying', 'identifying',
+    'describing', 'assessing', 'linking', 'supplementing',
+    'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
+    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
   ],
 }
 ```
@@ -506,10 +515,9 @@ plugin:
 
 ### Interaction with scientific annotations
 
-- **`filteredMotivations` does not affect search.** Scientific annotations require
-  `supplementing` in `annotations.filteredMotivations`, but Mirador renders search hits
-  from a separate state slice that ignores annotation motivation — adding `supplementing`
-  neither helps nor hinders search-hit display.
+- **`filteredMotivations` does not affect search.** Mirador renders search hits from a
+  separate state slice that ignores annotation motivation, so restricting or widening
+  `annotations.filteredMotivations` neither helps nor hinders search-hit display.
 - **Index only text annotations.** Scientific bodies are `Dataset` (CSV/spectra) with no
   searchable text; index transcription/commenting annotations in your search service, not
   the scientific ones.

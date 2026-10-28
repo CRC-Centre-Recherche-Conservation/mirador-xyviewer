@@ -167,6 +167,10 @@ export function AnnotationBodyRenderer({ body, annotation, addWindow }: Props) {
 }
 ```
 
+### HTML sanitization
+
+Annotation HTML (plain annotation content and `text/html` bodies) is never injected by the plugin itself: it goes through Mirador's `SanitizedHtml` with the host's `htmlSanitizationRuleSet` (default `iiif`). `text/plain` bodies are React text children, so React escapes them. `escapeHtml` and `sanitizeText` in `utils/security.ts` are only for non-React string contexts; do not apply them to React children.
+
 ### DatasetBody
 
 Handles loading and displaying spectral data.
@@ -558,23 +562,23 @@ const COLORS = [
 
 ### Localization
 
-Components use `react-i18next`. Add translations:
+Components do not use `react-i18next`. User-facing strings are overridable props, for example
+`SpectrumPlot` accepts a `labels` object that is merged over `DEFAULT_LABELS`:
 
-```typescript
-// src/locales/en.json
-{
-  "loadSpectrum": "Load Spectrum",
-  "loading": "Loading...",
-  "error": "Failed to load data"
-}
-
-// src/locales/fr.json
-{
-  "loadSpectrum": "Charger le spectre",
-  "loading": "Chargement...",
-  "error": "Échec du chargement"
-}
+```tsx
+<SpectrumPlot data={data} labels={{ expandButton: 'Agrandir', closeButton: 'Fermer' }} />
 ```
+
+### Build externals and peer policy
+
+`config/externals.ts` decides what stays out of `dist/`: every `peerDependencies` entry plus `redux` (type-only import), matched with their subpaths (`react/jsx-runtime`, `@mui/material/styles`, ...). Only `papaparse` and `ipaddr.js` are bundled. `config/externals.test.ts` guards this: when you import a new host-provided package, declare it as a peer.
+
+### Peer dependency policy
+
+Peers are the range we test: the lower end (Mirador 4.2.2, MUI 7, plotly.js 3, react-plotly.js 2.6)
+and the upper end (Mirador 4.3, MUI 9, plotly.js 4, react-plotly.js 4). Dev dependencies track the
+upper end. The lower end is verified by the `Lower-end peers` CI job, which rewrites the dev dependencies to
+that range (see `.github/workflows/ci.yml`) and runs typecheck + tests without the lockfile.
 
 ## Testing
 

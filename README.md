@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/CRC-Centre-Recherche-Conservation/mirador-xyviewer/branch/main/graph/badge.svg)](https://codecov.io/gh/CRC-Centre-Recherche-Conservation/mirador-xyviewer)
 [![npm version](https://img.shields.io/npm/v/mirador-xyviewer.svg)](https://www.npmjs.com/package/mirador-xyviewer)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Mirador](https://img.shields.io/badge/Mirador-4.0-green.svg)](https://projectmirador.org/)
+[![Mirador](https://img.shields.io/badge/Mirador-4.2.2%2B-green.svg)](https://projectmirador.org/)
 [![IIIF](https://img.shields.io/badge/IIIF-v2%20%26%20v3-orange.svg)](https://iiif.io/)
 
 A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format. Developed by the [Centre de Recherche sur la Conservation (CRC)](https://crc.mnhn.fr/) for museum and heritage applications requiring spectral data visualization (XRF, Raman, FTIR, UV-Vis, etc.).
@@ -35,7 +35,7 @@ responses, so it composes cleanly with the rest of the IIIF stack:
 | Image 2.x / 3.0 | ✅ Full | Served by Mirador/OpenSeadragon; the plugin never calls it directly |
 | Content Search 1.0 / 2.0 | ✅ Untouched | The annotation post-processor is gated to annotation responses only — search `hits`/pagination are preserved. See [Enabling IIIF Content Search](docs/MIRADOR-CONFIGURATION.md#iiif-content-search) for setup and caveats. |
 | Authorization Flow 1.0 / 2.0 | ⚠️ Opt-in | Manifest/image auth is handled by Mirador. Access-controlled **datasets** need [`configureDatasetRequests`](#protected-datasets-iiif-auth) |
-| Content State 1.0 | ✅ No conflict | Handled by Mirador; the plugin does not interfere |
+| Content State 1.0 | ⚠️ Not in Mirador | Mirador 4 has no Content State support and the plugin does not interfere; demo support is planned ([#69](https://github.com/CRC-Centre-Recherche-Conservation/mirador-xyviewer/issues/69)) |
 | Change Discovery 1.0 | — Out of scope | Server-side discovery; not a viewer concern |
 
 ### Protected datasets (IIIF Auth)
@@ -137,8 +137,26 @@ trusted (explicit mode) — fall back to the manual "Open resource" → "Try aga
 ## Quick Start
 
 ```bash
-npm install mirador mirador-xyviewer plotly.js react-plotly.js
+npm install mirador mirador-xyviewer @mui/material @mui/icons-material plotly.js react-plotly.js
 ```
+
+### Compatibility
+
+Requires **Mirador 4.2.2 or later** (4.2.0 is deprecated upstream), React 18 or 19,
+`plotly.js` 3 or 4 and `react-plotly.js` 2.6, 3 or 4 (`react-plotly.js` 3+ needs `plotly.js` 3+).
+`@mui/material` and `@mui/icons-material` are peer dependencies and must share the same major
+as the MUI version your Mirador build uses:
+
+| Mirador | MUI |
+|---|---|
+| 4.2.2 to 4.2.4 | 7 |
+| 4.2.5 | 7 or 9 |
+| 4.2.6 | 7 (9 installs with a peer-override warning: this release pins `@mui/icons-material` 7) |
+| 4.3+ | 9 |
+
+Mirador 4.3 also expects `@mui/system` 9 in the host. `plotly.js` 2 is no longer supported.
+
+> **Upgrading from 1.x:** see [Migration](./docs/MIRADOR-CONFIGURATION.md#migration-requiring-mirador-422).
 
 ```typescript
 import Mirador from 'mirador';
@@ -153,12 +171,6 @@ import {
 Mirador.viewer({
   id: 'mirador-container',
   windows: [{ manifestId: 'https://example.org/manifest.json' }],
-  annotations: {
-    filteredMotivations: [
-      'oa:commenting', 'oa:tagging', 'sc:painting',
-      'commenting', 'tagging', 'supplementing'
-    ],
-  },
   requests: {
     postprocessors: [annotationPostprocessor],
   },
@@ -213,4 +225,4 @@ Apache License 2.0 - see [LICENSE](LICENSE)
 ## Related Projects
 
 - [Mirador](https://github.com/ProjectMirador/mirador) - IIIF image viewer
-- [mirador-image-tools](https://github.com/ProjectMirador/mirador-image-tools) - Image manipulation tools for Mirador
+- [mirador-image-tools](https://github.com/ProjectMirador/mirador-image-tools) - Optional companion plugin for image manipulation tools (install it separately)

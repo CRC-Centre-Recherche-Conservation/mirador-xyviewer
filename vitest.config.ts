@@ -8,7 +8,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'config/**/*.test.ts'],
+    // react-plotly.js 4 ships ESM with extensionless imports that Node cannot resolve.
+    server: { deps: { inline: ['react-plotly.js'] } },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
