@@ -41,7 +41,8 @@ vi.mock('./datasetParser', () => ({
 }));
 vi.mock('./datasetCache', () => ({ datasetCache: cache }));
 
-import { fetchDataset, fetchDatasetBlob, configureDatasetRequests } from './datasetFetcher';
+import { fetchDataset, fetchDatasetBlob, configureDatasetRequests, abortFetch, datasetCacheKey } from './datasetFetcher';
+import { MAX_DOWNLOAD_SIZE } from '../types/dataset';
 
 // --- Helpers ---------------------------------------------------------------
 /** Build a minimal streamed Response stub for performFetch(). */
@@ -95,6 +96,19 @@ describe('fetchDataset — cache and dedup', () => {
     const res = await fetchDataset(URL_OK, 'text/csv', 'L');
     expect(res).toEqual({ status: 'success', data: parsed });
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keys the cache by URL plus the validated reading', async () => {
+    cache.get.mockReturnValue(parsed);
+    const reading = { type: 'XYReading', x: { reversed: true } };
+    await fetchDataset(URL_OK, 'text/csv', 'L');
+    await fetchDataset(URL_OK, 'text/csv', 'L', undefined, undefined, reading);
+    await fetchDataset(URL_OK, 'text/csv', 'L', undefined, undefined, 'garbage');
+    const keys = cache.get.mock.calls.map(c => c[0]);
+    expect(keys[0]).toBe(URL_OK);
+    expect(keys[1]).not.toBe(URL_OK);
+    expect(keys[1].startsWith(URL_OK)).toBe(true);
+    expect(keys[2]).toBe(URL_OK);
   });
 
   it('awaits a pending request and returns its data', async () => {
@@ -175,6 +189,31 @@ describe('fetchDataset — network and response guards', () => {
     vi.mocked(global.fetch).mockRejectedValue(abort);
     const res = await fetchDataset(URL_OK, 'text/csv', 'L');
     expect(res).toEqual({ status: 'error', error: 'Request aborted' });
+  });
+});
+
+describe('fetchDataset — abort per reading', () => {
+  it('aborting one reading of a URL leaves the other request running', async () => {
+    const signals: AbortSignal[] = [];
+    vi.mocked(global.fetch).mockImplementation(
+      (_u, init) =>
+        new Promise((_res, rej) => {
+          const s = (init as RequestInit).signal as AbortSignal;
+          signals.push(s);
+          s.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+        })
+    );
+    const a = { type: 'XYReading', x: { reversed: true } };
+    const b = { type: 'XYReading', x: { reversed: false } };
+    const pa = fetchDataset(URL_OK, 'text/csv', 'L', undefined, undefined, a);
+    const pb = fetchDataset(URL_OK, 'text/csv', 'L', undefined, undefined, b);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(signals).toHaveLength(2);
+    abortFetch(datasetCacheKey(URL_OK, a));
+    expect(signals[0].aborted).toBe(true);
+    expect(signals[1].aborted).toBe(false);
+    abortFetch(datasetCacheKey(URL_OK, b));
+    await Promise.all([pa, pb]);
   });
 });
 
@@ -288,6 +327,40 @@ describe('fetchDatasetBlob — authenticated download', () => {
   it('throws an auth-required error on 401 (so the caller can sign in)', async () => {
     vi.mocked(global.fetch).mockResolvedValue(blobResponse('Unauthorized', { ok: false, status: 401, statusText: 'Unauthorized' }));
     await expect(fetchDatasetBlob(URL_OK)).rejects.toMatchObject({ authRequired: true });
+  });
+
+  it('rejects a declared Content-Length above the download cap', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true, status: 200, statusText: 'OK',
+      headers: new Headers({ 'content-length': String(MAX_DOWNLOAD_SIZE + 1) }),
+      blob: async () => new Blob(['x']),
+    } as unknown as Response);
+    await expect(fetchDatasetBlob(URL_OK)).rejects.toThrow(/maximum download size/);
+  });
+
+  it('cancels the stream once the cap is exceeded', async () => {
+    const cancel = vi.fn();
+    const chunk = new Uint8Array(MAX_DOWNLOAD_SIZE / 2 + 1);
+    const reads = [{ done: false, value: chunk }, { done: false, value: chunk }];
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true, status: 200, statusText: 'OK',
+      headers: new Headers(),
+      body: { getReader: () => ({ read: async () => reads.shift(), cancel }) },
+    } as unknown as Response);
+    await expect(fetchDatasetBlob(URL_OK)).rejects.toThrow(/maximum download size/);
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it('buffers a streamed body into a typed Blob', async () => {
+    const reads: Array<{ done: boolean; value?: Uint8Array }> = [{ done: false, value: new Uint8Array([1, 2]) }, { done: true }];
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true, status: 200, statusText: 'OK',
+      headers: new Headers({ 'content-type': 'application/x-test' }),
+      body: { getReader: () => ({ read: async () => reads.shift(), cancel: vi.fn() }) },
+    } as unknown as Response);
+    const blob = await fetchDatasetBlob(URL_OK);
+    expect(blob.size).toBe(2);
+    expect(blob.type).toBe('application/x-test');
   });
 
   it('rejects a non-http(s) URL before fetching', async () => {

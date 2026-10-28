@@ -61,6 +61,14 @@ responses, so it composes cleanly with the rest of the IIIF stack:
 | Content State 1.0 | ✅ Plugin helpers | Mirador itself has no Content State support. The library parses, resolves and turns content states into Mirador windows, see [Opening a IIIF Content State](docs/MIRADOR-CONFIGURATION.md#opening-a-iiif-content-state) |
 | Change Discovery 1.0 | — Out of scope | Server-side discovery; not a viewer concern |
 
+### Reading hints for spectra (`xyReading`)
+
+A Dataset body can carry an optional, advisory `xyReading` extension object that configures the XY
+renderer: localized axis titles, column roles (left/right Y axes), CSV dialect, a reversed X axis,
+a reference normalization, and a link to the raw file (offered as **Download raw data**). It is validated
+defensively with the exported `parseXyReading`; when it is absent, invalid or of an unknown type the file
+is read as before. See [Spectral data format](docs/SPECTRAL-DATA-FORMAT.md#reading-hints-the-xyreading-extension).
+
 ### Protected datasets (IIIF Auth)
 
 Dataset/spectrum files are fetched by the plugin itself. By default the request uses

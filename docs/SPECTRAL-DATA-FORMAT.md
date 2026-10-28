@@ -9,6 +9,7 @@ This guide explains how to format CSV/TSV spectral data files for use with mirad
 - [Column Recognition](#column-recognition)
 - [Multi-Series Data](#multi-series-data)
 - [Delimiter Detection](#delimiter-detection)
+- [Reading hints: the `xyReading` extension](#reading-hints-the-xyreading-extension)
 - [Performance Considerations](#performance-considerations)
 - [Examples by Technique](#examples-by-technique)
 
@@ -143,6 +144,51 @@ wavelength intensity
 400 0.12
 410 0.15
 ```
+
+## Reading hints: the `xyReading` extension
+
+A Dataset body may carry an optional `xyReading` object (an advisory IIIF extension, version 1, published by
+the data producer with its own JSON-LD context) that tells the viewer how to read the file. It is
+**advisory**: when it is absent, malformed or of an unknown `type`, the file is read exactly as described
+above. Unknown keys are ignored, and the object is validated defensively (it is untrusted remote JSON) by
+`parseXyReading(value)`, exported from the package: bounded column indexes, finite numbers, known enums only,
+capped list lengths. An invalid part is dropped; nothing throws.
+
+```json
+{
+  "id": "https://example.org/data/series.csv",
+  "type": "Dataset",
+  "format": "text/csv",
+  "xyReading": {
+    "type": "XYReading",
+    "dialect": { "delimiter": ",", "headerRowCount": 1, "encoding": "utf-8" },
+    "columns": [{ "index": 0, "role": "x" }, { "index": 1, "role": "yLeft" }],
+    "x": { "label": { "en": ["Wavelength (nm)"] }, "reversed": false },
+    "y": [{ "axis": "left", "label": { "en": ["Reflectance (0-1)"] } }],
+    "corrections": [],
+    "derivedFrom": { "id": "https://example.org/data/raw", "type": "Dataset", "format": "text/csv" }
+  }
+}
+```
+
+| Key | Effect |
+|-----|--------|
+| `x.label`, `y[i].label` | Axis titles and series names, IIIF language maps resolved with the reader's language like other labels. Fall back to the CSV header text. `y[i]` matches the i-th measurement column. |
+| `x.reversed: true` | Sorts the rows by descending X (instead of ascending) and draws the X axis from right to left. |
+| `columns` | Roles by zero-based index: `x`, `yLeft`, `yRight`, `reference`, `dark`, `ignore`. They replace the X-header heuristics. `yLeft` series use the left Y axis, `yRight` series a second, right-hand Y axis. `reference`, `dark` and `ignore` are never plotted. Columns that cannot be honoured (an unknown role, a duplicate or invalid index, no or several `x`, no measurement, an index outside the file) are set aside together with the labels and the axis direction. |
+| `dialect` | CSV on the Web terms `delimiter` (one character or a tab), `headerRowCount` (0 to 100) and `encoding` (any label `TextDecoder` supports) replace delimiter and header sniffing and UTF-8 decoding. Other values are ignored. |
+| `corrections` | Applied in order. Version 1 knows `reference-normalize`: `y' = (y - dark) / (reference - dark)`, with `dark` taken from the `dark` column or `darkDefault` (default 0). A row with a missing or non-finite value, or a denominator below `epsilon` (default `1e-12`), is dropped. An empty list says the file already holds the curve. |
+| `derivedFrom` | The raw file the curve was derived from (an `http(s)` Dataset). The viewer offers a **Download raw data** action next to the plot, through the same authenticated fetch and sign-in flow as "Open resource". It is never fetched automatically. The saved name is the response's `Content-Disposition` filename (when CORS-exposed), else the URL's file name when it has an extension, else a leading `name.ext` token of the raw file's `label` (e.g. `scan.spa, raw file`), else the label or the data file's name plus `-raw`; `.csv`, `.tsv` or `.txt` is added only for those exact formats. Bidi/invisible format characters in names are replaced and trailing dots/spaces dropped. The raw file is read in memory, capped at 50 MB (`MAX_DOWNLOAD_SIZE`). The link is shown in every state of the dataset (not loaded, loading, error, protected, non-plottable). The same naming applies to "Open resource" on a non-plottable dataset. A `seeAlso` entry of the annotation pointing at the same raw file is not listed again (the authenticated download replaces it). |
+
+**Unknown corrections.** If `corrections` lists a type (or an option value) this version does not know, the
+viewer does not plot uncorrected values under corrected titles: the whole reading is set aside (apart from
+`dialect`, needed to decode the file), the raw columns are plotted with their CSV headers, and a note under
+the plot says so. The same happens when a correction cannot be applied because the columns declare no
+`reference` role.
+
+The parsed result is cached per file URL and reading, so two annotations pointing at one file with different readings never share a parse. When a reading is present, at most 1024 columns are read (files without a reading keep every column).
+
+Downsampling and the size limits are unchanged and apply after the corrections.
 
 ## Performance Considerations
 

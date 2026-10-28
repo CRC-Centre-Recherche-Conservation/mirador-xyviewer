@@ -89,3 +89,19 @@ describe('MetadataDisplay', () => {
     });
   });
 });
+
+describe('MetadataDisplay hiddenSeeAlsoIds', () => {
+  it('hides only the listed seeAlso entries', () => {
+    render(
+      <MetadataDisplay
+        seeAlso={[
+          { id: 'https://h.example/raw', label: { en: ['Raw'] } },
+          { id: 'https://h.example/other', label: { en: ['Other'] } },
+        ]}
+        hiddenSeeAlsoIds={new Set(['https://h.example/raw'])}
+      />,
+    );
+    expect(screen.queryByText('Raw')).toBeNull();
+    expect(screen.getByText('Other')).toBeTruthy();
+  });
+});

@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DatasetBody } from './DatasetBody';
 import { datasetCache } from '../services/datasetCache';
+import { datasetCacheKey } from '../services/datasetFetcher';
 import type { DatasetBody as DatasetBodyType } from '../types/iiif';
 
 vi.mock('react-plotly.js', () => ({ default: () => <div data-testid="plotly" /> }));
@@ -17,8 +18,8 @@ const CSV = 'wavelength,intensity\n400,10\n500,20\n600,30';
 const body: DatasetBodyType = { type: 'Dataset', id: 'https://ex.org/spectrum.csv', format: 'text/csv' };
 
 /** Minimal streamed Response over a string (matches performFetch's reader usage). */
-function csvResponse(text: string): Response {
-  const bytes = new TextEncoder().encode(text);
+function csvResponse(text: string | Uint8Array): Response {
+  const bytes = typeof text === 'string' ? new TextEncoder().encode(text) : text;
   let sent = false;
   return {
     ok: true,
@@ -76,5 +77,19 @@ describe('dataset-load integration', () => {
     fireEvent.click(screen.getByRole('button', { name: /Load/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/HTTP 500/);
+  });
+
+  it('decodes with the xyReading dialect encoding and applies its labels', async () => {
+    // "Réflectance" in ISO-8859-1: the 0xE9 byte is invalid UTF-8.
+    const bytes = Uint8Array.from([...'x,R'].map(c => c.charCodeAt(0)).concat([0xe9, 10], [...'1,2\n2,3'].map(c => c.charCodeAt(0))));
+    vi.mocked(global.fetch).mockResolvedValue(csvResponse(bytes));
+    render(
+      <DatasetBody
+        body={{ ...body, xyReading: { type: 'XYReading', dialect: { encoding: 'iso-8859-1' } } }}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+    await screen.findByTestId('plotly');
+    expect(datasetCache.get(datasetCacheKey(body.id, { type: 'XYReading', dialect: { encoding: 'iso-8859-1' } }))?.series[0].label).toBe('Ré');
   });
 });

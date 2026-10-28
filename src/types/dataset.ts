@@ -2,7 +2,7 @@
  * Dataset and Spectrum Types
  */
 
-import type { IiifService } from './iiif';
+import type { IiifService, LocalizedString } from './iiif';
 
 /** Allowed MIME types for dataset fetching */
 export const ALLOWED_MIME_TYPES = [
@@ -32,6 +32,10 @@ export interface SeriesData {
   label: string;
   /** Y values for this series */
   yValues: number[];
+  /** Label as a IIIF language map (xyReading), resolved with the reader's language. */
+  labelMap?: LocalizedString;
+  /** Y axis the series is drawn on (default `left`). */
+  axis?: 'left' | 'right';
 }
 
 /** Parsed spectrum data with support for multiple Y series */
@@ -44,6 +48,15 @@ export interface SpectrumData {
   xValues: number[];
   /** X-axis label (e.g., "Wavelength (nm)") */
   xLabel?: string;
+  /** X-axis label as a IIIF language map (xyReading); wins over `xLabel` when resolvable. */
+  xLabelMap?: LocalizedString;
+  /** X axis drawn right to left (xyReading); the rows keep the file order. */
+  xReversed?: boolean;
+  /**
+   * Set when the xyReading was set aside and the file read as published: it declared a
+   * correction this viewer cannot apply, so plotting it as corrected would mislead.
+   */
+  readingIgnored?: 'unsupported-correction';
   /** Multiple Y series */
   series: SeriesData[];
   /** Original MIME type */
@@ -118,6 +131,7 @@ export interface PlotlyTrace {
   mode: 'lines' | 'markers' | 'lines+markers';
   name: string;
   visible: boolean | 'legendonly';
+  yaxis?: 'y' | 'y2';
   line?: {
     color?: string;
     width?: number;
@@ -157,6 +171,9 @@ export interface PlotlyLayout {
 
 /** Maximum file size for datasets (5 MB) */
 export const MAX_DATASET_SIZE = 5 * 1024 * 1024;
+
+/** Maximum size of a raw file saved through an authenticated download (50 MB) */
+export const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024;
 
 /** Maximum number of data points before downsampling */
 export const MAX_DATA_POINTS = 10000;

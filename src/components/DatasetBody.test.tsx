@@ -7,18 +7,19 @@
  * error + retry (cache cleared, refetch), and the cache-hit-on-mount path.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { DatasetBody, configureDatasetAuth } from './DatasetBody';
 import type { DatasetBody as DatasetBodyType } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
-import { fetchDataset, fetchDatasetBlob, validateDatasetUrl } from '../services/datasetFetcher';
+import { fetchDataset, fetchDatasetFile, validateDatasetUrl } from '../services/datasetFetcher';
 import { datasetCache } from '../services/datasetCache';
 
 vi.mock('./SpectrumPlot', () => ({ SpectrumPlot: () => <div data-testid="spectrum-plot" /> }));
 vi.mock('../services/datasetFetcher', () => ({
   fetchDataset: vi.fn(),
-  fetchDatasetBlob: vi.fn(),
+  fetchDatasetFile: vi.fn(),
   abortFetch: vi.fn(),
+  datasetCacheKey: vi.fn((url: string) => url),
   validateDatasetUrl: vi.fn(() => ({ valid: true })),
 }));
 vi.mock('../services/datasetCache', () => ({
@@ -57,7 +58,7 @@ describe('DatasetBody', () => {
 
   it('opens the resource via an <a download> click (not window.open) so popup blockers allow it', async () => {
     vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
-    vi.mocked(fetchDatasetBlob).mockResolvedValue(new Blob(['x'], { type: 'text/csv' }));
+    vi.mocked(fetchDatasetFile).mockResolvedValue({ blob: new Blob(['x'], { type: 'text/csv' }), filename: '' });
 
     const origCreate = URL.createObjectURL;
     const origRevoke = URL.revokeObjectURL;
@@ -107,7 +108,7 @@ describe('DatasetBody', () => {
     expect(await screen.findByTestId('spectrum-plot')).toBeInTheDocument();
     expect(fetchDataset).toHaveBeenCalledWith(body.id, body.format, expect.any(String), undefined, {
       service: undefined,
-    });
+    }, undefined);
     expect(onDataLoaded).toHaveBeenCalledWith(body.id, data);
     expect(screen.getByText(/2 points/)).toBeInTheDocument();
   });
@@ -127,7 +128,158 @@ describe('DatasetBody', () => {
       expect.any(String),
       undefined,
       { service },
+      undefined,
     );
+  });
+
+  describe('xyReading', () => {
+    const reading = (derivedFrom: unknown) => ({
+      type: 'XYReading',
+      derivedFrom,
+    });
+    const rawRef = { id: 'https://example.org/raw', type: 'Dataset', format: 'text/csv' };
+
+    it('forwards the xyReading to fetchDataset', async () => {
+      const xyReading = reading(undefined);
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'success', data });
+      render(<DatasetBody body={{ ...body, xyReading }} />);
+      fireEvent.click(screen.getByRole('button', { name: /Load/i }));
+      await screen.findByTestId('spectrum-plot');
+      expect(vi.mocked(fetchDataset).mock.calls[0][5]).toBe(xyReading);
+    });
+
+    it('offers no raw download without derivedFrom, or with an invalid one', () => {
+      vi.mocked(datasetCache.get).mockReturnValue(data);
+      const { rerender } = render(<DatasetBody body={body} />);
+      expect(screen.queryByText(/download raw data/i)).toBeNull();
+      rerender(
+        <DatasetBody body={{ ...body, xyReading: reading({ ...rawRef, id: 'javascript:alert(1)' }) }} />
+      );
+      expect(screen.queryByText(/download raw data/i)).toBeNull();
+    });
+
+    it('offers the raw download before loading and for a non-plottable dataset', () => {
+      const withRaw = { ...body, xyReading: reading(rawRef) };
+      render(<DatasetBody body={withRaw} />);
+      expect(screen.getByRole('button', { name: /^Load/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /download raw data/i })).toBeTruthy();
+      cleanup();
+      vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
+      render(<DatasetBody body={withRaw} />);
+      expect(screen.getByRole('button', { name: /download raw data/i })).toBeTruthy();
+    });
+
+    it('downloads the raw file through the authenticated fetch, only on click', async () => {
+      vi.mocked(datasetCache.get).mockReturnValue(data);
+      vi.mocked(fetchDatasetFile).mockResolvedValue({ blob: new Blob(['x'], { type: 'text/csv' }), filename: '' });
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      let downloadName: string | undefined;
+      const clickSpy = vi
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          downloadName = this.download;
+        });
+      try {
+        const service = { '@id': 'https://auth.museum/login' };
+        render(<DatasetBody body={{ ...body, service, xyReading: reading(rawRef) }} />);
+        expect(fetchDatasetFile).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: /download raw data/i }));
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+        expect(fetchDatasetFile).toHaveBeenCalledWith(rawRef.id, undefined, { service });
+        expect(downloadName).toBe('d-raw.csv');
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+      }
+    });
+
+    it('names an unknown-format raw file from its label, with no invented extension', async () => {
+      vi.mocked(datasetCache.get).mockReturnValue(data);
+      vi.mocked(fetchDatasetFile).mockResolvedValue({ blob: new Blob(['x']), filename: '' });
+      const origCreate = URL.createObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      let downloadName: string | undefined;
+      const clickSpy = vi
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          downloadName = this.download;
+        });
+      try {
+        const raw = { ...rawRef, format: 'application/octet-stream', label: { none: ['Sample/1'] } };
+        render(<DatasetBody body={{ ...body, xyReading: reading(raw) }} />);
+        fireEvent.click(screen.getByRole('button', { name: /download raw data/i }));
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+        expect(downloadName).toBe('Sample_1');
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+      }
+    });
+
+    it('signs in then retries the raw download on a 401', async () => {
+      vi.mocked(datasetCache.get).mockReturnValue(data);
+      vi.mocked(fetchDatasetFile)
+        .mockRejectedValueOnce(Object.assign(new Error('denied'), { authRequired: true }))
+        .mockResolvedValueOnce({ blob: new Blob(['x']), filename: '' });
+      const handler = vi.fn().mockResolvedValue(undefined);
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      try {
+        render(<DatasetBody body={{ ...body, xyReading: reading(rawRef) }} onAuthRequired={handler} />);
+        fireEvent.click(screen.getByRole('button', { name: /download raw data/i }));
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(fetchDatasetFile).toHaveBeenCalledTimes(2);
+      } finally {
+        clickSpy.mockRestore();
+        URL.revokeObjectURL = origRevoke;
+        URL.createObjectURL = origCreate;
+      }
+    });
+
+    it('does not send host request options to a raw file on another origin', async () => {
+      vi.mocked(datasetCache.get).mockReturnValue(data);
+      vi.mocked(fetchDatasetFile).mockResolvedValue({ blob: new Blob(['x']), filename: '' });
+      const requestOptions = { headers: { 'X-Key': 'secret' } };
+      const origCreate = URL.createObjectURL;
+      const origRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:fake');
+      URL.revokeObjectURL = vi.fn();
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      try {
+        const other = { ...rawRef, id: 'https://other.example.net/raw.csv' };
+        render(<DatasetBody body={{ ...body, xyReading: reading(other) }} requestOptions={requestOptions} />);
+        fireEvent.click(screen.getByRole('button', { name: /download raw data/i }));
+        await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+        expect(vi.mocked(fetchDatasetFile).mock.calls.at(-1)?.[1]).toBeUndefined();
+      } finally {
+        clickSpy.mockRestore();
+        URL.createObjectURL = origCreate;
+        URL.revokeObjectURL = origRevoke;
+      }
+    });
+
+    it('offers the raw download when the dataset fails to load', async () => {
+      vi.mocked(fetchDataset).mockResolvedValue({ status: 'error', error: 'Network down' });
+      render(<DatasetBody body={{ ...body, xyReading: reading(rawRef) }} />);
+      fireEvent.click(screen.getByRole('button', { name: /^Load/i }));
+      await screen.findByText(/Network down/);
+      expect(screen.getByRole('button', { name: /download raw data/i })).toBeTruthy();
+    });
+
+    it('notes when the reading was set aside', () => {
+      vi.mocked(datasetCache.get).mockReturnValue({ ...data, readingIgnored: 'unsupported-correction' });
+      render(<DatasetBody body={body} />);
+      fireEvent.click(screen.getByRole('button', { name: /points/ }));
+      expect(screen.getByText(/correction this viewer cannot apply/i)).toBeInTheDocument();
+    });
   });
 
   it('shows an error Alert on fetch failure', async () => {
@@ -210,9 +362,9 @@ describe('DatasetBody', () => {
       vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
       const blobAuthError = Object.assign(new Error('401'), { authRequired: true });
       // First attempt is unauthenticated → 401; after the login the retry succeeds.
-      vi.mocked(fetchDatasetBlob)
+      vi.mocked(fetchDatasetFile)
         .mockRejectedValueOnce(blobAuthError)
-        .mockResolvedValueOnce(new Blob(['x'], { type: 'text/csv' }));
+        .mockResolvedValueOnce({ blob: new Blob(['x'], { type: 'text/csv' }), filename: '' });
       const handler = vi.fn().mockResolvedValue(undefined);
       configureDatasetAuth(handler, { canStartLogin: () => true });
 
@@ -228,7 +380,7 @@ describe('DatasetBody', () => {
 
         await waitFor(() => expect(handler).toHaveBeenCalled()); // the login ran
         await waitFor(() => expect(clickSpy).toHaveBeenCalled()); // download fired after login
-        expect(vi.mocked(fetchDatasetBlob)).toHaveBeenCalledTimes(2); // initial 401 + retry
+        expect(vi.mocked(fetchDatasetFile)).toHaveBeenCalledTimes(2); // initial 401 + retry
       } finally {
         clickSpy.mockRestore();
         URL.createObjectURL = origCreate;
@@ -238,7 +390,7 @@ describe('DatasetBody', () => {
 
     it('downloads directly without a login when already authenticated', async () => {
       vi.mocked(validateDatasetUrl).mockReturnValue({ valid: false, error: 'Unsupported MIME type' });
-      vi.mocked(fetchDatasetBlob).mockResolvedValue(new Blob(['x'], { type: 'text/csv' }));
+      vi.mocked(fetchDatasetFile).mockResolvedValue({ blob: new Blob(['x'], { type: 'text/csv' }), filename: '' });
       const handler = vi.fn().mockResolvedValue(undefined);
       configureDatasetAuth(handler, { canStartLogin: () => true });
 

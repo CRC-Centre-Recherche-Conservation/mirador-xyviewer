@@ -91,6 +91,8 @@ export interface DatasetBody extends BaseBody {
   type: 'Dataset';
   id: string;
   format: 'text/csv' | 'text/plain' | 'text/tab-separated-values' | string;
+  /** Optional advisory `xyReading` extension; untrusted, validate with `parseXyReading`. */
+  xyReading?: unknown;
 }
 
 /** Case 3: TextualBody - static text content */

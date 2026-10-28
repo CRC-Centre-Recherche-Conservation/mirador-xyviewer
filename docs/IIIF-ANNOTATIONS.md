@@ -270,6 +270,10 @@ For CSV/TSV spectral data files.
 - `text/tab-separated-values` - Tab-separated values
 - `text/txt` - non-standard alias, normalized to `text/plain`
 
+**Optional reading hints.** A Dataset body may carry an advisory `xyReading` object (axis titles, column
+roles, CSV dialect, reversed axis, corrections, link to the raw file). It is used when valid and ignored
+otherwise; see [Reading hints](./SPECTRAL-DATA-FORMAT.md#reading-hints-the-xyreading-extension).
+
 > **Open-format policy:** only the open text formats above are fetched and plotted. A
 > Dataset body in a proprietary/binary format (e.g. `application/octet-stream`) is still
 > recognized, but is **not** plotted: the panel shows a short "format not supported for

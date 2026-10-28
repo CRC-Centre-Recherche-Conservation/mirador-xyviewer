@@ -26,6 +26,8 @@ export interface MetadataDisplayProps {
   fallbackLinkLabel?: string;
   /** Heading above the seeAlso list (default 'Linked resources'). */
   seeAlsoHeading?: string;
+  /** seeAlso entries with these ids are not listed (already offered elsewhere, e.g. an authenticated download). */
+  hiddenSeeAlsoIds?: ReadonlySet<string>;
 }
 
 /** Upper bound on rendered values per entry (hostile or huge arrays). */
@@ -57,13 +59,16 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   compact: _compact = false,
   fallbackLinkLabel = 'Linked resource',
   seeAlsoHeading = 'Linked resources',
+  hiddenSeeAlsoIds,
 }) => {
   // _compact is kept for API compatibility but the layout is now unified
   const prefs = useLanguagePreferences();
   const labelText = getLocalizedString(label, prefs);
 
   // Normalize seeAlso to array
-  const seeAlsoList = seeAlso ? (Array.isArray(seeAlso) ? seeAlso : [seeAlso]) : [];
+  const seeAlsoList = (seeAlso ? (Array.isArray(seeAlso) ? seeAlso : [seeAlso]) : []).filter(
+    (item) => !(hiddenSeeAlsoIds?.size && typeof item?.id === 'string' && hiddenSeeAlsoIds.has(item.id))
+  );
 
   if (!labelText && (!metadata || metadata.length === 0) && !annotationId && seeAlsoList.length === 0) {
     return null;
