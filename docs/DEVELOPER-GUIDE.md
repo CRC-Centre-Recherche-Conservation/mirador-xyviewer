@@ -75,6 +75,20 @@ This guide explains the plugin architecture and how to extend mirador-xyviewer.
 
 Presentation 3 annotations keep every property the normalizer does not model (`bodyValue`, `created`, `creator`, `rights`, `stylesheet`, ...); the normalized keys are written last and win. Selectors on v3 targets go through the same selector mapper.
 
+### Selector display pass
+
+`utils/annotationSelectors.ts` (`normalizeTargetSelector`) prepares each target's selector(s) for display. It works over WADM §4.2 arrays (items select the same content), never throws and is idempotent:
+
+- an existing `SvgSelector` is preferred and a `<path>` is left as is;
+- a `PointSelector` (numeric `x`, `y`; a temporal-only point is ignored) without an SVG gets a circle `SvgSelector` appended;
+- a tiny `xywh` (<= 5 px, decimals allowed) becomes a circle; when the value carries other parts such as `&t=`, the circle is appended and the fragment kept;
+- `<polygon>`/`<polyline>` is rebuilt as a `<path>` from the parsed numbers only (no producer markup is kept; plain `fill`, `stroke` and `stroke-width` values carry over). An SVG that also holds other shapes is left untouched, a malformed or oversized one (> 256 000 characters) is dropped and the `FragmentSelector` bbox stays;
+- `xywh=pixel:` is canonicalised to `xywh=` (Mirador's `parseInt` yields `NaN` otherwise). `xywh=percent:` is left alone: it cannot be resolved without the canvas size, which the transformer does not know.
+
+The pass runs in `annotationPostprocessor` (fetched pages). `normalizeAnnotationResources` applies it too, only to keep the panel's copy of the data consistent: nothing in the panel reads `target.selector` today.
+
+Pages embedded in a manifest never go through the `annotationJson` branch of the postprocessor: Mirador's `fetchCanvasAnnotations` saga dispatches `receiveAnnotation` directly for inline `items`, so the canvas overlay reads them unprocessed from the store. An embedded `PointSelector`-only target is therefore not drawn; embedded pages must ship their own `SvgSelector` (or use a regular `xywh`). Normalising them would need a pass on the manifest response (`manifestJson`), planned as a follow-up. Meanwhile `getAnnotationBounds` tolerates what Mirador cannot draw (PointSelector, `pixel:` fragments, the coordinates of any SVG path/polygon/polyline/circle/ellipse/rect), so the selection pulse works either way.
+
 To support a new format, implement `AnnotationAdapter` and register it; do not add wire-format knowledge anywhere else.
 
 ---

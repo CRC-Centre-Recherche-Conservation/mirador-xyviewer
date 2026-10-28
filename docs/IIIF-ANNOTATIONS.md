@@ -384,6 +384,23 @@ For analysis points, use 1x1 pixel rectangle:
 
 > **Note:** The `annotationPostprocessor` automatically converts 1x1 rectangles to visible SVG circles.
 
+A `PointSelector` works too, alone or in a selector array (items of an array select the same content, WADM 4.2):
+
+```json
+{
+  "target": {
+    "type": "SpecificResource",
+    "source": "https://example.org/canvas/1",
+    "selector": [
+      { "type": "PointSelector", "x": 1500, "y": 2000 },
+      { "type": "FragmentSelector", "value": "xywh=1480,1980,40,40" }
+    ]
+  }
+}
+```
+
+An existing `SvgSelector` is preferred over a derived circle. `<polygon>`/`<polyline>` SVGs are rebuilt as paths (pair them with a `FragmentSelector` bbox as fallback), `xywh=pixel:` is read as `xywh=`, and `xywh=percent:` is left untouched. Annotations embedded in a manifest are not postprocessed: ship the `SvgSelector` yourself.
+
 ### Structured Target with Selector
 
 For more complex selections:
@@ -513,7 +530,7 @@ Before publishing your annotations, verify:
 - [ ] `body` has valid `type` (`Dataset`, `Manifest`, or `TextualBody`)
 - [ ] Plottable Dataset bodies have an open `format` (`text/csv`, `text/plain`, `text/tab-separated-values`); binary formats are accepted but shown as a resource link, not plotted
 - [ ] `target` references a valid canvas URI
-- [ ] Point annotations use `xywh=x,y,1,1` format
+- [ ] Point annotations use `xywh=x,y,1,1` or a `PointSelector` (embedded pages: add an `SvgSelector`)
 - [ ] AnnotationPage is properly linked from Canvas `annotations` array (v3) or `otherContent` (v2 `sc:AnnotationList`)
 - [ ] External resources (CSV files, linked manifests) are accessible via CORS
 
