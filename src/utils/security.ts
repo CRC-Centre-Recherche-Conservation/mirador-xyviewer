@@ -39,8 +39,13 @@ export function escapeHtml(text: string): string {
  * (React already escapes text children).
  */
 export function sanitizeText(text: string): string {
-  // Remove any HTML tags
-  const stripped = text.replace(/<[^>]*>/g, '');
+  // Strip tags until nothing changes, so removing one tag cannot assemble another.
+  let stripped = text;
+  let previous: string;
+  do {
+    previous = stripped;
+    stripped = stripped.replace(/<[^>]*>/g, '');
+  } while (stripped !== previous);
   // Escape remaining special characters
   return escapeHtml(stripped);
 }

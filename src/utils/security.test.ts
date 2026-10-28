@@ -104,6 +104,13 @@ describe('security utils', () => {
       expect(sanitizeText('line1<br/>line2')).toBe('line1line2');
     });
 
+    it('should strip tags reassembled by a previous pass', () => {
+      for (const input of ['<<b>script>alert(1)<</b>/script>', '<scr<b>ipt>x', '<<<a>>>b']) {
+        const out = sanitizeText(input);
+        expect(out).not.toMatch(/[<>]/);
+      }
+    });
+
     it('should handle malformed tags', () => {
       expect(sanitizeText('<div<nested>')).toBe('');
     });
