@@ -9,8 +9,7 @@ import { filtersStore } from '../state/filtersStore';
 import { expandAnnotations } from '../utils/annotationNormalizer';
 import { transformEmbeddedAnnotationPages } from '../utils/annotationTransformer';
 import type { AnnotationV3 } from '../types/iiif';
-// @ts-expect-error untyped Mirador source; the package exports map hides it
-import AnnotationItem from '../../node_modules/mirador/src/lib/AnnotationItem.js';
+import { AnnotationItem } from 'mirador';
 
 const res = (id: string, targetId = 'c1') => ({ id, targetId });
 const hidden = (...ids: string[]) => () => new Set(ids);
@@ -292,7 +291,7 @@ describe('overlay with metadata-less and embedded annotations', () => {
     filtersStore.toggleValue(W, CANVAS, 'technique', 'xrf');
     filtersStore.updateHiddenAnnotations(W, CANVAS, items);
     // Resources as Mirador models them, so targetId matches the per-canvas filter key.
-    const resources = items.map((i) => new AnnotationItem(i) as { id: string; targetId: string });
+    const resources = items.map((i) => new AnnotationItem(i));
     expect(resources.map((r) => r.targetId)).toEqual([CANVAS, CANVAS, CANVAS, CANVAS]);
     const lists = [{ resources }];
     const hiddenFor = (c: string) => (filtersStore.hasFiltersInitialized(W, c) ? filtersStore.getHiddenAnnotationIds(W, c) : undefined);
