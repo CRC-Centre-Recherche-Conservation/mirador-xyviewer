@@ -13,7 +13,26 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    # Let fresh releases age before proposing them (security updates are not delayed).
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # typescript-eslint supports typescript <6.1; revisit with the ESLint migration.
+      - dependency-name: typescript
+        versions: ['>=6']
+      # Match the lowest supported runtime (engines node >=22).
+      - dependency-name: '@types/node'
+        versions: ['>=23']
     groups:
+      # Build/test tooling majors move together (vite 8 needs plugin-react 6, vitest 5, ...).
+      tooling:
+        patterns:
+          - vite
+          - '@vitejs/*'
+          - vitest
+          - '@vitest/*'
+          - vite-plugin-dts
       # Bundle minor/patch bumps to reduce PR noise.
       minor-and-patch:
         update-types:

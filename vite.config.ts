@@ -6,12 +6,7 @@ import { isExternal } from './config/externals';
 
 export default defineConfig({
   plugins: [
-    react({
-      // Enable React DevTools in development
-      babel: {
-        plugins: process.env.NODE_ENV === 'development' ? [] : [],
-      },
-    }),
+    react(),
     dts({ tsconfigPath: './tsconfig.build.json' }),
   ],
   define: {
@@ -29,11 +24,12 @@ export default defineConfig({
       formats: ['es', 'cjs'],
       fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'esm' : format}.js`,
     },
-    rollupOptions: {
+    rolldownOptions: {
       // Every peer/host package and its subpaths stays out of the bundle.
       external: isExternal,
-      // 'auto' unwraps __esModule default exports of external CJS deps.
-      output: { exports: 'named', interop: 'auto' },
+      // Rolldown's CJS output already unwraps __esModule default exports of external deps.
+      // `strict` keeps the "use strict" directive Rollup used to emit (sources have none).
+      output: { exports: 'named', strict: true },
     },
     sourcemap: true,
   },
