@@ -104,6 +104,20 @@ describe('security utils', () => {
       expect(sanitizeText('line1<br/>line2')).toBe('line1line2');
     });
 
+    it('should strip tags reassembled by a previous pass', () => {
+      for (const input of ['<<b>script>alert(1)<</b>/script>', '<scr<b>ipt>x', '<<<a>>>b']) {
+        const out = sanitizeText(input);
+        expect(out).not.toMatch(/[<>]/);
+      }
+    });
+
+    it('should run in linear time on long runs of "<"', () => {
+      const start = Date.now();
+      expect(sanitizeText('<'.repeat(200_000))).toBe('&lt;'.repeat(200_000));
+      expect(sanitizeText('<'.repeat(100_000) + '>x')).toBe('x');
+      expect(Date.now() - start).toBeLessThan(500);
+    });
+
     it('should handle malformed tags', () => {
       expect(sanitizeText('<div<nested>')).toBe('');
     });
