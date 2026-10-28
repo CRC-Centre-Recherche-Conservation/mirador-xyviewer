@@ -224,10 +224,13 @@ describe('normalizeTargetSelector hardening', () => {
     expect(out).toContain('stroke-width="4"');
   });
 
-  it('ignores polygons inside comments and CDATA', () => {
-    const value = svg('<!-- <polygon points="1"/> --><polygon points="0,0 1,0 1,1"/>');
-    const out = run({ type: 'SvgSelector', value }).target.selector.value;
-    expect(out).toContain('M 0 0 L 1 0 L 1 1 Z');
+  it.each([
+    '<!-- <polygon points="1"/> --><polygon points="0,0 1,0 1,1"/>',
+    '<!<!-- -->-- <polygon points="0,0 9,0 9,9"/> --><polygon points="0,0 1,0 1,1"/>',
+    '<![CDATA[ <polygon points="0,0 9,0 9,9"/> ]]><polygon points="0,0 1,0 1,1"/>',
+  ])('leaves SVGs with comments or CDATA untouched: %s', (inner) => {
+    const value = svg(inner);
+    expect(run({ type: 'SvgSelector', value }).target.selector.value).toBe(value);
   });
 
   it('keeps a t= part next to a tiny xywh by appending the circle', () => {

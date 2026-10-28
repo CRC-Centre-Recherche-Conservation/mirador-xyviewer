@@ -85,11 +85,12 @@ function colour(tag: string, name: string, fallback: string): string {
  * or other shapes alongside that a rebuild would lose).
  */
 function rebuildPolygons(svg: string): string | null | undefined {
-  const clean = svg.replace(/<!--[\s\S]*?-->/g, '').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
-  const tags = [...clean.matchAll(POLY_TAG)];
+  // Comments, CDATA and declarations (`<!`) can hide or fake shapes: leave such SVGs untouched.
+  if (svg.includes('<!')) return undefined;
+  const tags = [...svg.matchAll(POLY_TAG)];
   if (tags.length === 0) return undefined;
   if (svg.length > MAX_SVG_LENGTH) return null;
-  if ((clean.match(ANY_SHAPE) ?? []).length !== tags.length) return undefined;
+  if ((svg.match(ANY_SHAPE) ?? []).length !== tags.length) return undefined;
 
   const subpaths: string[] = [];
   let closedOnly = true;
