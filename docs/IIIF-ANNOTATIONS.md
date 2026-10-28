@@ -471,7 +471,7 @@ A `PointSelector` works too, alone or in a selector array (items of an array sel
 }
 ```
 
-An existing `SvgSelector` is preferred over a derived circle. `<polygon>`/`<polyline>` SVGs are rebuilt as paths (pair them with a `FragmentSelector` bbox as fallback), `xywh=pixel:` is read as `xywh=`, and `xywh=percent:` is left untouched. Annotations embedded in a manifest are not postprocessed: ship the `SvgSelector` yourself.
+An existing `SvgSelector` is preferred over a derived circle. `<polygon>`/`<polyline>` SVGs are rebuilt as paths (pair them with a `FragmentSelector` bbox as fallback), `xywh=pixel:` is read as `xywh=`, and `xywh=percent:` is left untouched. Annotations embedded in a v3 manifest are processed by the postprocessor's manifest pass (or by `transformEmbeddedAnnotationPages` for manifests you inject yourself).
 
 ### Structured Target with Selector
 
@@ -602,7 +602,7 @@ Before publishing your annotations, verify:
 - [ ] `body` has valid `type` (`Dataset`, `Manifest`, or `TextualBody`)
 - [ ] Plottable Dataset bodies have an open `format` (`text/csv`, `text/plain`, `text/tab-separated-values`); binary formats are accepted but shown as a resource link, not plotted
 - [ ] `target` references a valid canvas URI
-- [ ] Point annotations use `xywh=x,y,1,1` or a `PointSelector` (embedded pages: add an `SvgSelector`)
+- [ ] Point annotations use `xywh=x,y,1,1` or a `PointSelector`
 - [ ] AnnotationPage is properly linked from Canvas `annotations` array (v3) or `otherContent` (v2 `sc:AnnotationList`)
 - [ ] External resources (CSV files, linked manifests) are accessible via CORS
 

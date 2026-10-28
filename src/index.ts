@@ -132,6 +132,7 @@ export {
   annotationPostprocessor,
   createAnnotationPostprocessor,
   transformPointAnnotations,
+  transformEmbeddedAnnotationPages,
   // IIIF Content State 1.0
   parseContentStateInput,
   parseContentStateQuery,

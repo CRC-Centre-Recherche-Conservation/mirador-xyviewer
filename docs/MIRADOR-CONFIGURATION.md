@@ -413,7 +413,7 @@ annotations: {
 
 ### Point Annotations Not Visible
 
-**Symptom:** Point annotations (1x1 pixel, `PointSelector`) don't show on canvas. Annotations embedded in a manifest do not go through the postprocessor: give them their own `SvgSelector`.
+**Symptom:** Point annotations (1x1 pixel, `PointSelector`) don't show on canvas. Annotation pages embedded in a manifest are handled too, as the postprocessor also processes manifest responses.
 
 **Solution:** Add the annotation postprocessor:
 
@@ -593,7 +593,7 @@ with `bounds` in canvas pixels (`[x, y, width, height]`, padded; points get a sm
 A target without a manifest (a lone Canvas) is skipped unless you pass
 `defaultManifestId`. Content states opened from a local file carry the manifest document in
 `target.manifestJson`; dispatch Mirador's `receiveManifest(id, json)` before `addWindow`
-if the manifest is not reachable by URL (it then bypasses request postprocessors).
+if the manifest is not reachable by URL. It then bypasses request postprocessors, so wrap the JSON with `transformEmbeddedAnnotationPages(json)` first to get embedded annotation pages displayed correctly.
 
 ### Security
 
