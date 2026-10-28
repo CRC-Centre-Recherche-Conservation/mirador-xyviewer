@@ -205,12 +205,12 @@ const viewer = Mirador.viewer({
   id: 'mirador-container',
   scientificAnnotations: {
     labels: {
-      evidence: 'Proof',                           // button of a `linking` SpecificResource
-      linkedAnnotations: 'Evidence',               // caption above the `linking` buttons
-      evidenceUnavailable: 'Not on this canvas',   // its tooltip when the target is absent
+      linkedAnnotations: 'Evidence',               // caption of the `linking` rows (default "Linked annotations")
+      linkUnavailable: 'Not on this canvas',       // detail of a row whose target is not loaded
       purposes: { classifying: 'Pigment' },        // caption per SpecificResource purpose
     },
     showAnnotationId: 'menu',                      // 'menu' (default) | 'inline'
+    linkSubtitleMetadataLabel: 'Technique',        // metadata shown under each linked-annotation row
   },
 }, [scientificAnnotationPlugin]);
 ```
@@ -218,9 +218,10 @@ const viewer = Mirador.viewer({
 | Option | Type | Description |
 |---|---|---|
 | `labels` | `AnnotationBodyLabels` | UI string overrides, all English by default (see below). |
+| `linkSubtitleMetadataLabel` | `string` | Label of the metadata entry whose value is shown under each linked-annotation row (matched case-insensitively on the target annotation). No default: rows then show only where the target is. |
 | `showAnnotationId` | `'menu' \| 'inline'` | Where the annotation IIIF id is shown on every card. `'menu'` (default) puts "Copy annotation id" and "Open JSON" in the card's "⋮" menu; `'inline'` keeps the id as a link under the title. |
 
-Label keys: `evidence`, `evidenceUnavailable`, `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `untitled`.
+Label keys: `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), for linked rows `linkOnThisPage` ("on this page"), `linkOnCanvas` ("on {canvas}"), `linkUnavailable` ("Not available in this viewer"), `goToPage` ("Go to page"), `hiddenByFilter` ("(hidden by filter)"), `showAll` ("Show all"), `backTo` ("Back to {title}"), `selectLinked` ("Select linked annotation {n} of {total}: {details}"), `citedBy` ("Cited by"), `linkNavigationFailed`, and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `untitled`. `evidence` and `evidenceUnavailable` are deprecated: they are only used as the fallback for `linkedAnnotations` and `linkUnavailable` when those are not set.
 
 ### Theme Customization
 

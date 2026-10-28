@@ -221,3 +221,13 @@ describe('buildClassificationView hardening', () => {
     expect(v2.links.map((l) => l.href)).toEqual(['https://x.example/two']);
   });
 });
+
+describe('linked annotations of a card', () => {
+  it('counts X and its #target-N expansion once and skips empty sources', () => {
+    const v = buildClassificationView(
+      ann([sr('linking', 'x', 'X'), sr('linking', 'x#target-1', 'X again'), sr('linking', '', 'none'), sr('linking', 'y', 'Y')]),
+      en,
+    );
+    expect(v.related).toHaveLength(2);
+  });
+});

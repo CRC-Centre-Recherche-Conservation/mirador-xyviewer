@@ -69,6 +69,12 @@ The filter uses **AND** logic across groups and **OR** logic within groups:
    when "None" is deselected. Motivations play no role: filtering never depends on `motivation`
    (analyses may be `commenting` in v2 or `supplementing` in v3).
 
+### Linked annotations
+
+In the annotation panel, a linked-annotation row whose target is hidden by the current filter is dimmed and
+suffixed "(hidden by filter)"; it stays clickable (selecting it shows the card, as for any selected annotation).
+Filter state is per window and canvas, so it never applies to rows pointing to another canvas.
+
 ### Example
 
 Given annotations with these metadata:

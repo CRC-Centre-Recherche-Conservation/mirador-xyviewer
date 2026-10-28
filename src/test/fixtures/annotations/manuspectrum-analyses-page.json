@@ -1,0 +1,3841 @@
+{
+ "@context": [
+  "https://manuspectrum.test/iiif/context/xy-reading/1.jsonld",
+  "http://iiif.io/api/auth/2/context.json",
+  "http://iiif.io/api/presentation/3/context.json"
+ ],
+ "id": "https://manuspectrum.test/iiif/v3/annotation-collection/219d83e6-50f9-4a85-9a2b-ccec52836171/page-5",
+ "type": "AnnotationPage",
+ "label": {
+  "en": [
+   "Analyses of Paris. Bibliothèque Mazarine, Ms 416, f. 009 - vue 2"
+  ],
+  "fr": [
+   "Analyses de Paris. Bibliothèque Mazarine, Ms 416, f. 009 - vue 2"
+  ]
+ },
+ "partOf": [
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation-collection/219d83e6-50f9-4a85-9a2b-ccec52836171",
+   "type": "AnnotationCollection",
+   "label": {
+    "en": [
+     "Analyses of Paris. Bibliothèque Mazarine, Ms 416"
+    ],
+    "fr": [
+     "Analyses de Paris. Bibliothèque Mazarine, Ms 416"
+    ]
+   }
+  }
+ ],
+ "prev": {
+  "id": "https://manuspectrum.test/iiif/v3/annotation-collection/219d83e6-50f9-4a85-9a2b-ccec52836171/page-4",
+  "type": "AnnotationPage"
+ },
+ "next": {
+  "id": "https://manuspectrum.test/iiif/v3/annotation-collection/219d83e6-50f9-4a85-9a2b-ccec52836171/page-12",
+  "type": "AnnotationPage"
+ },
+ "items": [
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/0186ac8f-15dd-4315-a254-5f3704f0d8a9/85d358d8-23bb-4307-b6ea-595c3ca5ea08",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-uXRF-0055 — µXRF — golden of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-uXRF-0055 — µXRF — doré de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/53668e14-c021-41c0-90c0-d44d4dcb13eb/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-uXRF-0055_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-uXRF-0055_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/53668e14-c021-41c0-90c0-d44d4dcb13eb/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-uXRF-0055_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-uXRF-0055_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1065,
+      "y": 1110
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1065 1098 A 12 12 0 1 1 1065 1122 A 12 12 0 1 1 1065 1098\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "X-ray microfluorescence"
+      ],
+      "fr": [
+       "Microfluorescence x"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-19"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Inès Benali (jeu de test), Mathieu Roussel (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/0186ac8f-15dd-4315-a254-5f3704f0d8a9",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-uXRF-0055 — µXRF — golden of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-uXRF-0055 — µXRF — doré de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/53668e14-c021-41c0-90c0-d44d4dcb13eb/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-uXRF-0055_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-uXRF-0055_spectrum.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/1d012b94-5e6b-4328-976c-d0a54908bef9/03415131-c47c-4e28-9a52-469a60caa13d",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-uRaman-0022 — µRaman — blue of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-uRaman-0022 — µRaman — bleu de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/bc8ce339-e5f5-4815-8273-c87257e398f7/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-uRaman-0022.csv, series"
+      ],
+      "fr": [
+       "PAR416-uRaman-0022.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Raman shift (cm⁻¹)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Intensity (a.u.)"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/bc8ce339-e5f5-4815-8273-c87257e398f7/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-uRaman-0022.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-uRaman-0022.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1876,
+      "y": 679
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1876 667 A 12 12 0 1 1 1876 691 A 12 12 0 1 1 1876 667\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "Raman microspectrometry"
+      ],
+      "fr": [
+       "Microspectrométrie Raman"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-22"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Hugo Lemaire (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Laser 785 nm, 1 mW at the sample, ×50 objective, 10 × 10 s accumulations."
+      ],
+      "fr": [
+       "conditions: Laser 785 nm, 1 mW sur l'échantillon, objectif ×50, 10 accumulations de 10 s."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/1d012b94-5e6b-4328-976c-d0a54908bef9",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-uRaman-0022 — µRaman — blue of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-uRaman-0022 — µRaman — bleu de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/bc8ce339-e5f5-4815-8273-c87257e398f7/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-uRaman-0022.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-uRaman-0022.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/51c3fb3b-6d07-4bf4-9f98-4a37fcfa8a93/4f2fe47e-6c21-4588-87fe-fec2d585954f",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-FORS-0065 — FORS — orange of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-FORS-0065 — FORS — orange de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/58342611-a574-493b-aec3-d02c620e13ec/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-FORS-0065.csv, series"
+      ],
+      "fr": [
+       "PAR416-FORS-0065.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Wavelength (nm)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Reflectance (0-1)"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/58342611-a574-493b-aec3-d02c620e13ec/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-FORS-0065.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-FORS-0065.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         },
+         {
+          "index": 2,
+          "role": "reference"
+         }
+        ],
+        "multiY": "reference-normalize",
+        "corrections": [
+         {
+          "type": "reference-normalize",
+          "expression": "(y - dark) / (reference - dark)",
+          "darkDefault": 0,
+          "epsilon": 1e-12,
+          "onInvalid": "drop-point"
+         }
+        ]
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 2206,
+      "y": 585
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 2206 573 A 12 12 0 1 1 2206 597 A 12 12 0 1 1 2206 573\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "fiber optic reflectance spectrometry"
+      ],
+      "fr": [
+       "Spectrométrie de réflectance par fibre optique"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-22"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Hugo Lemaire (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Fibre-optic probe 45°/45°, halogen lamp, 350–2500 nm, Spectralon 99 % white reference."
+      ],
+      "fr": [
+       "conditions: Sonde à fibre optique 45°/45°, lampe halogène, 350–2500 nm, référence blanche Spectralon 99 %."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "red lead (Highly reliable)"
+      ],
+      "fr": [
+       "oxyde de plomb (Très fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/51c3fb3b-6d07-4bf4-9f98-4a37fcfa8a93",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-FORS-0065 — FORS — orange of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-FORS-0065 — FORS — orange de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/58342611-a574-493b-aec3-d02c620e13ec/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-FORS-0065.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-FORS-0065.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/56002aed-7f27-48d6-a443-34f904fcf45e/6ebfc1f5-478e-40e8-9289-b843a60df490",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-uRaman-0091 — µRaman — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-uRaman-0091 — µRaman — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/083ffb22-d4dd-408b-9f9e-0563f4e38884/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-uRaman-0091.csv, series"
+      ],
+      "fr": [
+       "PAR416-uRaman-0091.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Raman shift (cm⁻¹)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Intensity (a.u.)"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/083ffb22-d4dd-408b-9f9e-0563f4e38884/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-uRaman-0091.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-uRaman-0091.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1037,
+      "y": 1031
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1037 1019 A 12 12 0 1 1 1037 1043 A 12 12 0 1 1 1037 1019\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "Raman microspectrometry"
+      ],
+      "fr": [
+       "Microspectrométrie Raman"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2019-02-08"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Inès Benali (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Laser 785 nm, 1 mW at the sample, ×50 objective, 10 × 10 s accumulations."
+      ],
+      "fr": [
+       "conditions: Laser 785 nm, 1 mW sur l'échantillon, objectif ×50, 10 accumulations de 10 s."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "lapis lazuli (Highly reliable), lead white (Reliable)"
+      ],
+      "fr": [
+       "lapis-lazuli (Très fiable), blanc de plomb (Fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/56002aed-7f27-48d6-a443-34f904fcf45e",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-uRaman-0091 — µRaman — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-uRaman-0091 — µRaman — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/083ffb22-d4dd-408b-9f9e-0563f4e38884/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-uRaman-0091.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-uRaman-0091.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/571b82ce-5f2f-44dd-9369-8572965f03bc/a5b71add-1474-490d-a15c-7da9a58db0f8",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-Raman-0041 — Raman — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-Raman-0041 — Raman — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/0c441ac9-70a4-4a67-8024-226d996029b0/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-Raman-0041.csv, series"
+      ],
+      "fr": [
+       "PAR416-Raman-0041.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Raman shift (cm⁻¹)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Intensity (a.u.)"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/0c441ac9-70a4-4a67-8024-226d996029b0/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-Raman-0041.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-Raman-0041.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1051,
+      "y": 976
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1051 964 A 12 12 0 1 1 1051 988 A 12 12 0 1 1 1051 964\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "Raman spectrometry"
+      ],
+      "fr": [
+       "Spectrométrie Raman"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2019-02-12"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Hugo Lemaire (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Laser 785 nm, 1 mW at the sample, ×50 objective, 10 × 10 s accumulations."
+      ],
+      "fr": [
+       "conditions: Laser 785 nm, 1 mW sur l'échantillon, objectif ×50, 10 accumulations de 10 s."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "lapis lazuli (Highly reliable), lead white (Reliable)"
+      ],
+      "fr": [
+       "lapis-lazuli (Très fiable), blanc de plomb (Fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/571b82ce-5f2f-44dd-9369-8572965f03bc",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-Raman-0041 — Raman — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-Raman-0041 — Raman — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/0c441ac9-70a4-4a67-8024-226d996029b0/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-Raman-0041.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-Raman-0041.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/70479a6e-cb2e-4433-b866-8e7391efc0ec/42a08540-e848-45cc-b4f2-1e2941348454",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-pXRF-0045 — pXRF — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-pXRF-0045 — pXRF — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/22746c2d-c665-467a-abfe-8eb96bce06b6/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0045_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-pXRF-0045_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/22746c2d-c665-467a-abfe-8eb96bce06b6/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-pXRF-0045_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-pXRF-0045_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1078,
+      "y": 1043
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1078 1031 A 12 12 0 1 1 1078 1055 A 12 12 0 1 1 1078 1031\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "portable X-ray fluorescence"
+      ],
+      "fr": [
+       "Fluorescence X portable"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-21"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Nadia Kowalski (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "lapis lazuli (Highly reliable), lead white (Reliable)"
+      ],
+      "fr": [
+       "lapis-lazuli (Très fiable), blanc de plomb (Fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/70479a6e-cb2e-4433-b866-8e7391efc0ec",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0045 — pXRF — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-pXRF-0045 — pXRF — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/22746c2d-c665-467a-abfe-8eb96bce06b6/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0045_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-pXRF-0045_spectrum.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/76d5d7fe-0b56-4bc8-8281-1092b75ada62/9cc940c5-3efd-4291-b60f-8fbfad6fbd0f",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-pXRF-0088 — pXRF — orange of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-pXRF-0088 — pXRF — orange de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/fd969fd3-54b4-446b-90ac-6b9b0cca0bd2/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0088_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-pXRF-0088_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/fd969fd3-54b4-446b-90ac-6b9b0cca0bd2/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-pXRF-0088_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-pXRF-0088_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1983,
+      "y": 712
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1983 700 A 12 12 0 1 1 1983 724 A 12 12 0 1 1 1983 700\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "portable X-ray fluorescence"
+      ],
+      "fr": [
+       "Fluorescence X portable"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-23"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Hugo Lemaire (jeu de test), Inès Benali (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "red lead (Highly reliable)"
+      ],
+      "fr": [
+       "oxyde de plomb (Très fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/76d5d7fe-0b56-4bc8-8281-1092b75ada62",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0088 — pXRF — orange of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-pXRF-0088 — pXRF — orange de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/fd969fd3-54b4-446b-90ac-6b9b0cca0bd2/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0088_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-pXRF-0088_spectrum.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/88a0332c-e003-4eb4-8b09-76090a5ff53c/dbd652e7-d5f3-4def-b92d-168e30d7db83",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-MSI-0087 — MSI — parchment of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-MSI-0087 — MSI — parchemin de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": {
+     "type": "FragmentSelector",
+     "conformsTo": "http://www.w3.org/TR/media-frags/",
+     "value": "xywh=942,929,180,232"
+    }
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "multispectral imaging"
+      ],
+      "fr": [
+       "imagerie multispectrale"
+      ],
+      "it": [
+       "elaborazione di immagini multispettrali"
+      ],
+      "nl": [
+       "multispectrale beeldvorming"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-19"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Mathieu Roussel (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Multispectral camera, 12 bands from 365 to 1050 nm, UV and IR filters."
+      ],
+      "fr": [
+       "conditions: Caméra multispectrale, 12 bandes de 365 à 1050 nm, filtres UV et IR."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/88a0332c-e003-4eb4-8b09-76090a5ff53c",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-MSI-0087 — MSI — parchment of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-MSI-0087 — MSI — parchemin de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/937b5046-653a-42d9-94f8-bda1a8cc8826/fe0f8734-969a-4074-b7f8-cc96620a803c",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-pXRF-0028 — pXRF — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-pXRF-0028 — pXRF — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/6683b20a-b444-410b-b867-a0b3e050bea9/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0028_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-pXRF-0028_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/6683b20a-b444-410b-b867-a0b3e050bea9/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-pXRF-0028_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-pXRF-0028_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1027,
+      "y": 982
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1027 970 A 12 12 0 1 1 1027 994 A 12 12 0 1 1 1027 970\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "portable X-ray fluorescence"
+      ],
+      "fr": [
+       "Fluorescence X portable"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-21"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Hugo Lemaire (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "lapis lazuli (Highly reliable), lead white (Reliable)"
+      ],
+      "fr": [
+       "lapis-lazuli (Très fiable), blanc de plomb (Fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/937b5046-653a-42d9-94f8-bda1a8cc8826",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0028 — pXRF — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-pXRF-0028 — pXRF — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/6683b20a-b444-410b-b867-a0b3e050bea9/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0028_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-pXRF-0028_spectrum.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/d415db12-1f53-4a7b-9ab5-1d6815e3c22a/12b4bac9-f1ff-4c21-9be1-828107eb2333",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-XRF-0029 — XRF — red of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-XRF-0029 — XRF — rouge de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/8a11ab4b-1255-48ef-8b19-b02119abc593/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-XRF-0029_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-XRF-0029_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/8a11ab4b-1255-48ef-8b19-b02119abc593/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-XRF-0029_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-XRF-0029_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/d1122a6a-8cb8-4c4b-b496-432080497628/raw",
+     "type": "Dataset",
+     "format": "application/octet-stream",
+     "label": {
+      "en": [
+       "PAR416-XRF-0029_spectrum.mca, raw file"
+      ],
+      "fr": [
+       "PAR416-XRF-0029_spectrum.mca, fichier brut"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/"
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 998,
+      "y": 1004
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 998 992 A 12 12 0 1 1 998 1016 A 12 12 0 1 1 998 992\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "X-ray fluorescence"
+      ],
+      "fr": [
+       "Fluorescence X"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2019-02-12"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Mathieu Roussel (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/d415db12-1f53-4a7b-9ab5-1d6815e3c22a",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-XRF-0029 — XRF — red of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-XRF-0029 — XRF — rouge de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/8a11ab4b-1255-48ef-8b19-b02119abc593/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-XRF-0029_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-XRF-0029_spectrum.csv, fichier brut"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/d1122a6a-8cb8-4c4b-b496-432080497628/raw",
+     "type": "Dataset",
+     "format": "application/octet-stream",
+     "label": {
+      "en": [
+       "PAR416-XRF-0029_spectrum.mca, raw file"
+      ],
+      "fr": [
+       "PAR416-XRF-0029_spectrum.mca, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/de4ba362-5262-4744-8b42-15c84f729219/8d4cd242-7492-459f-9156-dc7f1b6bb12b",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-pXRF-0002 — pXRF — parchment of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-pXRF-0002 — pXRF — parchemin de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/bbaddbcd-27e9-4034-9b73-a57af66834ac/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0002_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-pXRF-0002_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/bbaddbcd-27e9-4034-9b73-a57af66834ac/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-pXRF-0002_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-pXRF-0002_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1946,
+      "y": 731
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1946 719 A 12 12 0 1 1 1946 743 A 12 12 0 1 1 1946 719\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "portable X-ray fluorescence"
+      ],
+      "fr": [
+       "Fluorescence X portable"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2019-02-08"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Nadia Kowalski (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/de4ba362-5262-4744-8b42-15c84f729219",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0002 — pXRF — parchment of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-pXRF-0002 — pXRF — parchemin de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/bbaddbcd-27e9-4034-9b73-a57af66834ac/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0002_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-pXRF-0002_spectrum.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/dff01f4f-3da2-4364-aeaf-f73b3eb13059/42f40a01-fe8b-4f43-96b9-e7e15372c8de",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-FORS-0059 — FORS — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-FORS-0059 — FORS — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/cd4bc269-be6d-4db5-848a-44b39f6407c0/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-FORS-0059.csv, series"
+      ],
+      "fr": [
+       "PAR416-FORS-0059.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Wavelength (nm)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Reflectance (0-1)"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/cd4bc269-be6d-4db5-848a-44b39f6407c0/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-FORS-0059.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-FORS-0059.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         },
+         {
+          "index": 2,
+          "role": "reference"
+         }
+        ],
+        "multiY": "reference-normalize",
+        "corrections": [
+         {
+          "type": "reference-normalize",
+          "expression": "(y - dark) / (reference - dark)",
+          "darkDefault": 0,
+          "epsilon": 1e-12,
+          "onInvalid": "drop-point"
+         }
+        ]
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1087,
+      "y": 988
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1087 976 A 12 12 0 1 1 1087 1000 A 12 12 0 1 1 1087 976\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "fiber optic reflectance spectrometry"
+      ],
+      "fr": [
+       "Spectrométrie de réflectance par fibre optique"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2020-09-20"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Inès Benali (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Fibre-optic probe 45°/45°, halogen lamp, 350–2500 nm, Spectralon 99 % white reference."
+      ],
+      "fr": [
+       "conditions: Sonde à fibre optique 45°/45°, lampe halogène, 350–2500 nm, référence blanche Spectralon 99 %."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "lapis lazuli (Highly reliable), lead white (Reliable)"
+      ],
+      "fr": [
+       "lapis-lazuli (Très fiable), blanc de plomb (Fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/dff01f4f-3da2-4364-aeaf-f73b3eb13059",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-FORS-0059 — FORS — blue of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-FORS-0059 — FORS — bleu de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/cd4bc269-be6d-4db5-848a-44b39f6407c0/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-FORS-0059.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-FORS-0059.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/f35e7cd4-9aef-473b-91b5-43934e3de2fa/cedad827-f61e-4c3c-81d6-b191d4431afa",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-pXRF-0005 — pXRF — golden of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-pXRF-0005 — pXRF — doré de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/ca1770f0-ae50-4672-bd85-59f762ee77b4/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0005_spectrum.csv, series"
+      ],
+      "fr": [
+       "PAR416-pXRF-0005_spectrum.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Energy (keV)"
+        ]
+       },
+       "reversed": false
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Counts"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/ca1770f0-ae50-4672-bd85-59f762ee77b4/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-pXRF-0005_spectrum.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-pXRF-0005_spectrum.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1082,
+      "y": 1008
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1082 996 A 12 12 0 1 1 1082 1020 A 12 12 0 1 1 1082 996\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "portable X-ray fluorescence"
+      ],
+      "fr": [
+       "Fluorescence X portable"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2019-02-12"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Mathieu Roussel (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s live time, spot 1 mm, in air, no filter."
+      ],
+      "fr": [
+       "conditions: Tube Rh, 40 kV, 200 µA, 120 s de temps réel, spot 1 mm, sous air, sans filtre."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "\"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "« M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/f35e7cd4-9aef-473b-91b5-43934e3de2fa",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0005 — pXRF — golden of \"M\" initial — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-pXRF-0005 — pXRF — doré de « M » initiale — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/ca1770f0-ae50-4672-bd85-59f762ee77b4/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-pXRF-0005_spectrum.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-pXRF-0005_spectrum.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/f74f9e8a-94d8-4952-9b00-9b5508e00b7d/ad9e6469-80e2-41ca-a2f3-15858903ad35",
+   "type": "Annotation",
+   "motivation": "supplementing",
+   "label": {
+    "en": [
+     "PAR416-FTIR-0062 — FTIR — orange of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+    ],
+    "fr": [
+     "PAR416-FTIR-0062 — FTIR — orange de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+    ]
+   },
+   "body": [
+    {
+     "id": "https://manuspectrum.test/iiif/data/19d83b95-cbeb-4138-955c-9301787b493a/series.csv",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-FTIR-0062.csv, series"
+      ],
+      "fr": [
+       "PAR416-FTIR-0062.csv, série"
+      ]
+     },
+     "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+     "xyReading": {
+      "type": "XYReading",
+      "dialect": {
+       "delimiter": ",",
+       "headerRowCount": 1,
+       "encoding": "utf-8"
+      },
+      "columns": [
+       {
+        "index": 0,
+        "role": "x"
+       },
+       {
+        "index": 1,
+        "role": "yLeft"
+       }
+      ],
+      "x": {
+       "label": {
+        "none": [
+         "Wavenumber (cm⁻¹)"
+        ]
+       },
+       "reversed": true
+      },
+      "y": [
+       {
+        "axis": "left",
+        "label": {
+         "none": [
+          "Reflectance (0-1)"
+         ]
+        }
+       }
+      ],
+      "corrections": [],
+      "derivedFrom": {
+       "id": "https://manuspectrum.test/iiif/data/19d83b95-cbeb-4138-955c-9301787b493a/raw",
+       "type": "Dataset",
+       "format": "text/csv",
+       "label": {
+        "en": [
+         "PAR416-FTIR-0062.csv, raw file"
+        ],
+        "fr": [
+         "PAR416-FTIR-0062.csv, fichier brut"
+        ]
+       },
+       "xyReading": {
+        "type": "XYReading",
+        "columns": [
+         {
+          "index": 0,
+          "role": "x"
+         },
+         {
+          "index": 1,
+          "role": "yLeft"
+         }
+        ],
+        "corrections": []
+       }
+      }
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": [
+     {
+      "type": "PointSelector",
+      "x": 1985,
+      "y": 676
+     },
+     {
+      "type": "SvgSelector",
+      "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1985 664 A 12 12 0 1 1 1985 688 A 12 12 0 1 1 1985 664\"/></svg>"
+     }
+    ]
+   },
+   "metadata": [
+    {
+     "label": {
+      "en": [
+       "Technique"
+      ],
+      "fr": [
+       "Technique"
+      ]
+     },
+     "value": {
+      "en": [
+       "Fourier transform infrared spectrometry"
+      ],
+      "fr": [
+       "IRTF"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Dates"
+      ],
+      "fr": [
+       "Dates"
+      ]
+     },
+     "value": {
+      "none": [
+       "2019-02-08"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Operators"
+      ],
+      "fr": [
+       "Opérateurs"
+      ]
+     },
+     "value": {
+      "none": [
+       "Nadia Kowalski (jeu de test)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Conditions"
+      ],
+      "fr": [
+       "Conditions"
+      ]
+     },
+     "value": {
+      "en": [
+       "conditions: External reflection, 4000–650 cm⁻¹, 4 cm⁻¹ resolution, 64 scans."
+      ],
+      "fr": [
+       "conditions: Réflexion externe, 4000–650 cm⁻¹, résolution 4 cm⁻¹, 64 scans."
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Project"
+      ],
+      "fr": [
+       "Projet"
+      ]
+     },
+     "value": {
+      "none": [
+       "EMMA — Material study of illuminated manuscripts (test dataset)"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Document"
+      ],
+      "fr": [
+       "Document"
+      ]
+     },
+     "value": {
+      "en": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ],
+      "fr": [
+       "Paris. Bibliothèque Mazarine, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Component"
+      ],
+      "fr": [
+       "Composant"
+      ]
+     },
+     "value": {
+      "en": [
+       "Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "label": {
+      "en": [
+       "Identified materials"
+      ],
+      "fr": [
+       "Matériaux identifiés"
+      ]
+     },
+     "value": {
+      "en": [
+       "red lead (Highly reliable)"
+      ],
+      "fr": [
+       "oxyde de plomb (Très fiable)"
+      ]
+     }
+    }
+   ],
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/f74f9e8a-94d8-4952-9b00-9b5508e00b7d",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "PAR416-FTIR-0062 — FTIR — orange of Illumination — f. 009 - vue 2 — Paris, Ms 416"
+      ],
+      "fr": [
+       "PAR416-FTIR-0062 — FTIR — orange de Enluminure — f. 009 - vue 2 — Paris, Ms 416"
+      ]
+     }
+    },
+    {
+     "id": "https://manuspectrum.test/iiif/data/19d83b95-cbeb-4138-955c-9301787b493a/raw",
+     "type": "Dataset",
+     "format": "text/csv",
+     "label": {
+      "en": [
+       "PAR416-FTIR-0062.csv, raw file"
+      ],
+      "fr": [
+       "PAR416-FTIR-0062.csv, fichier brut"
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

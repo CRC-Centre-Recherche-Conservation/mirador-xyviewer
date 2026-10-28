@@ -20,6 +20,18 @@ export const DEFAULT_ANNOTATION_LABELS: Required<Pick<AnnotationBodyLabels, Stri
   tags: 'Tags',
   otherTerms: 'Other terms',
   linkedAnnotations: 'Linked annotations',
+  linkOnThisPage: 'on this page',
+  linkOnCanvas: 'on {canvas}',
+  linkCount: '{n} linked annotations',
+  linkCountOne: '1 linked annotation',
+  linkUnavailable: 'Not available in this viewer',
+  goToPage: 'Go to page',
+  hiddenByFilter: '(hidden by filter)',
+  showAll: 'Show all',
+  backTo: 'Back to {title}',
+  selectLinked: 'Select linked annotation {n} of {total}: {details}',
+  citedBy: 'Cited by',
+  linkNavigationFailed: 'The linked annotation could not be opened',
   fullStatement: 'Full statement',
   openReport: 'Open report',
   openVocabulary: 'Open in vocabulary',
@@ -40,5 +52,19 @@ export function resolveLabels(labels?: AnnotationBodyLabels): typeof DEFAULT_ANN
     const v = labels[key];
     if (typeof v === 'string' && v !== '') out[key] = v;
   }
+  // Pre-linking keys still honoured when the new one is not set.
+  if (typeof labels.linkedAnnotations !== 'string' || labels.linkedAnnotations === '') {
+    if (typeof labels.evidence === 'string' && labels.evidence !== '') out.linkedAnnotations = labels.evidence;
+  }
+  if (typeof labels.linkUnavailable !== 'string' || labels.linkUnavailable === '') {
+    if (typeof labels.evidenceUnavailable === 'string' && labels.evidenceUnavailable !== '') {
+      out.linkUnavailable = labels.evidenceUnavailable;
+    }
+  }
   return out;
+}
+
+/** Fills `{name}` placeholders of a label template. */
+export function fillTemplate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (m, k: string) => (Object.prototype.hasOwnProperty.call(values, k) ? String(values[k]) : m));
 }

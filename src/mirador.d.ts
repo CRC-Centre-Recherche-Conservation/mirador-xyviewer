@@ -50,6 +50,9 @@ declare module 'mirador' {
   // Mirador updateConfig action creator (arrays in the patch REPLACE the stored ones).
   export function updateConfig(config: Record<string, unknown>): AnyAction;
 
+  // Mirador setCanvas action creator - shows a canvas in the window
+  export function setCanvas(windowId: string, canvasId: string, newGroup?: unknown, options?: unknown): AnyAction;
+
   // Mirador updateViewport action creator - updates the viewport position/zoom
   export function updateViewport(
     windowId: string,
@@ -60,6 +63,12 @@ declare module 'mirador' {
       bounds?: [number, number, number, number];
     }
   ): AnyAction;
+
+  // Mirador getCurrentCanvasWorld selector - the window's world; coordinates are canvas pixels
+  export function getCurrentCanvasWorld(
+    state: unknown,
+    options: { windowId: string }
+  ): { canvasToWorldCoordinates(canvasId: string): number[] } | undefined;
 
   // Mirador getViewer selector - returns the window's viewport state ({ x, y, zoom, bounds, ... }), not the OSD instance
   export function getViewer(

@@ -22,7 +22,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
 - **Point Annotations**: Automatic conversion of analysis points (tiny `xywh`, `PointSelector`) to visible markers, with selector arrays, SVG polygons and `pixel:` fragments handled
 - **Metadata Filters**: Filter annotations by metadata values (panel list and canvas shapes)
-- **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as an "Evidence" button that selects the linked annotation, and `Choice` alternatives (any producer; WADM §4.1, §4.3)
+- **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as named rows that select the linked annotation (also on another canvas, with a way back and "Cited by" on the target), and `Choice` alternatives (any producer; WADM §4.1, §4.3)
 - **Reader language**: IIIF language maps (labels, metadata, localized text bodies) follow Mirador's `language` setting (IIIF Presentation 3 §4.4)
 - **Error containment**: A rendering error in a plugin, annotation or body is contained (the viewer keeps running); `ErrorBoundary` is exported for hosts embedding the standalone components
 - **Selection Highlight**: Pulse animation to locate selected annotations on the image (technique, date, operator, etc.)
@@ -49,18 +49,19 @@ label are English and overridable via props (`fallbackLinkLabel`, `seeAlsoHeadin
 
 ## Plugin options
 
-UI strings of the annotation cards (evidence button, purpose captions) are English and
+UI strings of the annotation cards (captions, linked-annotation rows) are English and
 overridable through the Mirador config key `scientificAnnotations.labels`; see
 [docs/MIRADOR-CONFIGURATION.md](docs/MIRADOR-CONFIGURATION.md#annotation-labels).
 
 ```js
-Mirador.viewer({ id: 'mirador', scientificAnnotations: { labels: { evidence: 'Proof' } } }, plugins);
+Mirador.viewer({ id: 'mirador', scientificAnnotations: { labels: { linkedAnnotations: 'Evidence' } } }, plugins);
 ```
 
 Annotations with a `classifying` or `identifying` motivation are shown as summary cards
 (title, text, terms grouped by role, linked annotations, report link). The annotation id
 is in each card's "⋮" menu; set `scientificAnnotations.showAnnotationId: 'inline'` to keep
-it visible on the card.
+it visible on the card. `scientificAnnotations.linkSubtitleMetadataLabel` (for example `'Technique'`)
+names the metadata whose value is shown under each linked-annotation row.
 
 ## IIIF API compatibility
 

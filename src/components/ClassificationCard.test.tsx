@@ -28,11 +28,21 @@ describe('ClassificationCard', () => {
     }
     expect(screen.queryByText('classifying')).toBeNull();
     expect(screen.queryByText('assessing')).toBeNull();
-    expect(screen.getByText('Linked annotations')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Evidence/ })).toHaveLength(5);
+    expect(screen.getByRole('group', { name: 'Linked annotations' })).toHaveTextContent('Linked annotations · 5');
+    expect(screen.getAllByRole('button', { name: /Select linked annotation/ })).toHaveLength(5);
     const report = screen.getByRole('link', { name: /Open report/ });
     expect(report).toHaveAttribute('href', expect.stringContaining('/report/139239ab'));
     expect(report).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
+  it('shows the link count as an icon with an accessible name, overridable', () => {
+    const { unmount } = render(<ClassificationCard annotation={lapis} />);
+    const badge = screen.getByRole('img', { name: '5 linked annotations' });
+    expect(badge).toHaveTextContent('5');
+    expect(badge.textContent).not.toContain('⌖');
+    unmount();
+    render(<ClassificationCard annotation={lapis} labels={{ linkCount: '{n} liées' }} />);
+    expect(screen.getByRole('img', { name: '5 liées' })).toBeInTheDocument();
   });
 
   it('expanded: a single class is shown paired, the text goes under the disclosure', () => {
@@ -54,7 +64,7 @@ describe('ClassificationCard', () => {
     expect(screen.getByText('Pigments')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Materials' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Details' })).toBeInTheDocument();
-    expect(screen.getAllByText('Evidence').length).toBeGreaterThan(0);
+    expect(screen.getByRole('group', { name: 'Evidence' })).toBeInTheDocument();
   });
 
   it('a chip opens a menu with a vocabulary link and does not leave the page', () => {

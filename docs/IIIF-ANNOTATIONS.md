@@ -363,11 +363,21 @@ falls back to the source id. `source` may be a string or an object. The chip is 
 In IIIF Presentation 2, an `oa:SpecificResource` resource with a `full` source and an
 `oa:hasPurpose` is normalized to the same model.
 
-**Linked annotations (linking).** A `SpecificResource` with `"purpose": "linking"` is shown, under the caption "Linked annotations" (`labels.linkedAnnotations`), as an
-"Evidence" button (label overridable through `scientificAnnotations.labels.evidence` in the Mirador config, see [MIRADOR-CONFIGURATION.md](MIRADOR-CONFIGURATION.md#annotation-labels)).
-It selects the linked annotation, matched by id (or by its `#target-N` form when a multi-target
-annotation was expanded), when that annotation is on the current canvas. Otherwise the button
-is disabled with an explanatory tooltip.
+**Linked annotations (linking).** A `SpecificResource` with `"purpose": "linking"` is shown, under the caption "Linked annotations" (`labels.linkedAnnotations`, see [MIRADOR-CONFIGURATION.md](MIRADOR-CONFIGURATION.md#annotation-labels)),
+as one named row per target (several bodies pointing to the same annotation give one row). The row title is the
+body `label`, else the `label` of the target annotation, else the end of its id; the subtitle is the value of the
+target's metadata named by `scientificAnnotations.linkSubtitleMetadataLabel`, then where it is
+("on this page", "on <canvas label>", or "Not available in this viewer").
+
+- The target is matched by id (or its `#target-N` form for an expanded multi-target annotation) among the
+  annotations of the current canvas, then among the annotations already loaded for the other canvases of the
+  manifest. Nothing is fetched: an annotation that is not loaded stays an unavailable row (still focusable,
+  `aria-disabled`, with the reason).
+- Clicking a row selects the target; on another canvas the viewer first goes to that canvas. The target card
+  gets a "Back to ..." link and a "Cited by" line listing the annotations that link to it.
+- Hovering or focusing a card lights its zone together with the zones it links to; hovering a row lights its target only.
+  "Show all" frames the zone and its linked zones.
+- A `linking` body whose source is not an `Annotation` (and is not loaded) is shown as a link that opens in a new tab.
 
 ```json
 {

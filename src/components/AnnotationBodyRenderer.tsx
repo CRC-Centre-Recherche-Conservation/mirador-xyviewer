@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Box, Divider, Typography } from '@mui/material';
+import { Box, Divider } from '@mui/material';
 import type {
   AnnotationBody,
   ChoiceBody,
@@ -36,9 +36,8 @@ import { ManifestBody } from './ManifestBody';
 import { DatasetBody } from './DatasetBody';
 import { TextualBody } from './TextualBody';
 import { SpecificResourceBody } from './SpecificResourceBody';
-import { EvidenceLinkBody } from './EvidenceLinkBody';
+import { LinkedAnnotationList } from './LinkedAnnotationList';
 import { pickLanguageKey } from '../utils/localization';
-import { resolveLabels } from '../utils/annotationLabels';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import type { SpectrumData, DatasetRequestOptions } from '../types/dataset';
 import type { AnnotationBodyLabels } from '../types/mirador';
@@ -47,6 +46,8 @@ export type { AnnotationBodyLabels };
 
 /** Selection wiring for linking bodies. */
 interface LinkingProps {
+  /** Id of the annotation these bodies belong to (origin of followed links). */
+  annotationId?: string;
   windowId?: string;
   selectAnnotation?: (windowId: string, annotationId: string) => void;
   canvasAnnotationIds?: Iterable<string>;
@@ -163,6 +164,7 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
   requestOptions,
   onAuthRequired,
   ruleSet,
+  annotationId,
   windowId,
   selectAnnotation,
   canvasAnnotationIds,
@@ -197,6 +199,7 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
               requestOptions={requestOptions}
               onAuthRequired={onAuthRequired}
               ruleSet={ruleSet}
+              annotationId={annotationId}
               windowId={windowId}
               selectAnnotation={selectAnnotation}
               canvasAnnotationIds={canvasAnnotationIds}
@@ -233,21 +236,15 @@ const SegmentView: React.FC<SegmentViewProps> = ({ segment, depth = 0, ...props 
   }
 
   if (segment.kind === 'links') {
-    const caption = resolveLabels(props.labels).linkedAnnotations;
     return (
-      <Box role="group" aria-label={caption}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-          {caption}
-        </Typography>
-        <EvidenceLinkBody
-          bodies={segment.bodies}
-          windowId={props.windowId}
-          selectAnnotation={props.selectAnnotation}
-          canvasAnnotationIds={props.canvasAnnotationIds}
-          label={props.labels?.evidence}
-          unavailableLabel={props.labels?.evidenceUnavailable}
-        />
-      </Box>
+      <LinkedAnnotationList
+        bodies={segment.bodies}
+        ownerId={props.annotationId}
+        labels={props.labels}
+        windowId={props.windowId}
+        selectAnnotation={props.selectAnnotation}
+        canvasAnnotationIds={props.canvasAnnotationIds}
+      />
     );
   }
 

@@ -27,6 +27,7 @@ import {
 } from '../types/iiif';
 import { pickChoiceItem, selectLanguageVariants } from '../components/AnnotationBodyRenderer';
 import { getLocalizedString } from './localization';
+import { baseAnnotationId } from './linkIndex';
 import { isValidUrl, stripTags } from './security';
 
 export type ClassificationKind = 'classifying' | 'identifying';
@@ -196,8 +197,8 @@ export function buildClassificationView(
         else into.push({ seq: seq++, slot, term: { key: text, label: text, uri: '' }, group });
       } else if (isSpecificResourceBody(body)) {
         if (stringPurposes(body).includes('linking')) {
-          const id = srSourceId(body);
-          if (!seenLinks.has(id)) {
+          const id = baseAnnotationId(srSourceId(body));
+          if (id && !seenLinks.has(id)) {
             seenLinks.add(id);
             related.push(body);
           }

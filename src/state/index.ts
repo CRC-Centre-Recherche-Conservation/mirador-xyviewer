@@ -7,3 +7,6 @@ export type { SpectrumEntry, SpectrumStoreEvent, SpectrumStoreListener } from '.
 
 export { filtersStore } from './filtersStore';
 export type { FilterGroup, FilterValue, FiltersStoreEvent, FiltersStoreListener } from './filtersStore';
+
+export { linkNavigationStore } from './linkNavigationStore';
+export type { LinkOrigin, LinkNavigationState, LinkNavigationListener } from './linkNavigationStore';

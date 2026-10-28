@@ -42,3 +42,9 @@ export type { TermChipProps, TermChipAction } from './TermChip';
 
 export { AnnotationCardMenu } from './AnnotationCardMenu';
 export type { AnnotationCardMenuProps } from './AnnotationCardMenu';
+
+export { LinkedAnnotationList } from './LinkedAnnotationList';
+export type { LinkedAnnotationListProps } from './LinkedAnnotationList';
+
+export { CitedBy } from './CitedBy';
+export type { CitedByProps } from './CitedBy';

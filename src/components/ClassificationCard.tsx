@@ -9,6 +9,7 @@ import React, { useMemo } from 'react';
 import { SanitizedHtml } from 'mirador';
 import { Box, Button, Typography } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import LinkIcon from '@mui/icons-material/Link';
 import type { AnnotationBody, IIIFAnnotation } from '../types/iiif';
 import type { AnnotationBodyLabels } from '../types/mirador';
 import {
@@ -16,10 +17,10 @@ import {
   type ProseBlock,
   type Term,
 } from '../utils/classificationModel';
-import { resolveLabels } from '../utils/annotationLabels';
+import { fillTemplate, resolveLabels } from '../utils/annotationLabels';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import { MetadataDisplay } from './MetadataDisplay';
-import { EvidenceLinkBody } from './EvidenceLinkBody';
+import { LinkedAnnotationList } from './LinkedAnnotationList';
 import { AnnotationCardMenu } from './AnnotationCardMenu';
 import { ChipRow } from './ChipRow';
 import { TermChip } from './TermChip';
@@ -38,6 +39,10 @@ export interface ClassificationCardProps {
   canvasAnnotationIds?: Iterable<string>;
   /** Renders bodies the card does not know (Dataset, Manifest...) when expanded. */
   renderOther?: (bodies: AnnotationBody[]) => React.ReactNode;
+  /** Shown under the title (e.g. the back link and "Cited by"). */
+  afterTitle?: React.ReactNode;
+  /** Shown above the kicker (e.g. the back link). */
+  beforeKicker?: React.ReactNode;
 }
 
 const Prose: React.FC<{ block: ProseBlock; ruleSet: string; clamp?: boolean }> = ({
@@ -86,6 +91,8 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
   selectAnnotation,
   canvasAnnotationIds,
   renderOther,
+  afterTitle,
+  beforeKicker,
 }) => {
   const prefs = useLanguagePreferences();
   const text = useMemo(() => resolveLabels(labels), [labels]);
@@ -97,6 +104,8 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
       : fallback;
   };
 
+  const linkCount =
+    view.related.length === 1 ? text.linkCountOne : fillTemplate(text.linkCount, { n: view.related.length });
   const explicit = view.pairs.length > 0;
   const hasProse = view.prose.length > 0;
   const kicker = view.kind === 'identifying' ? text.identification : text.classification;
@@ -114,10 +123,24 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
 
   return (
     <Box>
+      {beforeKicker}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <Typography variant="overline" color="text.secondary" sx={{ flex: 1, lineHeight: 1.6 }}>
           {kicker}
         </Typography>
+        {view.related.length > 0 && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            role="img"
+            title={linkCount}
+            aria-label={linkCount}
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}
+          >
+            <LinkIcon sx={{ fontSize: 16 }} aria-hidden />
+            {view.related.length}
+          </Typography>
+        )}
         <AnnotationCardMenu
           annotationId={annotation.id}
           hideJson={!!inlineId}
@@ -131,6 +154,7 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
       {inlineId && (
         <MetadataDisplay annotationId={annotation.id} />
       )}
+      {afterTitle}
 
       {!isSelected && hasProse && <Prose block={view.prose[0]} ruleSet={ruleSet} clamp />}
 
@@ -200,19 +224,14 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
           )}
 
           {view.related.length > 0 && (
-            <Box role="group" aria-label={text.linkedAnnotations} sx={{ mt: 1 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                {text.linkedAnnotations}
-              </Typography>
-              <EvidenceLinkBody
-                bodies={view.related}
-                windowId={windowId}
-                selectAnnotation={selectAnnotation}
-                canvasAnnotationIds={canvasAnnotationIds}
-                label={text.evidence}
-                unavailableLabel={text.evidenceUnavailable}
-              />
-            </Box>
+            <LinkedAnnotationList
+              bodies={view.related}
+              ownerId={annotation.id}
+              labels={labels}
+              windowId={windowId}
+              selectAnnotation={selectAnnotation}
+              canvasAnnotationIds={canvasAnnotationIds}
+            />
           )}
 
           {view.rest.length > 0 && renderOther?.(view.rest)}

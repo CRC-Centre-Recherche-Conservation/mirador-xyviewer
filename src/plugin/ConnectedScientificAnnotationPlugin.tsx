@@ -9,10 +9,11 @@
  * - Apply metadata filters
  */
 
-import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
-import { connect } from 'react-redux';
+import React, { useCallback, useContext, useMemo, useRef, useEffect, useState, useSyncExternalStore } from 'react';
+import { connect, ReactReduxContext } from 'react-redux';
 import { addWindow as miradorAddWindow, SanitizedHtml } from 'mirador';
-import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/material';
+import { Box, Button, Typography, MenuList, MenuItem, ListItemText, Chip, Snackbar } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { AnnotationBodyRenderer, pickChoiceItem } from '../components/AnnotationBodyRenderer';
 import { rawSourceIds } from '../utils/xyReading';
 import { useLanguagePreferences } from '../utils/LanguageContext';
@@ -28,6 +29,12 @@ import { AnnotationSignIn } from '../components/AnnotationSignIn';
 import { getAnnotationAuth } from '../services/annotationAuth';
 import type { AnnotationPageRef } from '../services/annotationAuth';
 import { filtersStore } from '../state/filtersStore';
+import { linkNavigationStore } from '../state/linkNavigationStore';
+import { CitedBy } from '../components/CitedBy';
+import { LinkContext } from '../components/LinkContext';
+import { EMPTY_LINK_INDEX, baseAnnotationId, getLinkIndex, type LinkIndex } from '../utils/linkIndex';
+import { fillTemplate } from '../utils/annotationLabels';
+import { cancelPendingNavigation, useLinkController } from './useLinkController';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type {
   AnnotationBody,
@@ -188,6 +195,16 @@ interface PluginWrapperProps {
   showAnnotationId?: 'menu' | 'inline';
   /** First annotation page of this canvas for which a sign-in can be offered. */
   signInPage?: AnnotationPageRef;
+  /** Links between the annotations loaded for the window's manifest. */
+  linkIndex?: LinkIndex;
+  /** `config.scientificAnnotations.linkSubtitleMetadataLabel`. */
+  linkSubtitleMetadataLabel?: string;
+  /** Canvas the window shows (a panel in book view may show another). */
+  windowCanvasId?: string;
+  /** Canvases the window shows (two in book view). */
+  visibleCanvasIds?: string[];
+  /** Rest of Mirador's wrap chain, when other plugins wrap the same target. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -203,6 +220,11 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   labels,
   showAnnotationId = 'menu',
   signInPage,
+  linkIndex = EMPTY_LINK_INDEX,
+  linkSubtitleMetadataLabel,
+  windowCanvasId,
+  visibleCanvasIds,
+  children,
 }) => {
   const {
     annotations = [],
@@ -241,12 +263,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     return unsubscribe;
   }, [windowId, canvasId]);
 
-  // Handle hover on annotation to highlight SVG zone
-  const handleAnnotationHover = useCallback((annotationId: string | null) => {
-    if (!hoverAnnotation) return;
-    hoverAnnotation(windowId, annotationId ? [annotationId] : []);
-  }, [windowId, hoverAnnotation]);
-
   // Scroll to selected annotation when selection changes (e.g., from clicking SVG on canvas)
   useEffect(() => {
     if (selectedAnnotationId) {
@@ -275,6 +291,61 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 
   const prefs = useMemo(() => resolvePreferredLanguages(language), [language]);
 
+  const { context: linkContext, back } = useLinkController({
+    windowId,
+    canvasId,
+    visibleCanvasIds,
+    dispatch,
+    selectAnnotation,
+    hoverAnnotation,
+    hoveredAnnotationIds,
+    index: linkIndex,
+    canvasAnnotationIds,
+    annotationResources,
+    hiddenIds: hiddenAnnotationIds,
+    subtitleLabel: linkSubtitleMetadataLabel,
+    prefs,
+  });
+
+  // Hover lights the zone and its linked zones; leaving clears it (debounced).
+  const handleAnnotationHover = useCallback((annotationId: string | null) => {
+    linkContext.hover(annotationId ? linkContext.groupOf(annotationId) : []);
+  }, [linkContext]);
+
+  // Back stack of followed links: dropped when the reader moves on.
+  const nav = useSyncExternalStore(
+    useCallback((cb: () => void) => linkNavigationStore.subscribe((w) => w === windowId && cb()), [windowId]),
+    () => linkNavigationStore.get(windowId),
+  );
+  const shownCanvasIds = useMemo(
+    () => (visibleCanvasIds?.length ? visibleCanvasIds : [windowCanvasId ?? canvasId]),
+    [visibleCanvasIds, windowCanvasId, canvasId],
+  );
+  useEffect(() => {
+    linkNavigationStore.reconcile(windowId, selectedAnnotationId, shownCanvasIds);
+  }, [windowId, selectedAnnotationId, shownCanvasIds]);
+  const reduxStore = useContext(ReactReduxContext)?.store;
+  useEffect(
+    () => () => {
+      const st = reduxStore?.getState() as MiradorState | undefined;
+      if (st && !st.windows?.[windowId]) {
+        cancelPendingNavigation(windowId);
+        linkNavigationStore.clear(windowId);
+      }
+    },
+    [windowId, reduxStore],
+  );
+
+  // "Back" returns focus to the card it came from (the store survives a remount on canvas change).
+  const wantedFocus = nav.focus;
+  useEffect(() => {
+    if (!wantedFocus || !selectedAnnotationId || baseAnnotationId(selectedAnnotationId) !== baseAnnotationId(wantedFocus)) return;
+    const el = annotationRefs.current.get(selectedAnnotationId);
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    linkNavigationStore.setFocus(windowId, undefined);
+  }, [windowId, wantedFocus, selectedAnnotationId, annotations]);
+
   // Spectrum data callbacks
   const handleDataLoaded = useCallback((id: string, data: SpectrumData) => {
     console.debug('[XYViewer] Spectrum loaded:', id, data.points.length, 'points');
@@ -300,12 +371,24 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     [annotations, hiddenAnnotationIds, selectedAnnotationId],
   );
 
+  const labelText = resolveLabels(labels);
+  const backOrigin = nav.stack[nav.stack.length - 1];
+
   // If no scientific annotations and no hidden annotations, render original component
+  const failureNotice = (
+    <Snackbar
+      open={!!nav.failed}
+      autoHideDuration={5000}
+      onClose={() => linkNavigationStore.dismissFailure(windowId)}
+      message={labelText.linkNavigationFailed}
+    />
+  );
   if (customRenderingIds.size === 0 && hiddenAnnotationIds.size === 0) {
     return (
       <>
         {signInPage && <AnnotationSignIn page={signInPage} />}
-        <TargetComponent {...targetProps} />
+        {children ?? <TargetComponent {...targetProps} />}
+        {failureNotice}
       </>
     );
   }
@@ -313,6 +396,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   // Render mixed annotations - scientific ones custom, others default
   return (
     <LanguageProvider language={language}>
+     <LinkContext.Provider value={linkContext}>
       {signInPage && <AnnotationSignIn page={signInPage} />}
       <MenuList disablePadding>
         {visibleAnnotations.map((annotation) => {
@@ -325,6 +409,24 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
             hiddenAnnotationIds,
             selectedAnnotationId,
           );
+
+          const backLink =
+            backOrigin && nav.current && baseAnnotationId(nav.current.annotationId) === baseAnnotationId(annotation.id) ? (
+              <Button
+                size="small"
+                startIcon={<ArrowBackIcon fontSize="inherit" />}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  back();
+                }}
+                sx={{ textTransform: 'none', mb: 0.5, maxWidth: '100%', justifyContent: 'flex-start' }}
+              >
+                <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {fillTemplate(labelText.backTo, { title: linkContext.titleOf(backOrigin.annotationId) })}
+                </Box>
+              </Button>
+            ) : null;
+          const citedBy = <CitedBy annotationId={annotation.id} labels={labels} />;
 
           if (!isScientific) {
             // Render default annotation
@@ -353,6 +455,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                     {FILTER_HIDDEN_BADGE}
                   </Typography>
                 )}
+                {backLink}
                 <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
                   <InsideBoundary>
                     {() => (
@@ -368,6 +471,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                     )}
                   </InsideBoundary>
                 </ErrorBoundary>
+                {citedBy}
               </MenuItem>
             );
           }
@@ -459,6 +563,8 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                         windowId={windowId}
                         selectAnnotation={selectAnnotation}
                         canvasAnnotationIds={canvasAnnotationIds}
+                        beforeKicker={backLink}
+                        afterTitle={citedBy}
                         renderOther={(rest) => (
                           <AnnotationBodyRenderer
                             body={rest}
@@ -482,6 +588,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                       </Box>
                       {/* Metadata (right padding keeps the title clear of the menu button) */}
                       <Box sx={{ pr: 4.5 }}>
+                        {backLink}
                         <AnnotationMetadata
                           label={label}
                           metadata={metadata}
@@ -489,6 +596,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                           seeAlso={seeAlso}
                           body={body}
                         />
+                        {citedBy}
                       </Box>
 
                       {/* Body renderer */}
@@ -502,6 +610,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                           onDataLoaded={handleDataLoaded}
                           onVisibilityChange={handleVisibilityChange}
                           ruleSet={ruleSet}
+                          annotationId={annotationId}
                           windowId={windowId}
                           selectAnnotation={selectAnnotation}
                           canvasAnnotationIds={canvasAnnotationIds}
@@ -537,6 +646,8 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           );
         })}
       </MenuList>
+      {failureNotice}
+     </LinkContext.Provider>
     </LanguageProvider>
   );
 };
@@ -563,6 +674,21 @@ function sanitizeLabels(raw: unknown): AnnotationBodyLabels | undefined {
   return clean;
 }
 
+const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined);
+
+/** Stable per window object: the canvases a window shows. */
+const visibleCache = new WeakMap<object, string[]>();
+function visibleIds(win: object | undefined): string[] | undefined {
+  const raw = (win as { visibleCanvases?: unknown } | undefined)?.visibleCanvases;
+  if (!Array.isArray(raw)) return undefined;
+  let ids = visibleCache.get(raw);
+  if (!ids) {
+    ids = raw.filter((c): c is string => typeof c === 'string');
+    visibleCache.set(raw, ids);
+  }
+  return ids;
+}
+
 export function mapStateToProps(
   state: MiradorState,
   { targetProps }: { targetProps: { windowId: string; canvasId?: string } },
@@ -585,6 +711,10 @@ export function mapStateToProps(
     showAnnotationId:
       state.config?.scientificAnnotations?.showAnnotationId === 'inline' ? ('inline' as const) : ('menu' as const),
     signInPage: findSignInPage(canvasId ? state.annotations?.[canvasId] : undefined),
+    linkIndex: getLinkIndex(state, windowId),
+    linkSubtitleMetadataLabel: str(state.config?.scientificAnnotations?.linkSubtitleMetadataLabel),
+    windowCanvasId: window?.canvasId,
+    visibleCanvasIds: visibleIds(window),
   };
 }
 

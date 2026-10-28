@@ -62,9 +62,9 @@ export interface MiradorManifest {
 
 /** User-facing strings, overridable by the host. */
 export interface AnnotationBodyLabels {
-  /** Linking button (default "Evidence"). */
+  /** @deprecated Linked annotations are listed as rows; use `linkedAnnotations` for the caption. */
   evidence?: string;
-  /** Tooltip of a linking button whose target is not on the canvas. */
+  /** @deprecated Use `linkUnavailable`. */
   evidenceUnavailable?: string;
   /** Caption per SpecificResource purpose (default: the purpose itself). */
   purposes?: Record<string, string>;
@@ -83,6 +83,29 @@ export interface AnnotationBodyLabels {
   otherTerms?: string;
   /** Caption of the `linking` group (default "Linked annotations"). */
   linkedAnnotations?: string;
+  /** Row detail of a linked annotation on the current canvas (default "on this page"). */
+  linkOnThisPage?: string;
+  /** Row detail of a linked annotation on another canvas; `{canvas}` is its label (default "on {canvas}"). */
+  linkOnCanvas?: string;
+  /** Link count in a card header (defaults "{n} linked annotations" and "1 linked annotation"). */
+  linkCount?: string;
+  linkCountOne?: string;
+  /** Row detail when the linked annotation is not loaded (default "Not available in this viewer"). */
+  linkUnavailable?: string;
+  /** Button opening a linked annotation on another canvas (default "Go to page"). */
+  goToPage?: string;
+  /** Suffix of a linked row hidden by the metadata filter (default "(hidden by filter)"). */
+  hiddenByFilter?: string;
+  /** Button framing the zone and its linked zones (default "Show all"). */
+  showAll?: string;
+  /** Breadcrumb after a link was followed; `{title}` is the origin (default "Back to {title}"). */
+  backTo?: string;
+  /** Row accessible name; `{n}`, `{total}` and `{details}` are filled in (default "Select linked annotation {n} of {total}: {details}"). */
+  selectLinked?: string;
+  /** Caption of the annotations citing this one (default "Cited by"). */
+  citedBy?: string;
+  /** Message when a linked annotation on another page could not be opened (default "The linked annotation could not be opened"). */
+  linkNavigationFailed?: string;
   /** Disclosure holding the prose when the terms are shown as a structure (default "Full statement"). */
   fullStatement?: string;
   /** Report button (default "Open report"). */
@@ -103,6 +126,8 @@ export interface ScientificAnnotationsConfig {
   labels?: AnnotationBodyLabels;
   /** Where the annotation IIIF id is shown: in each card's "⋮" menu (default) or inline. */
   showAnnotationId?: 'menu' | 'inline';
+  /** Metadata label whose value is shown under each linked-annotation row (e.g. "Technique"). */
+  linkSubtitleMetadataLabel?: string;
 }
 
 /** Mirador config */
