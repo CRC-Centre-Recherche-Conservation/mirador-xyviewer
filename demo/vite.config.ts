@@ -24,14 +24,14 @@ export default defineConfig(({ mode }) => ({
     // Enable CORS for loading external manifests
     cors: true,
   },
-  // Source maps for debugging
   build: {
+    // Source maps for debugging
     sourcemap: true,
-  },
-  // Remove console.log/debug in production (keep warn/error)
-  esbuild: {
-    pure: mode === 'production' ? ['console.log', 'console.debug'] : [],
-    drop: mode === 'production' ? ['debugger'] : [],
+    // Remove console.log/debug in production (keep warn/error); the Oxc minifier already drops `debugger`.
+    rolldownOptions:
+      mode === 'production'
+        ? { treeshake: { manualPureFunctions: ['console.log', 'console.debug'] } }
+        : {},
   },
   // Define for Redux DevTools
   define: {
