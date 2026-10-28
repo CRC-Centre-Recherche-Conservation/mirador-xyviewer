@@ -28,7 +28,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import type { DatasetBody as DatasetBodyType, LocalizedString } from '../types/iiif';
 import type { SpectrumData, FetchStatus, DatasetRequestOptions } from '../types/dataset';
-import { fetchDataset, fetchDatasetBlob, abortFetch, validateDatasetUrl } from '../services/datasetFetcher';
+import { fetchDataset, fetchDatasetFile, abortFetch, validateDatasetUrl, datasetCacheKey } from '../services/datasetFetcher';
 import {
   configureDatasetAuth,
   getRegisteredAuthHandler,
@@ -37,6 +37,8 @@ import {
 import type { DatasetAuthHandler } from '../services/datasetAuth';
 import { datasetCache } from '../services/datasetCache';
 import { isValidUrl } from '../utils/security';
+import { parseXyReading } from '../utils/xyReading';
+import { hasExtension, resolveDownloadName, sanitizeFileName } from '../utils/downloadName';
 import { getLocalizedString } from '../utils/localization';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import { SpectrumPlot } from './SpectrumPlot';
@@ -59,7 +61,22 @@ const safeHost = (url: string): string | undefined => {
   }
 };
 
+/** Extensions for known raw-file formats; anything else gets none. */
+const RAW_EXTENSIONS: Record<string, string> = {
+  'text/csv': '.csv',
+  'text/tab-separated-values': '.tsv',
+  'text/plain': '.txt',
+};
+
 /** The resource's own file name (last path segment), for a download's suggested name. */
+const sameOrigin = (a: string, b: string): boolean => {
+  try {
+    return new URL(a).origin === new URL(b).origin;
+  } catch {
+    return false;
+  }
+};
+
 const filenameFromUrl = (url: string): string => {
   try {
     const name = new URL(url).pathname.split('/').pop();
@@ -257,29 +274,32 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     getLocalizedString(annotationLabel, langPrefs) ||
     'Spectrum Data';
 
+  // Stable string key: an equal-but-new xyReading object must not re-run the effects.
+  const cacheKey = useMemo(() => datasetCacheKey(body.id, body.xyReading), [body.id, body.xyReading]);
+
   // Validate URL on mount
   const validation = validateDatasetUrl(body.id, body.format);
 
   // Check cache on mount
   useEffect(() => {
     silentTriedRef.current = false; // a different dataset gets its own silent attempt
-    const cached = datasetCache.get(body.id);
+    const cached = datasetCache.get(cacheKey);
     if (cached) {
       setData(cached);
       setStatus('success');
     }
-  }, [body.id]);
+  }, [cacheKey]);
 
   // Cleanup on unmount
   useEffect(() => {
     mountedRef.current = true;
-    urlRef.current = body.id;
+    urlRef.current = cacheKey;
 
     return () => {
       mountedRef.current = false;
       abortFetch(urlRef.current);
     };
-  }, [body.id]);
+  }, [cacheKey]);
 
   // Auto-expand when active
   useEffect(() => {
@@ -300,7 +320,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
     setAuthRequired(false);
 
     const load = () =>
-      fetchDataset(body.id, body.format, displayLabel, requestOptions, { service: body.service });
+      fetchDataset(body.id, body.format, displayLabel, requestOptions, { service: body.service }, body.xyReading);
     let result = await load();
     if (!mountedRef.current) return;
 
@@ -315,7 +335,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
         /* no session — fall through to the protected notice */
       }
       if (!mountedRef.current) return;
-      datasetCache.delete(body.id);
+      datasetCache.delete(cacheKey);
       result = await load();
       if (!mountedRef.current) return;
     }
@@ -333,9 +353,9 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   }, [body, displayLabel, validation, onDataLoaded, requestOptions, authHandler]);
 
   const handleRetry = useCallback(() => {
-    datasetCache.delete(body.id);
+    datasetCache.delete(cacheKey);
     handleFetch();
-  }, [body.id, handleFetch]);
+  }, [cacheKey, handleFetch]);
 
   // Sign-in affordance for auth-protected datasets. The host runs the login flow;
   // if it returns a Promise we re-fetch once it resolves (login window closed),
@@ -348,7 +368,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
         await maybePromise;
         if (!mountedRef.current) return;
-        datasetCache.delete(body.id);
+        datasetCache.delete(cacheKey);
         handleFetch();
       }
     } catch (err) {
@@ -364,12 +384,19 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   // <a download> click: browsers exempt downloads from popup blocking (unlike window.open after
   // an await, which loses the user gesture and is blocked silently), and it keeps the real file
   // name instead of a blob UUID.
-  const triggerDownload = useCallback(async () => {
-    const blob = await fetchDatasetBlob(body.id, requestOptions, { service: body.service });
+  const triggerDownload = useCallback(async (url: string, fallbackName?: string, label?: string) => {
+    // Host headers/credentials only go to the dataset's own origin; the raw file may live elsewhere.
+    const options = sameOrigin(url, body.id) ? requestOptions : undefined;
+    const { blob, filename } = await fetchDatasetFile(url, options, { service: body.service });
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = objectUrl;
-    a.download = filenameFromUrl(body.id);
+    a.download = resolveDownloadName({
+      urlName: filenameFromUrl(url),
+      headerName: filename,
+      label,
+      fallback: fallbackName,
+    });
     a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
@@ -381,9 +408,10 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   // login and download automatically once it completes — one click, not "sign in" then a
   // second click on download. (Unlike handleSignIn, this re-attempts the download, not a plot
   // reload.) The download itself rides a fresh <a download> so it is never popup-blocked.
-  const handleOpenResource = useCallback(async () => {
+  // The raw file of an xyReading `derivedFrom` rides the same path and the same sign-in.
+  const downloadWithAuth = useCallback(async (url: string, fallbackName?: string, label?: string) => {
     try {
-      await triggerDownload();
+      await triggerDownload(url, fallbackName, label);
     } catch (err) {
       if (!(err as { authRequired?: boolean }).authRequired || !authHandler) {
         console.debug('[mirador-xyviewer] could not open dataset resource:', err);
@@ -396,7 +424,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
           await maybePromise;
         }
         if (!mountedRef.current) return;
-        await triggerDownload();
+        await triggerDownload(url, fallbackName, label);
       } catch (signInErr) {
         console.debug('[mirador-xyviewer] could not open dataset resource after sign-in:', signInErr);
       } finally {
@@ -404,6 +432,37 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
       }
     }
   }, [triggerDownload, authHandler, body]);
+
+  const handleOpenResource = useCallback(() => {
+    const ext = RAW_EXTENSIONS[body.format ?? ''] ?? '';
+    const stem = filenameFromUrl(body.id).replace(/\.[^.]*$/, '') || 'dataset';
+    return downloadWithAuth(body.id, ext ? `${stem}${ext}` : undefined, getLocalizedString(body.label, langPrefs));
+  }, [downloadWithAuth, body.id, body.format, body.label, langPrefs]);
+
+  // Raw file the curve was derived from (xyReading derivedFrom); never fetched automatically.
+  const rawSource = useMemo(() => parseXyReading(body.xyReading)?.derivedFrom, [body.xyReading]);
+  const handleDownloadRaw = useCallback(() => {
+    if (!rawSource) return;
+    const ext = RAW_EXTENSIONS[rawSource.format ?? ''] ?? '';
+    const label = getLocalizedString(rawSource.label, langPrefs);
+    // Last resort: the label (or the dataset's own name) as the stem, plus the format's extension.
+    const stem = sanitizeFileName(label.replace(/[\\/]/g, '_')) || `${filenameFromUrl(body.id).replace(/\.[^.]*$/, '') || 'dataset'}-raw`;
+    return downloadWithAuth(rawSource.id, hasExtension(stem) ? stem : `${stem}${ext}`, label);
+  }, [rawSource, body.id, downloadWithAuth, langPrefs]);
+  const rawTitle = rawSource ? getLocalizedString(rawSource.label, langPrefs) || rawSource.id : undefined;
+  // Offered in every state: the plain seeAlso link to this file is hidden in its favour.
+  const rawLink = rawSource ? (
+    <Link
+      component="button"
+      type="button"
+      onClick={handleDownloadRaw}
+      title={rawTitle}
+      aria-label={`Download raw data${rawTitle ? `: ${rawTitle}` : ''}`}
+      variant="caption"
+    >
+      Download raw data
+    </Link>
+  ) : null;
 
   const toggleExpanded = useCallback(() => {
     setExpanded(prev => !prev);
@@ -432,6 +491,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
               <Link component="button" type="button" onClick={handleOpenResource} title={body.id}>
                 Open resource
               </Link>
+              {rawLink && <> {rawLink}</>}
             </Typography>
           </Alert>
         </Box>
@@ -451,7 +511,7 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   return (
     <Box sx={{ my: 1 }}>
       {/* Header with load button or expand toggle */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         {status === 'idle' && (
           <Button
             variant="outlined"
@@ -503,19 +563,22 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
         ))}
 
         {status === 'success' && data && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
             <Button
               variant="text"
               size="small"
               onClick={toggleExpanded}
               startIcon={<ShowChartIcon />}
               endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              sx={{ textTransform: 'none', flexGrow: 1, justifyContent: 'flex-start' }}
+              sx={{ textTransform: 'none', justifyContent: 'flex-start', textAlign: 'left' }}
             >
               {displayLabel} ({data.points.length} points)
             </Button>
+            {rawLink && <Box sx={{ pl: 1 }}>{rawLink}</Box>}
           </Box>
         )}
+
+        {status !== 'success' && rawLink}
       </Box>
 
       {/* Collapsible plot area */}
@@ -528,6 +591,11 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
               onDownloadSource={handleOpenResource}
               labels={plotLabels}
             />
+            {data.readingIgnored && (
+              <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+                Plotted as published: this dataset declares a correction this viewer cannot apply.
+              </Typography>
+            )}
           </Box>
         )}
       </Collapse>

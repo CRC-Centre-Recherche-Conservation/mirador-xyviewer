@@ -5,3 +5,4 @@
 export * from './iiif';
 export * from './mirador';
 export * from './dataset';
+export * from './xyReading';

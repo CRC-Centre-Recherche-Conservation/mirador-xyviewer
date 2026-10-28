@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import type { SpectrumData, PlotlyTrace } from '../types/dataset';
+import { getLocalizedString } from '../utils/localization';
+import { useLanguagePreferences } from '../utils/LanguageContext';
 
 // Material "open in full" icon path, Y-flipped for Plotly's modebar coord system.
 const EXPAND_ICON = {
@@ -34,6 +36,10 @@ const DOWNLOAD_ICON = {
 };
 
 /** Color palette for multiple series */
+/** Plotly renders pseudo-HTML in titles and names: neutralize markup from untrusted labels. */
+const plotText = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 const SERIES_COLORS = [
   '#1976d2', // blue
   '#d32f2f', // red
@@ -61,7 +67,7 @@ export interface SpectrumPlotLabels {
   defaultTitle?: string;
   /** Fallback X axis title when data.xLabel is absent */
   defaultXAxis?: string;
-  /** Fallback Y axis title when data.yLabel is absent (and series has more than one entry) */
+  /** Fallback Y axis title when data.yLabel is absent (multi-series data with no reading labels or axes) */
   defaultYAxis?: string;
 }
 
@@ -104,6 +110,20 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
   const [modalContentEl, setModalContentEl] = useState<HTMLDivElement | null>(null);
   const [modalPlotHeight, setModalPlotHeight] = useState<number>(500);
   const dialogTitleId = useId();
+  const langPrefs = useLanguagePreferences();
+
+  // Series drawn on the right axis (xyReading yRight); with none on the left they all use it.
+  const hasLeftSeries = data.series?.some(s => s.axis !== 'right') ?? false;
+  const onRight = useCallback(
+    (s: { axis?: 'left' | 'right' }) => s.axis === 'right' && hasLeftSeries,
+    [hasLeftSeries]
+  );
+  // Series name: reading label in the reader's language, else the CSV header.
+  const seriesName = useCallback(
+    (s: { label: string; labelMap?: SpectrumData['xLabelMap'] }) =>
+      plotText(getLocalizedString(s.labelMap, langPrefs) || s.label),
+    [langPrefs]
+  );
 
   const handleOpen = useCallback(() => setModalOpen(true), []);
   const handleClose = useCallback(() => setModalOpen(false), []);
@@ -149,8 +169,9 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
         y: series.yValues,
         type: 'scatter' as const,
         mode: 'lines' as const,
-        name: series.label,
+        name: seriesName(series),
         visible: true,
+        ...(onRight(series) ? { yaxis: 'y2' as const } : {}),
         line: {
           color: data.series.length === 1
             ? (color || SERIES_COLORS[0])
@@ -167,30 +188,45 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
       y: points.map(p => p.y),
       type: 'scatter' as const,
       mode: 'lines' as const,
-      name: data.label,
+      name: plotText(data.label),
       visible: true,
       line: {
         color: color || SERIES_COLORS[0],
         width: 1.5,
       },
     }];
-  }, [data, color]);
+  }, [data, color, seriesName, onRight]);
 
   // Determine if we should show legend (only for multiple series)
   const showLegend = traces.length > 1;
 
   // Build Plotly layout - minimize margins to maximize plot area
-  const layout = useMemo(() => ({
+  const layout = useMemo(() => {
+    const leftFirst = data.series?.find(sr => !onRight(sr));
+    const rightFirst = data.series?.find(onRight);
+    // Series-driven title for a single series or reading-driven data; else the data's yLabel.
+    const seriesTitled = data.series?.length === 1 || !!data.series?.some(sr => sr.labelMap || sr.axis);
+    return {
     xaxis: {
-      title: { text: data.xLabel || t.defaultXAxis },
-      autorange: true,
+      title: { text: plotText(getLocalizedString(data.xLabelMap, langPrefs) || data.xLabel || '') || t.defaultXAxis },
+      autorange: data.xReversed ? ('reversed' as const) : true,
       automargin: true,
     },
     yaxis: {
-      title: { text: data.series?.length === 1 ? data.series[0].label : (data.yLabel || t.defaultYAxis) },
+      title: { text: (seriesTitled && leftFirst && seriesName(leftFirst)) || plotText(data.yLabel ?? '') || t.defaultYAxis },
       autorange: true,
       automargin: true,
     },
+    ...(rightFirst ? {
+      yaxis2: {
+        title: { text: seriesName(rightFirst) || t.defaultYAxis },
+        overlaying: 'y' as const,
+        side: 'right' as const,
+        autorange: true,
+        automargin: true,
+        showgrid: false,
+      },
+    } : {}),
     showlegend: showLegend,
     legend: showLegend ? {
       x: 0.01,
@@ -211,7 +247,8 @@ export const SpectrumPlot: React.FC<SpectrumPlotProps> = ({
     },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'rgba(0,0,0,0.02)',
-  }), [data.xLabel, data.yLabel, data.series, showLegend, t]);
+    };
+  }, [data.xLabel, data.xLabelMap, data.xReversed, data.yLabel, data.series, showLegend, t, langPrefs, seriesName, onRight]);
 
   // Base Plotly config — used as-is inside the modal.
   const baseConfig = useMemo(() => ({

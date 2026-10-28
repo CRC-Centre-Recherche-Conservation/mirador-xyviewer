@@ -10,10 +10,12 @@ import type {
   DatasetRequestOptions,
   DatasetRequestProvider,
 } from '../types/dataset';
-import { ALLOWED_MIME_TYPES, MAX_DATASET_SIZE, isAllowedMimeType } from '../types/dataset';
+import { ALLOWED_MIME_TYPES, MAX_DATASET_SIZE, MAX_DOWNLOAD_SIZE, isAllowedMimeType } from '../types/dataset';
 import { isValidUrl, validateContentType } from '../utils/security';
 import { datasetCache } from './datasetCache';
 import { parseDataset } from './datasetParser';
+import { parseXyReading } from '../utils/xyReading';
+import { filenameFromContentDisposition } from '../utils/downloadName';
 
 /** Active abort controllers by URL */
 const abortControllers = new Map<string, AbortController>();
@@ -73,13 +75,22 @@ async function resolveRequestOptions(
 }
 
 /**
- * Abort any pending fetch for a URL
+ * Cache key for a dataset: the parsed data depends on the (untrusted) reading, so it is
+ * part of the key. Without a valid reading the key is the URL.
  */
-export function abortFetch(url: string): void {
-  const controller = abortControllers.get(url);
+export function datasetCacheKey(url: string, xyReading?: unknown): string {
+  const reading = parseXyReading(xyReading);
+  return reading ? `${url}\u0000${JSON.stringify(reading)}` : url;
+}
+
+/**
+ * Abort any pending fetch, by URL or by {@link datasetCacheKey} when a reading is involved
+ */
+export function abortFetch(key: string): void {
+  const controller = abortControllers.get(key);
   if (controller) {
     controller.abort();
-    abortControllers.delete(url);
+    abortControllers.delete(key);
   }
 }
 
@@ -100,11 +111,11 @@ export function abortAllFetches(): void {
  * a raw 401. Throws a `DatasetAuthError` (`.authRequired`) on 401/403 so the caller can
  * trigger sign-in instead of surfacing the server's error body.
  */
-export async function fetchDatasetBlob(
+export async function fetchDatasetFile(
   url: string,
   options?: DatasetRequestOptions,
   context?: DatasetRequestContext
-): Promise<Blob> {
+): Promise<{ blob: Blob; filename: string }> {
   if (!isValidUrl(url)) {
     throw new Error('Invalid URL: Only http/https protocols are allowed');
   }
@@ -116,19 +127,56 @@ export async function fetchDatasetBlob(
     }
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
-  return response.blob();
+  // Only readable cross-origin when the server exposes Content-Disposition (CORS).
+  const filename = filenameFromContentDisposition(response.headers?.get?.('content-disposition'));
+  const contentType = response.headers?.get?.('content-type') ?? '';
+  const tooLarge = () => new Error(`File exceeds maximum download size of ${MAX_DOWNLOAD_SIZE} bytes`);
+  const declared = Number(response.headers?.get?.('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_DOWNLOAD_SIZE) throw tooLarge();
+
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const blob = await response.blob();
+    if (blob.size > MAX_DOWNLOAD_SIZE) throw tooLarge();
+    return { blob, filename };
+  }
+  // Bound the buffered size even when Content-Length is absent or wrong.
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done || !value) break;
+    total += value.length;
+    if (total > MAX_DOWNLOAD_SIZE) {
+      reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  return { blob: new Blob(chunks as BlobPart[], { type: contentType }), filename };
+}
+
+/** As {@link fetchDatasetFile}, returning only the Blob. */
+export async function fetchDatasetBlob(
+  url: string,
+  options?: DatasetRequestOptions,
+  context?: DatasetRequestContext
+): Promise<Blob> {
+  return (await fetchDatasetFile(url, options, context)).blob;
 }
 
 /**
  * Fetch and parse a dataset
- * Returns cached data if available, otherwise fetches
+ * Returns cached data if available, otherwise fetches.
+ * `xyReading` is the body's optional advisory extension object (validated here).
  */
 export async function fetchDataset(
   url: string,
   declaredMimeType: string,
   label: string,
   options?: DatasetRequestOptions,
-  context?: DatasetRequestContext
+  context?: DatasetRequestContext,
+  xyReading?: unknown
 ): Promise<DatasetFetchResult> {
   // Validate URL
   if (!isValidUrl(url)) {
@@ -146,14 +194,16 @@ export async function fetchDataset(
     };
   }
 
+  const cacheKey = datasetCacheKey(url, xyReading);
+
   // Check cache first
-  const cached = datasetCache.get(url);
+  const cached = datasetCache.get(cacheKey);
   if (cached) {
     return { status: 'success', data: cached };
   }
 
   // Check for pending request
-  const pending = datasetCache.getPendingRequest(url);
+  const pending = datasetCache.getPendingRequest(cacheKey);
   if (pending) {
     try {
       const data = await pending;
@@ -169,12 +219,12 @@ export async function fetchDataset(
 
   // Create new fetch request
   const controller = new AbortController();
-  abortControllers.set(url, controller);
+  abortControllers.set(cacheKey, controller);
 
-  // Note: cache and in-flight dedup are keyed by URL only — one auth context per
+  // Note: cache and in-flight dedup are keyed by URL + reading — one auth context per
   // URL per session is assumed, which holds for a viewer.
-  const fetchPromise = performFetch(url, declaredMimeType, label, controller.signal, options, context);
-  datasetCache.setPendingRequest(url, fetchPromise);
+  const fetchPromise = performFetch(url, declaredMimeType, label, controller.signal, options, context, xyReading, cacheKey);
+  datasetCache.setPendingRequest(cacheKey, fetchPromise);
 
   try {
     const data = await fetchPromise;
@@ -189,7 +239,7 @@ export async function fetchDataset(
       ...(error instanceof DatasetAuthError ? { authRequired: true } : {}),
     };
   } finally {
-    abortControllers.delete(url);
+    abortControllers.delete(cacheKey);
   }
 }
 
@@ -202,7 +252,9 @@ async function performFetch(
   label: string,
   signal: AbortSignal,
   options?: DatasetRequestOptions,
-  context?: DatasetRequestContext
+  context?: DatasetRequestContext,
+  xyReading?: unknown,
+  cacheKey: string = url
 ): Promise<SpectrumData> {
   // Default: credentials 'omit' + no auth headers (avoids cross-origin CORS
   // friction). A host opts into IIIF Auth — cookie or Bearer token — via
@@ -265,8 +317,8 @@ async function performFetch(
     chunks.push(value);
   }
 
-  // Decode to string
-  const decoder = new TextDecoder('utf-8');
+  // Decode to string (utf-8 unless the xyReading dialect declares a supported encoding)
+  const decoder = new TextDecoder(parseXyReading(xyReading)?.dialect?.encoding ?? 'utf-8');
   const content = chunks.map(chunk => decoder.decode(chunk, { stream: true })).join('')
     + decoder.decode();
 
@@ -274,10 +326,10 @@ async function performFetch(
   const actualMimeType = contentType?.split(';')[0].trim() || declaredMimeType;
 
   // Parse the dataset
-  const data = parseDataset(content, url, label, actualMimeType);
+  const data = parseDataset(content, url, label, actualMimeType, xyReading);
 
   // Cache the result
-  datasetCache.set(url, data);
+  datasetCache.set(cacheKey, data);
 
   return data;
 }

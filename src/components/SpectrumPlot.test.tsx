@@ -49,6 +49,7 @@ vi.mock('react-plotly.js', () => ({
 }));
 
 import { SpectrumPlot } from './SpectrumPlot';
+import { LanguageProvider } from '../utils/LanguageContext';
 
 // ResizeObserver polyfill — records instances so tests can assert lifecycle.
 class MockResizeObserver {
@@ -449,5 +450,106 @@ describe('SpectrumPlot — download data file button', () => {
     const props = getInlinePlotProps();
     expect(getExpandButton(props)).toBeDefined();
     expect(getDownloadButton(props)).toBeDefined();
+  });
+
+  describe('xyReading layout', () => {
+    const lastProps = () => plotCalls[plotCalls.length - 1] as PlotMockProps & {
+      layout: Record<'xaxis' | 'yaxis' | 'yaxis2', { autorange?: unknown; title: { text: string } }>;
+      data: { name?: string; yaxis?: string }[];
+    };
+
+    beforeEach(() => {
+      plotCalls.length = 0;
+    });
+
+    it('draws a reversed x axis', () => {
+      render(<SpectrumPlot data={makeData({ xReversed: true })} />);
+      expect(lastProps().layout.xaxis.autorange).toBe('reversed');
+    });
+
+    it('escapes markup in labels before handing them to Plotly', () => {
+      const evil = '<a href="https://evil.example" target="_top">x</a> & y';
+      const esc = '&lt;a href="https://evil.example" target="_top"&gt;x&lt;/a&gt; &amp; y';
+      render(
+        <SpectrumPlot
+          data={makeData({
+            xLabel: evil,
+            series: [
+              { label: evil, yValues: [1, 2, 3, 4] },
+              { label: evil, yValues: [4, 3, 2, 1], axis: 'right' },
+            ],
+          })}
+        />
+      );
+      const { layout, data } = lastProps();
+      expect(layout.xaxis.title.text).toBe(esc);
+      expect(layout.yaxis.title.text).toBe(esc);
+      expect(layout.yaxis2.title.text).toBe(esc);
+      expect(data[0].name).toBe(esc);
+    });
+
+    it('keeps a normal x axis and no yaxis2 by default', () => {
+      render(<SpectrumPlot data={makeData()} />);
+      expect(lastProps().layout.xaxis.autorange).toBe(true);
+      expect(lastProps().layout.yaxis2).toBeUndefined();
+      expect(lastProps().data[0].yaxis).toBeUndefined();
+    });
+
+    it('puts right-axis series on an overlaying yaxis2', () => {
+      render(
+        <SpectrumPlot
+          data={makeData({
+            series: [
+              { label: 'L', yValues: [1, 2, 3, 4] },
+              { label: 'R', yValues: [4, 3, 2, 1], axis: 'right' },
+            ],
+          })}
+        />
+      );
+      const { layout, data } = lastProps();
+      expect(layout.yaxis2).toMatchObject({ overlaying: 'y', side: 'right', title: { text: 'R' } });
+      expect(layout.yaxis.title.text).toBe('L');
+      expect(data.map((t: { yaxis?: string }) => t.yaxis)).toEqual([undefined, 'y2']);
+    });
+
+    it('keeps the yLabel/default title for plain multi-series data', () => {
+      render(
+        <SpectrumPlot
+          data={makeData({
+            yLabel: undefined,
+            series: [{ label: 'A', yValues: [1, 2, 3, 4] }, { label: 'B', yValues: [4, 3, 2, 1] }],
+          })}
+          labels={{ defaultYAxis: 'Signal' }}
+        />
+      );
+      expect(lastProps().layout.yaxis.title.text).toBe('Signal');
+    });
+
+    it('uses the left axis when every series is declared right', () => {
+      render(<SpectrumPlot data={makeData({ series: [{ label: 'R', yValues: [1, 2, 3, 4], axis: 'right' }] })} />);
+      expect(lastProps().layout.yaxis2).toBeUndefined();
+      expect(lastProps().data[0].yaxis).toBeUndefined();
+    });
+
+    it('resolves language-map labels with the reader language, falling back to the headers', () => {
+      render(
+        <LanguageProvider language="fr">
+          <SpectrumPlot
+            data={makeData({
+              xLabelMap: { en: ['Wavelength (nm)'], fr: ['Longueur d\'onde (nm)'] },
+              series: [{ label: 'col', yValues: [1, 2, 3, 4], labelMap: { en: ['Reflectance'], fr: ['Réflectance'] } }],
+            })}
+          />
+        </LanguageProvider>
+      );
+      expect(lastProps().layout.xaxis.title.text).toBe("Longueur d'onde (nm)");
+      expect(lastProps().layout.yaxis.title.text).toBe('Réflectance');
+      expect(lastProps().data[0].name).toBe('Réflectance');
+
+      plotCalls.length = 0;
+      cleanup();
+      render(<SpectrumPlot data={makeData({ xLabelMap: {} })} />);
+      expect(lastProps().layout.xaxis.title.text).toBe('Wavelength');
+    });
   });
 });

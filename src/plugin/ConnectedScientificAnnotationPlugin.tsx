@@ -13,7 +13,9 @@ import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { connect } from 'react-redux';
 import { addWindow as miradorAddWindow, SanitizedHtml } from 'mirador';
 import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/material';
-import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
+import { AnnotationBodyRenderer, pickChoiceItem } from '../components/AnnotationBodyRenderer';
+import { rawSourceIds } from '../utils/xyReading';
+import { useLanguagePreferences } from '../utils/LanguageContext';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { LanguageProvider } from '../utils/LanguageContext';
 import { ErrorBoundary, ErrorNotice } from '../components/ErrorBoundary';
@@ -34,6 +36,15 @@ import { containPlugin } from './containPlugin';
 
 /** Evaluates its render function in its own render so an enclosing boundary catches parent-built expressions. */
 const InsideBoundary: React.FC<{ children: () => React.ReactNode }> = ({ children }) => <>{children()}</>;
+
+/** Metadata block; the raw file offered by the shown body's reading replaces its plain seeAlso link. */
+const AnnotationMetadata: React.FC<
+  Omit<React.ComponentProps<typeof MetadataDisplay>, 'hiddenSeeAlsoIds' | 'compact'> & { body?: unknown }
+> = ({ body, ...rest }) => {
+  const prefs = useLanguagePreferences();
+  const hidden = React.useMemo(() => rawSourceIds(body, (c) => pickChoiceItem(c, prefs)), [body, prefs]);
+  return <MetadataDisplay {...rest} hiddenSeeAlsoIds={hidden} compact />;
+};
 
 /** Banner shown on an annotation surfaced only because it is selected while filtered out. */
 const FILTER_HIDDEN_BADGE = 'Shown because selected — hidden by the metadata filter';
@@ -394,7 +405,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                   {() => (
                     <>
                       {/* Metadata */}
-                      <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
+                      <AnnotationMetadata label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} body={body} />
 
                       {/* Body renderer */}
                       {body && (

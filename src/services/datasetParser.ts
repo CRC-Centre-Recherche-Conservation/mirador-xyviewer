@@ -5,7 +5,10 @@
 
 import Papa from 'papaparse';
 import type { DataPoint, SpectrumData, SeriesData } from '../types/dataset';
+import type { LocalizedString } from '../types/iiif';
+import type { XyReading, XyCorrection } from '../types/xyReading';
 import { MAX_DATA_POINTS } from '../types/dataset';
+import { parseXyReading, XY_MAX_COLUMN_INDEX } from '../utils/xyReading';
 
 /** Column name patterns for X axis */
 const X_COLUMN_PATTERNS = [
@@ -160,19 +163,80 @@ function isNonNumericRow(row: string[]): boolean {
   });
 }
 
+interface MeasurementColumn {
+  col: number;
+  axis: 'left' | 'right';
+  labelMap?: LocalizedString;
+}
+
+/** Where the columns come from and which corrections apply. */
+interface ReadingPlan {
+  xCol: number;
+  measures: MeasurementColumn[];
+  referenceCol?: number;
+  darkCol?: number;
+  corrections: XyCorrection[];
+}
+
 /**
- * Parse CSV/TSV content into spectrum data
+ * Resolve the xyReading column roles against the file. Returns null when they cannot be
+ * honoured (no x / no measurement, ambiguous x, index outside the file).
+ */
+function planFromRoles(reading: XyReading, width: number): ReadingPlan | null {
+  const cols = reading.columns;
+  if (!cols) return null;
+  if (cols.some(c => c.index >= width)) return null;
+  const xs = cols.filter(c => c.role === 'x');
+  if (xs.length !== 1) return null;
+  const ref = cols.filter(c => c.role === 'reference');
+  const dark = cols.filter(c => c.role === 'dark');
+  if (ref.length > 1 || dark.length > 1) return null;
+  const measures: MeasurementColumn[] = cols
+    .filter(c => c.role === 'yLeft' || c.role === 'yRight')
+    .map((c, i) => ({
+      col: c.index,
+      axis: c.role === 'yRight' ? 'right' : 'left',
+      labelMap: reading.y?.[i]?.label,
+    }));
+  if (measures.length === 0) return null;
+  const corrections = reading.corrections ?? [];
+  if (corrections.length > 0 && ref.length === 0) return null;
+  return {
+    xCol: xs[0].index,
+    measures,
+    referenceCol: ref[0]?.index,
+    darkCol: dark[0]?.index,
+    corrections,
+  };
+}
+
+const MAX_COLUMNS = XY_MAX_COLUMN_INDEX + 1;
+
+const toNumber = (cell: string | undefined): number => parseFloat(cell as string);
+
+/**
+ * Parse CSV/TSV content into spectrum data.
+ *
+ * `xyReading` is the optional, untrusted extension object of the Dataset body: used when
+ * valid, otherwise the file is read exactly as before. One that cannot be honoured (unknown
+ * correction, unusable columns) is set aside whole, apart from the dialect.
  */
 export function parseDataset(
   content: string,
   id: string,
   label: string,
-  mimeType: string
+  mimeType: string,
+  xyReading?: unknown
 ): SpectrumData {
+  let reading = parseXyReading(xyReading);
+  const dialect = reading?.dialect;
+
   let processedContent = content;
   let delimiter: string;
 
-  if (mimeType === 'text/tab-separated-values') {
+  if (dialect?.delimiter) {
+    delimiter = dialect.delimiter;
+  } else if (mimeType === 'text/tab-separated-values') {
     delimiter = '\t';
   } else {
     const detectedDelimiter = detectDelimiter(content);
@@ -200,16 +264,21 @@ export function parseDataset(
     throw new Error('Dataset is empty');
   }
 
-  // Find where numeric data starts by skipping any header/metadata rows
-  // Headers can be on line 1, 2, or 3 - skip all non-numeric rows at the beginning
+  // Find where numeric data starts by skipping any header/metadata rows. A declared
+  // headerRowCount replaces the sniffing; otherwise skip the non-numeric rows at the start
+  // (headers can be on line 1, 2, or 3).
   let lastHeaderIndex = -1;
-  const maxHeaderCheck = Math.min(5, rows.length - 1); // Check up to 5 rows
-
-  for (let i = 0; i < maxHeaderCheck; i++) {
-    if (isNonNumericRow(rows[i])) {
-      lastHeaderIndex = i;
-    } else {
-      break; // Found first numeric row, stop
+  const declaredHeaders = dialect?.headerRowCount;
+  if (declaredHeaders !== undefined && declaredHeaders < rows.length) {
+    lastHeaderIndex = declaredHeaders - 1;
+  } else {
+    const maxHeaderCheck = Math.min(5, rows.length - 1); // Check up to 5 rows
+    for (let i = 0; i < maxHeaderCheck; i++) {
+      if (isNonNumericRow(rows[i])) {
+        lastHeaderIndex = i;
+      } else {
+        break; // Found first numeric row, stop
+      }
     }
   }
 
@@ -226,42 +295,87 @@ export function parseDataset(
     headers = rows[0].map((_, i) => `Column ${i + 1}`);
     dataRows = rows;
   }
+  // A reading's roles can point past the header, so bound the columns it may address; files
+  // read without a reading keep every column.
+  const columnCap = reading ? MAX_COLUMNS : Infinity;
+  if (headers.length > columnCap) headers = headers.slice(0, columnCap);
+  const width = Math.min(columnCap, dataRows.reduce((w, r) => Math.max(w, r.length), headers.length));
 
-  // Find X column
-  let xCol = findColumn(headers, X_COLUMN_PATTERNS);
-  if (xCol === -1) xCol = 0; // Default: first column is X
+  let plan: ReadingPlan | null = null;
+  let readingIgnored: SpectrumData['readingIgnored'];
+  if (reading) {
+    const hasCorrections = (reading.corrections?.length ?? 0) > 0;
+    if (!reading.hasUnsupportedCorrection && reading.columns) plan = planFromRoles(reading, width);
+    if (plan) for (let i = headers.length; i < width; i++) headers.push(`Column ${i + 1}`);
+    // A correction that cannot be applied must not leave raw data under a corrected title.
+    if (reading.hasUnsupportedCorrection || (hasCorrections && !plan)) {
+      readingIgnored = 'unsupported-correction';
+    }
+    // Columns or corrections that cannot be honoured: read the file as published.
+    if (readingIgnored || ((reading.columns || reading.columnsInvalid) && !plan)) {
+      reading = { type: 'XYReading', dialect: reading.dialect };
+    }
+  }
 
-  // All other columns are Y series
-  const yColumns: number[] = [];
-  for (let i = 0; i < headers.length; i++) {
-    if (i !== xCol) {
-      yColumns.push(i);
+  let xCol: number;
+  let measures: MeasurementColumn[];
+  if (plan) {
+    xCol = plan.xCol;
+    measures = plan.measures;
+  } else {
+    // Find X column
+    xCol = findColumn(headers, X_COLUMN_PATTERNS);
+    if (xCol === -1) xCol = 0; // Default: first column is X
+    // All other columns are Y series
+    measures = [];
+    for (let i = 0; i < headers.length; i++) {
+      if (i === xCol) continue;
+      const spec = reading?.y?.[measures.length];
+      measures.push({ col: i, axis: spec?.axis ?? 'left', labelMap: spec?.label });
     }
   }
 
   // Ensure we have at least 1 Y column
-  if (yColumns.length === 0) {
+  if (measures.length === 0) {
     throw new Error('Dataset must contain at least two columns (X and Y)');
   }
+
+  const corrections = plan?.corrections ?? [];
+  const { referenceCol, darkCol } = plan ?? {};
 
   // Parse data - extract X values and Y values for each series
   const rawData: { x: number; yValues: number[] }[] = [];
 
   for (const row of dataRows) {
-    const xVal = parseFloat(row[xCol]);
-    if (isNaN(xVal) || !isFinite(xVal)) continue;
+    const xVal = toNumber(row[xCol]);
+    if (!Number.isFinite(xVal)) continue;
 
-    const yValues: number[] = [];
-    let hasValidY = false;
+    const yValues: number[] = measures.map(m => toNumber(row[m.col]));
 
-    for (const yCol of yColumns) {
-      const yVal = parseFloat(row[yCol]);
-      if (!isNaN(yVal) && isFinite(yVal)) {
-        yValues.push(yVal);
-        hasValidY = true;
-      } else {
-        yValues.push(NaN); // Keep alignment
+    if (corrections.length > 0 && referenceCol !== undefined) {
+      const ref = toNumber(row[referenceCol]);
+      const darkCell = darkCol !== undefined ? toNumber(row[darkCol]) : undefined;
+      let keep = Number.isFinite(ref) && (darkCell === undefined || Number.isFinite(darkCell));
+      for (const c of corrections) {
+        if (!keep) break;
+        const dark = darkCell ?? c.darkDefault;
+        const denominator = ref - dark;
+        if (!Number.isFinite(denominator) || Math.abs(denominator) < c.epsilon) {
+          keep = false;
+          break;
+        }
+        for (let i = 0; i < yValues.length; i++) {
+          const v = (yValues[i] - dark) / denominator;
+          yValues[i] = Number.isFinite(v) ? v : NaN;
+        }
       }
+      if (!keep) continue;
+    }
+
+    let hasValidY = false;
+    for (let i = 0; i < yValues.length; i++) {
+      if (Number.isFinite(yValues[i])) hasValidY = true;
+      else yValues[i] = NaN; // Keep alignment
     }
 
     if (hasValidY) {
@@ -273,16 +387,19 @@ export function parseDataset(
     throw new Error('No valid numeric data points found in dataset');
   }
 
-  // Sort by X value
-  rawData.sort((a, b) => a.x - b.x);
+  // Sort by X value (descending when the reading declares a reversed axis)
+  const reversed = reading?.x?.reversed === true;
+  rawData.sort((a, b) => (reversed ? b.x - a.x : a.x - b.x));
 
   // Extract X values
   let xValues = rawData.map(d => d.x);
 
   // Build series data
-  let series: SeriesData[] = yColumns.map((yCol, idx) => ({
-    label: headers[yCol],
+  let series: SeriesData[] = measures.map((m, idx) => ({
+    label: headers[m.col],
     yValues: rawData.map(d => d.yValues[idx]),
+    ...(m.labelMap ? { labelMap: m.labelMap } : {}),
+    ...(m.axis === 'right' ? { axis: 'right' as const } : {}),
   }));
 
   // Build legacy points (using first Y series) for backward compatibility
@@ -309,7 +426,7 @@ export function parseDataset(
     // Apply same sampling to all series
     xValues = sampledIndices.map(i => rawData[i].x);
     series = series.map(s => ({
-      label: s.label,
+      ...s,
       yValues: sampledIndices.map(i => s.yValues[i]),
     }));
     points = sampledPoints;
@@ -320,6 +437,9 @@ export function parseDataset(
     label,
     xValues,
     xLabel: headers[xCol],
+    ...(reading?.x?.label ? { xLabelMap: reading.x.label } : {}),
+    ...(reversed ? { xReversed: true } : {}),
+    ...(readingIgnored ? { readingIgnored } : {}),
     series,
     mimeType,
     // Legacy fields for backward compatibility

@@ -7,3 +7,4 @@ export * from './localization';
 export * from './LanguageContext';
 export * from './annotationTransformer';
 export * from './contentState';
+export * from './xyReading';

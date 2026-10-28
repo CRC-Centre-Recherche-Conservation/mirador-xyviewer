@@ -129,6 +129,7 @@ export {
   escapeHtml,
   sanitizeText,
   validateContentType,
+  parseXyReading,
   annotationPostprocessor,
   createAnnotationPostprocessor,
   transformPointAnnotations,
@@ -155,6 +156,15 @@ export type {
   ParseContentStateOptions,
   BuildWindowsOptions,
 } from './utils';
+
+export type {
+  XyReading,
+  XyColumn,
+  XyColumnRole,
+  XyDialect,
+  XyCorrection,
+  XyDerivedFrom,
+} from './types';
 
 // Constants
 export {
