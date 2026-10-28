@@ -33,6 +33,10 @@ export interface LinkContextValue {
   follow: (ownerId: string | undefined, to: LinkTarget) => void;
   /** Frames the annotation and its linked zones. */
   showAll: (ownerId: string) => void;
+  /** Frames the annotation's own zone. */
+  zoomTo?: (annotationId: string) => void;
+  /** Whether the annotation has a zone on the canvas. */
+  hasZone?: (annotationId: string) => boolean;
   /** Display title of a loaded annotation. */
   titleOf: (annotationId: string) => string;
 }

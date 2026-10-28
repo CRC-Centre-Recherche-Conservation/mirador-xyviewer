@@ -35,6 +35,14 @@ describe('framing', () => {
     expect(tall.zoom).toBeCloseTo(1 / (2 * 480));
   });
 
+  it('caps the zoom at the viewer maximum and keeps the centre', () => {
+    const v = frameBox([100, 100, 2, 2], origin, 1, 0.1, 0.01);
+    expect(v.zoom).toBe(0.01);
+    expect(v.x).toBeCloseTo(101);
+    expect(v.y).toBeCloseTo(101);
+    expect(frameBox([100, 100, 200, 100], origin, 2, 0.1, 1).zoom).toBeCloseTo(1 / 240);
+  });
+
   it('adds the canvas offset of a book-view page', () => {
     const v = frameBox([100, 100, 200, 100], { x: 3000, y: 0 }, 2, 0.1);
     expect(v.x).toBeCloseTo(3200);

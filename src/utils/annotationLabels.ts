@@ -39,6 +39,7 @@ export const DEFAULT_ANNOTATION_LABELS: Required<Pick<AnnotationBodyLabels, Stri
   cardMenu: 'Annotation actions',
   copyAnnotationId: 'Copy annotation id',
   openJson: 'Open JSON',
+  zoomToZone: 'Zoom to zone',
   untitled: 'Untitled annotation',
   applyToLinked: 'Apply to linked annotations',
   filtersFromContent: 'From annotation content',

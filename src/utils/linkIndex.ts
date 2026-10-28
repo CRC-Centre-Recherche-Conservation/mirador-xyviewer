@@ -34,7 +34,10 @@ export interface LinkedEntry {
   /** Ids as listed on the canvas (one per target of a multi-target annotation). */
   ids: string[];
   canvasId: string;
+  /** First expanded resource. */
   resource: IIIFAnnotation;
+  /** Resource of each listed id (multi-target zones differ per id). */
+  resources: Record<string, IIIFAnnotation>;
 }
 
 export interface LinkIndex {
@@ -170,10 +173,13 @@ function buildIndex(annotations: MiradorState['annotations'], canvases: CanvasIn
       const canvasId = targeted && manifestCanvasIds.has(targeted) ? targeted : pageKey;
       const known = entries.get(base);
       if (known) {
-        if (known.canvasId === canvasId && !known.ids.includes(id)) known.ids.push(id);
+        if (known.canvasId === canvasId && !known.ids.includes(id)) {
+          known.ids.push(id);
+          known.resources[id] = resource;
+        }
         continue;
       }
-      entries.set(base, { id: base, ids: [id], canvasId, resource });
+      entries.set(base, { id: base, ids: [id], canvasId, resource, resources: { [id]: resource } });
       const links = linksOf(resource);
       if (links.length === 0) continue;
       forward.set(base, links);
@@ -237,6 +243,8 @@ export function hoverGroup(index: LinkIndex, annotationId: string, canvasAnnotat
 
 export interface LinkRow {
   key: string;
+  /** Position in the list, from 1: the number the list shows and the canvas badge repeats. */
+  n: number;
   kind: 'here' | 'other' | 'unavailable' | 'external';
   /** Base id of the linked annotation, or the URL of an external link. */
   targetId: string;
@@ -303,6 +311,7 @@ export function buildLinkRows(bodies: SpecificResourceBody[], env: LinkRowEnv): 
     const here = listedHere && (!entry || !canvasId || entry.canvasId === canvasId) ? (listedHere.find((id) => id === base) ?? listedHere[0]) : undefined;
     const common = (annotationId: string | undefined, target: IIIFAnnotation | undefined) => ({
       key: base,
+      n: rows.length + 1,
       targetId: base,
       annotationId,
       title: ownLabel || getLocalizedString(target?.label, prefs) || idTail(base),

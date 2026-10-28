@@ -9,6 +9,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { isValidUrl } from '../utils/security';
 import { DEFAULT_ANNOTATION_LABELS } from '../utils/annotationLabels';
+import { useLinkContext } from './LinkContext';
 
 export interface AnnotationCardMenuProps {
   /** IIIF id of the annotation. */
@@ -17,7 +18,7 @@ export interface AnnotationCardMenuProps {
   hideJson?: boolean;
   /** Extra links (e.g. machine-readable seeAlso). */
   links?: Array<{ href: string; label: string }>;
-  labels?: { cardMenu: string; copyAnnotationId: string; openJson: string };
+  labels?: { cardMenu: string; copyAnnotationId: string; openJson: string; zoomToZone?: string };
 }
 
 export const AnnotationCardMenu: React.FC<AnnotationCardMenuProps> = ({
@@ -27,6 +28,8 @@ export const AnnotationCardMenu: React.FC<AnnotationCardMenuProps> = ({
   labels = DEFAULT_ANNOTATION_LABELS,
 }) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const link = useLinkContext();
+  const canZoom = !!annotationId && !!link?.hasZone?.(annotationId);
   const jsonUrl = annotationId && isValidUrl(annotationId) ? annotationId : undefined;
   const showJson = !!jsonUrl && !hideJson;
   if (!annotationId && links.length === 0) return null;
@@ -66,6 +69,16 @@ export const AnnotationCardMenu: React.FC<AnnotationCardMenuProps> = ({
         onClick={(e) => e.stopPropagation()}
         slotProps={{ list: { dense: true, 'aria-label': labels.cardMenu } }}
       >
+        {canZoom && (
+          <MenuItem
+            onClick={() => {
+              link?.zoomTo?.(annotationId!);
+              close();
+            }}
+          >
+            {labels.zoomToZone ?? DEFAULT_ANNOTATION_LABELS.zoomToZone}
+          </MenuItem>
+        )}
         {annotationId && <MenuItem onClick={copy}>{labels.copyAnnotationId}</MenuItem>}
         {showJson && external(jsonUrl, labels.openJson)}
         {links.map((l) => external(l.href, l.label))}

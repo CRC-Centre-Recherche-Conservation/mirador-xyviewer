@@ -7,7 +7,7 @@
 
 import { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { ReactReduxContext } from 'react-redux';
-import { getCurrentCanvasWorld, setCanvas, updateViewport } from 'mirador';
+import { OSDReferences, getCurrentCanvasWorld, setCanvas, updateViewport } from 'mirador';
 import type { IIIFAnnotation } from '../types/iiif';
 import type { LinkContextValue, LinkTarget } from '../components/LinkContext';
 import { linkNavigationStore } from '../state/linkNavigationStore';
@@ -73,6 +73,17 @@ function containerAspect(windowId: string): number {
   return r && r.width > 0 && r.height > 0 ? r.width / r.height : 4 / 3;
 }
 
+/** Highest zoom the window's viewer accepts, undefined when it is not available. */
+function viewerMaxZoom(windowId: string): number | undefined {
+  try {
+    const viewer = (OSDReferences.get(windowId) as { current?: { viewport?: { getMaxZoom?: () => number } } } | undefined)?.current;
+    const max = viewer?.viewport?.getMaxZoom?.();
+    return typeof max === 'number' && Number.isFinite(max) && max > 0 ? max : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function useLinkController(params: LinkControllerParams): {
   context: LinkContextValue;
   back: () => void;
@@ -124,7 +135,7 @@ export function useLinkController(params: LinkControllerParams): {
       return;
     }
     const union = unionBox(boxes);
-    if (union) p.dispatch(updateViewport(p.windowId, frameBox(union, offset, aspect, 0.1)));
+    if (union) p.dispatch(updateViewport(p.windowId, frameBox(union, offset, aspect, 0.1, viewerMaxZoom(p.windowId))));
   }, [store]);
 
   const select = useCallback((annotationId: string, panIntoView: boolean) => {
@@ -205,10 +216,20 @@ export function useLinkController(params: LinkControllerParams): {
     if (boxes.length > 0) frame(boxes, false);
   }, [frame]);
 
+  const zoomTo = useCallback((annotationId: string) => {
+    const box = annotationBounds(latest.current.annotationResources[annotationId]);
+    if (box) frame([box], false);
+  }, [frame]);
+
+  const hasZone = useCallback(
+    (annotationId: string) => !!annotationBounds(latest.current.annotationResources[annotationId]),
+    [],
+  );
+
   const { windowId, canvasId, index, canvasAnnotationIds, hiddenIds, subtitleLabel } = params;
   const context = useMemo<LinkContextValue>(
-    () => ({ windowId, canvasId, index, canvasAnnotationIds, hiddenIds, subtitleLabel, hover, groupOf, follow, showAll, titleOf }),
-    [windowId, canvasId, index, canvasAnnotationIds, hiddenIds, subtitleLabel, hover, groupOf, follow, showAll, titleOf],
+    () => ({ windowId, canvasId, index, canvasAnnotationIds, hiddenIds, subtitleLabel, hover, groupOf, follow, showAll, zoomTo, hasZone, titleOf }),
+    [windowId, canvasId, index, canvasAnnotationIds, hiddenIds, subtitleLabel, hover, groupOf, follow, showAll, zoomTo, hasZone, titleOf],
   );
 
   return { context, back };

@@ -14,7 +14,12 @@ import type { IIIFAnnotation } from '../types/iiif';
 import characterizations from '../test/fixtures/annotations/manuspectrum-characterizations-page.json';
 import analyses from '../test/fixtures/annotations/manuspectrum-analyses-page.json';
 
+const osd = vi.hoisted(() => ({ maxZoom: undefined as number | undefined }));
+
 vi.mock('mirador', () => ({
+  OSDReferences: {
+    get: () => (osd.maxZoom === undefined ? undefined : { current: { viewport: { getMaxZoom: () => osd.maxZoom } } }),
+  },
   SanitizedHtml: ({ htmlString }: { htmlString: string }) => <span>{htmlString}</span>,
   addWindow: vi.fn(),
   setCanvas: (windowId: string, canvasId: string) => ({ type: 'test/SET_CANVAS', windowId, canvasId }),
@@ -245,6 +250,33 @@ describe('linked rows', () => {
     expect(view.payload.x).toBeGreaterThan(1);
     expect(view.payload.y).toBeGreaterThan(1);
     expect(selected(actions)).toHaveLength(before);
+  });
+});
+
+describe('framing limits and zoom to zone', () => {
+  afterEach(() => {
+    osd.maxZoom = undefined;
+  });
+  const lastView = (actions: Array<{ type: string }>) =>
+    actions.filter((a) => a.type === 'test/UPDATE_VIEWPORT').at(-1) as unknown as { payload: { x: number; y: number; zoom: number } };
+
+  it('"Show all" never zooms past the viewer maximum', () => {
+    osd.maxZoom = 0.0001;
+    const { actions } = setup();
+    fireEvent.click(card('lapis lazuli, lead white'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(lastView(actions).payload.zoom).toBeLessThanOrEqual(0.0001);
+  });
+
+  it('the card menu zooms to the zone of any card, within the viewer maximum', () => {
+    osd.maxZoom = 0.0002;
+    const { actions } = setup();
+    const menu = within(card(analysisTitle)).getByRole('button', { name: 'Annotation actions' });
+    fireEvent.click(menu);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Zoom to zone' }));
+    const view = lastView(actions);
+    expect(view.payload.zoom).toBeLessThanOrEqual(0.0002);
+    expect(view.payload.x).toBeGreaterThan(1);
   });
 });
 

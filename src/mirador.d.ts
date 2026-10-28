@@ -64,11 +64,16 @@ declare module 'mirador' {
     }
   ): AnyAction;
 
+  // Mirador's per-window OpenSeadragon viewer refs ({ current: viewer } once the viewer exists)
+  export const OSDReferences: {
+    get(windowId: string): { current?: unknown } | undefined;
+  };
+
   // Mirador getCurrentCanvasWorld selector - the window's world; coordinates are canvas pixels
   export function getCurrentCanvasWorld(
     state: unknown,
     options: { windowId: string }
-  ): { canvasToWorldCoordinates(canvasId: string): number[] } | undefined;
+  ): { canvasIds?: string[]; canvasToWorldCoordinates(canvasId: string): number[]; canvasScale?(canvasId: string): number } | undefined;
 
   // Mirador getViewer selector - returns the window's viewport state ({ x, y, zoom, bounds, ... }), not the OSD instance
   export function getViewer(

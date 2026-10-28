@@ -37,6 +37,7 @@ import { LinkContext } from '../components/LinkContext';
 import { EMPTY_LINK_INDEX, baseAnnotationId, getLinkIndex, type LinkIndex } from '../utils/linkIndex';
 import { fillTemplate } from '../utils/annotationLabels';
 import { cancelPendingNavigation, useLinkController } from './useLinkController';
+import { LinkedZonesOverlay, computeZoneBadges } from './LinkedZonesOverlay';
 import { normalizeAnnotationResources, normalizeAnnotationPages } from '../utils/annotationNormalizer';
 import type { AnnotationPageGroup } from '../utils/annotationNormalizer';
 import { AnnotationPageSection } from '../components/AnnotationPageSection';
@@ -313,6 +314,23 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     subtitleLabel: linkSubtitleMetadataLabel,
     prefs,
   });
+
+  // Numbered badges on the linked zones of the hovered or selected card (same numbers as its list).
+  const zoneBadges = useMemo(
+    () =>
+      computeZoneBadges({
+        canvasId,
+        visibleCanvasIds,
+        index: linkIndex,
+        canvasAnnotationIds,
+        annotationResources,
+        hiddenIds: hiddenAnnotationIds,
+        hoveredIds: hoveredAnnotationIds,
+        selectedId: selectedAnnotationId,
+        prefs,
+      }),
+    [canvasId, visibleCanvasIds, linkIndex, canvasAnnotationIds, annotationResources, hiddenAnnotationIds, hoveredAnnotationIds, selectedAnnotationId, prefs],
+  );
 
   // Hover lights the zone and its linked zones; leaving clears it (debounced).
   const handleAnnotationHover = useCallback((annotationId: string | null) => {
@@ -748,6 +766,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           : visibleAnnotations.map(renderCard)}
       </MenuList>
       {failureNotice}
+      <LinkedZonesOverlay windowId={windowId} badges={zoneBadges} />
      </TermActionsContext.Provider>
      </LinkContext.Provider>
     </LanguageProvider>

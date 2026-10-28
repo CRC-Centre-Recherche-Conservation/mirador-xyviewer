@@ -63,15 +63,19 @@ export interface ViewportState {
   zoom: number;
 }
 
-/** Viewport that shows `box` with `margin` (fraction of its size) on each side. */
-export function frameBox(box: Box, offset: WorldOffset, aspect: number, margin = 0.1): ViewportState {
+/**
+ * Viewport that shows `box` with `margin` (fraction of its size) on each side. The zoom is
+ * capped at `maxZoom` so the viewer does not re-clamp it and shift the centre.
+ */
+export function frameBox(box: Box, offset: WorldOffset, aspect: number, margin = 0.1, maxZoom?: number): ViewportState {
   const w = box[2] * (1 + 2 * margin);
   const h = box[3] * (1 + 2 * margin);
   const visibleWidth = Math.max(w, h * aspect);
+  const zoom = visibleWidth > 0 ? 1 / visibleWidth : 1;
   return {
     x: offset.x + box[0] + box[2] / 2,
     y: offset.y + box[1] + box[3] / 2,
-    zoom: visibleWidth > 0 ? 1 / visibleWidth : 1,
+    zoom: maxZoom !== undefined && maxZoom > 0 ? Math.min(zoom, maxZoom) : zoom,
   };
 }
 

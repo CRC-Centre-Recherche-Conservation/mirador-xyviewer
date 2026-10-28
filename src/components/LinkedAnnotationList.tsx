@@ -106,7 +106,7 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
         )}
       </Box>
       <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
-        {rows.map((row, i) => {
+        {rows.map((row) => {
           const external = row.kind === 'external';
           const disabled = row.kind === 'unavailable';
           const location = locationOf(row);
@@ -137,7 +137,7 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
           const body = (
             <>
               <Typography variant="caption" color="text.secondary" aria-hidden sx={{ minWidth: 18, pt: 0.25 }}>
-                {i + 1}
+                {row.n}
               </Typography>
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Tooltip title={row.title} enterDelay={600} describeChild>
@@ -182,7 +182,7 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
                 <ListItemButton
                   // aria-disabled (not disabled) keeps the row focusable so the reason is reachable.
                   aria-disabled={disabled || undefined}
-                  aria-label={fillTemplate(text.selectLinked, { n: i + 1, total: rows.length, details: ariaDetails })}
+                  aria-label={fillTemplate(text.selectLinked, { n: row.n, total: rows.length, details: ariaDetails })}
                   {...interactive}
                   onClick={(e: React.MouseEvent) => {
                     // Inside a selectable card: do not toggle it.

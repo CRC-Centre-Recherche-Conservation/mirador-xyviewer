@@ -116,6 +116,7 @@ export interface AnnotationBodyLabels {
   cardMenu?: string;
   copyAnnotationId?: string;
   openJson?: string;
+  zoomToZone?: string;
   /** Title of a classification card without any label or text (default "Untitled annotation"). */
   untitled?: string;
   /** Filter panel: switch extending the class filters to linked annotations (default "Apply to linked annotations"). */
