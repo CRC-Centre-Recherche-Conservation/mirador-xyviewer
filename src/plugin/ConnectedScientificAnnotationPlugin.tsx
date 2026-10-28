@@ -25,6 +25,7 @@ import type {
   AnnotationBody,
   IIIFAnnotation,
 } from '../types/iiif';
+import { isSpecificResourceBody, isChoiceBody } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
@@ -47,7 +48,22 @@ export function isScientificBodyType(type: string | undefined): boolean {
 export function hasScientificBody(body: unknown): boolean {
   if (!body) return false;
   const bodies = Array.isArray(body) ? body : [body];
-  return bodies.some(b => isScientificBodyType((b as AnnotationBody).type));
+  return bodies.some(b => isScientificBodyType((b as AnnotationBody | null)?.type));
+}
+
+/** Web Annotation body types rendered by the plugin (chips, evidence links, Choice). */
+export function isWebAnnotationBody(body: AnnotationBody | null | undefined): boolean {
+  return !!body && typeof body === 'object' && (isSpecificResourceBody(body) || isChoiceBody(body));
+}
+
+/**
+ * Check if annotation has a SpecificResource or Choice body
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function hasWebAnnotationBody(body: unknown): boolean {
+  if (!body) return false;
+  const bodies = Array.isArray(body) ? body : [body];
+  return bodies.some(b => isWebAnnotationBody(b as AnnotationBody | null));
 }
 
 /**
@@ -60,12 +76,16 @@ export function hasMetadata(annotation: IIIFAnnotation | undefined): boolean {
 }
 
 /**
- * Check if annotation should use custom rendering (scientific body OR has metadata)
+ * Check if annotation should use custom rendering (scientific or Web Annotation body, OR has metadata)
  * @internal Exposed for tests; not part of the public API.
  */
 export function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boolean {
   if (!annotation) return false;
-  return hasScientificBody(annotation.body) || hasMetadata(annotation);
+  return (
+    hasScientificBody(annotation.body) ||
+    hasWebAnnotationBody(annotation.body) ||
+    hasMetadata(annotation)
+  );
 }
 
 /**
@@ -209,6 +229,9 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     });
     return ids;
   }, [annotations, annotationResources]);
+
+  // Ids on this canvas, for linking bodies to find their target annotation.
+  const canvasAnnotationIds = useMemo(() => annotations.map((a) => a.id), [annotations]);
 
   // Spectrum data callbacks
   const handleDataLoaded = useCallback((id: string, data: SpectrumData) => {
@@ -369,6 +392,9 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                   onDataLoaded={handleDataLoaded}
                   onVisibilityChange={handleVisibilityChange}
                   ruleSet={ruleSet}
+                  windowId={windowId}
+                  selectAnnotation={selectAnnotation}
+                  canvasAnnotationIds={canvasAnnotationIds}
                 />
               )}
 

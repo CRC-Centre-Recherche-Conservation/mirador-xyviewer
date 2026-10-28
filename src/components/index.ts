@@ -11,11 +11,17 @@ export type { DatasetBodyProps, DatasetAuthHandler } from './DatasetBody';
 export { TextualBody } from './TextualBody';
 export type { TextualBodyProps } from './TextualBody';
 
+export { SpecificResourceBody } from './SpecificResourceBody';
+export type { SpecificResourceBodyProps } from './SpecificResourceBody';
+
+export { EvidenceLinkBody } from './EvidenceLinkBody';
+export type { EvidenceLinkBodyProps } from './EvidenceLinkBody';
+
 export { SpectrumPlot } from './SpectrumPlot';
 export type { SpectrumPlotProps, SpectrumPlotLabels } from './SpectrumPlot';
 
 export { AnnotationBodyRenderer } from './AnnotationBodyRenderer';
-export type { AnnotationBodyRendererProps } from './AnnotationBodyRenderer';
+export type { AnnotationBodyRendererProps, AnnotationBodyLabels } from './AnnotationBodyRenderer';
 
 export { MetadataDisplay } from './MetadataDisplay';
 export type { MetadataDisplayProps } from './MetadataDisplay';

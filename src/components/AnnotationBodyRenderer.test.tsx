@@ -45,22 +45,28 @@ describe('AnnotationBodyRenderer', () => {
     expect(screen.getByTestId('textual-body')).toBeInTheDocument();
   });
 
-  it('renders a JSON fallback for an unknown body type', () => {
+  it('renders nothing for an unknown body type', () => {
     const unknown = { type: 'Unknown', id: 'x' } as unknown as AnnotationBody;
     const { container } = render(<AnnotationBodyRenderer body={unknown} {...baseProps} />);
-    const code = container.querySelector('code');
-    expect(code).not.toBeNull();
-    expect(code!.textContent).toContain('"type": "Unknown"');
+    expect(container.querySelector('code')).toBeNull();
+    expect(container.textContent).toBe('');
   });
 
-  it('does not crash on a SpecificResource body (rendering comes later)', () => {
-    const body: AnnotationBody = {
-      type: 'SpecificResource',
-      purpose: 'classifying',
-      source: { id: 'https://x/concept', type: 'Concept' },
-    };
-    const { container } = render(<AnnotationBodyRenderer body={body} {...baseProps} />);
-    expect(container.querySelector('code')!.textContent).toContain('"type": "SpecificResource"');
+  it('tolerates empty and absent bodies', () => {
+    const { container, rerender } = render(<AnnotationBodyRenderer body={[]} {...baseProps} />);
+    expect(container.textContent).toBe('');
+    rerender(<AnnotationBodyRenderer body={undefined as never} {...baseProps} />);
+    rerender(<AnnotationBodyRenderer body={[null, undefined] as never} {...baseProps} />);
+    expect(container.textContent).toBe('');
+  });
+
+  it('renders the chips of one annotation as a single block without dividers', () => {
+    const sr = (source: string): AnnotationBody => ({ type: 'SpecificResource', purpose: 'classifying', source });
+    const { container } = render(
+      <AnnotationBodyRenderer body={[sr('https://x/a'), sr('https://x/b'), sr('https://x/c')]} {...baseProps} />,
+    );
+    expect(container.querySelectorAll('.MuiChip-root')).toHaveLength(3);
+    expect(container.querySelectorAll('hr')).toHaveLength(0);
   });
 
   it('renders multiple bodies with a single divider between them', () => {

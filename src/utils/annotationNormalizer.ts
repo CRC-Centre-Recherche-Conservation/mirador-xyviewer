@@ -288,7 +288,7 @@ function mapSpecificResourceBody(
 }
 
 /** v2 `resource` object (or already-v3 body) → normalized AnnotationBody. Never throws; undefined = drop. */
-function mapBody(raw: unknown): AnnotationBody | undefined {
+function mapBody(raw: unknown, depth = 0): AnnotationBody | undefined {
   if (!isObject(raw)) {
     return { type: 'TextualBody', value: typeof raw === 'string' ? raw : '' };
   }
@@ -316,6 +316,15 @@ function mapBody(raw: unknown): AnnotationBody | undefined {
   // Bare v3 `@type` passes through unchanged.
   if (rawType === 'Dataset' || rawType === 'Manifest' || rawType === 'TextualBody') {
     return { ...raw, type: rawType, ...(id ? { id } : {}), ...base } as AnnotationBody;
+  }
+
+  // oa:Choice (default + alternatives) → Choice with its items; nesting is bounded.
+  if (rawType && stripPrefix(rawType) === 'Choice') {
+    if (depth >= MAX_CHOICE_DEPTH) return undefined;
+    const items = [raw.default, ...[raw.item ?? []].flat()]
+      .filter((i) => i != null)
+      .flatMap((i) => mapBody(i, depth + 1) ?? []);
+    return { type: 'Choice', items, ...(id ? { id } : {}) } as AnnotationBody;
   }
 
   // Explicit @type wins over format/chars heuristics.
