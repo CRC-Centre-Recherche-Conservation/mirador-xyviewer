@@ -100,6 +100,8 @@ interface TargetProps {
 interface PluginWrapperProps {
   targetProps: TargetProps;
   TargetComponent: React.ComponentType<TargetProps>;
+  /** Rest of Mirador's wrap chain, when other plugins wrap the same target. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -488,6 +490,7 @@ const PulseOverlay: React.FC<{
 const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
   targetProps,
   TargetComponent,
+  children,
 }) => {
   const { annotations = [], searchAnnotations = [], selectedAnnotationId, viewer } = targetProps;
 
@@ -544,7 +547,7 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
 
   return (
     <>
-      <TargetComponent {...targetProps} />
+      {children ?? <TargetComponent {...targetProps} />}
       {pulseOverlay}
     </>
   );

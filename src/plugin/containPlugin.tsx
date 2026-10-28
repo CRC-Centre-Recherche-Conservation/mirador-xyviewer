@@ -1,7 +1,7 @@
 /**
  * Plugin-level error containment.
  * Wraps a plugin component so a rendering error stays inside the plugin:
- * wrap plugins fall back to Mirador's original component, add plugins render nothing.
+ * wrap plugins fall back to the rest of the wrap chain (or Mirador's original component), add plugins render nothing.
  */
 
 import React from 'react';
@@ -16,6 +16,7 @@ interface AnyProps {
   canvasId?: unknown;
   targetProps?: { windowId?: unknown; canvasId?: unknown } & Record<string, unknown>;
   TargetComponent?: React.ComponentType<Record<string, unknown>>;
+  children?: React.ReactNode;
   [CONTAINED_ERROR]?: boolean;
 }
 
@@ -41,14 +42,14 @@ export function containPluginComponent(
   const Component = Inner as unknown as React.ComponentType<AnyProps>;
 
   const Contained = React.forwardRef<unknown, AnyProps>((props, ref) => {
-    const { targetProps, TargetComponent } = props;
+    const { targetProps, TargetComponent, children } = props;
     const resetKey = resetKeyOf(props);
 
     // Keep Mirador's default behaviour; a nested boundary stops a throwing fallback too.
     const fallback = mode === 'wrap' && TargetComponent
       ? (
         <ErrorBoundary resetKey={resetKey} label={`${name} fallback`}>
-          <TargetComponent {...(targetProps ?? {})} />
+          {children ?? <TargetComponent {...(targetProps ?? {})} />}
         </ErrorBoundary>
       )
       : null;
