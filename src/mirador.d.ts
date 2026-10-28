@@ -12,6 +12,13 @@ declare module 'mirador' {
     [key: string]: unknown;
   }): (dispatch: Dispatch, getState: () => unknown) => void;
 
+  // Mirador's W3C annotation reader (selectors, motivations, body values)
+  export class AnnotationItem {
+    constructor(resource?: Record<string, unknown>);
+    readonly svgSelector: Record<string, unknown> | string | null | undefined;
+    readonly fragmentSelector: number[] | string | null | undefined;
+  }
+
   // Mirador updateWindow action creator
   export function updateWindow(
     windowId: string,

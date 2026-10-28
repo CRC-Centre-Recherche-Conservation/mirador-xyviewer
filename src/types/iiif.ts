@@ -75,6 +75,8 @@ interface BaseBody {
   label?: LocalizedString;
   /** Declared IIIF service(s) on the resource, e.g. an Auth service. */
   service?: IiifService | IiifService[];
+  /** Web Annotation purpose(s), e.g. `classifying`, `describing`, `linking`. */
+  purpose?: string | string[];
 }
 
 /** Case 1: Manifest body - linked IIIF Manifest */
@@ -99,8 +101,16 @@ export interface TextualBody extends BaseBody {
   language?: string;
 }
 
+/** Case 4: SpecificResource - a reference to another resource (concept, annotation, ...) */
+export interface SpecificResourceBody extends BaseBody {
+  type: 'SpecificResource';
+  source: string | { id: string; type?: string; label?: LocalizedString };
+  /** Region of the source (normalized selector or list of selectors). */
+  selector?: unknown;
+}
+
 /** Union of all supported body types (normalized model == v3). */
-export type AnnotationBodyV3 = ManifestBody | DatasetBody | TextualBody;
+export type AnnotationBodyV3 = ManifestBody | DatasetBody | TextualBody | SpecificResourceBody;
 export type AnnotationBody = AnnotationBodyV3;
 
 /** Raw v2 annotation body (the `resource` field; arrays handled by the mapper). */
@@ -123,7 +133,7 @@ export interface AnnotationBodyV2 {
 export interface AnnotationTargetV3 {
   id?: string;
   type?: string;
-  source?: string;
+  source?: string | { id: string; type?: string; partOf?: unknown };
   selector?: unknown;
 }
 export type AnnotationTarget = AnnotationTargetV3;

@@ -1,0 +1,279 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "https://iiif.example.org/iiif/v3/characterization-collection/c3edc570-ccdf-4428-a662-efbaca6eb275/page-3",
+  "type": "AnnotationPage",
+  "label": {
+    "en": [
+      "Identified materials of Paris. Bibliothèque nationale de France, Département des manuscrits, Latin 617, NP"
+    ],
+    "fr": [
+      "Matériaux identifiés de Paris. Bibliothèque nationale de France, Département des manuscrits, Latin 617, NP"
+    ]
+  },
+  "next": {
+    "id": "https://iiif.example.org/iiif/v3/characterization-collection/c3edc570-ccdf-4428-a662-efbaca6eb275/page-14",
+    "type": "AnnotationPage"
+  },
+  "service": [
+    {
+      "@id": "https://iiif.example.org/iiif/auth/login",
+      "@type": "AuthCookieService1",
+      "profile": "http://iiif.io/api/auth/1/login",
+      "label": "Sign in to ManuSpectrum",
+      "header": "Restricted data",
+      "description": "Some data of ManuSpectrum are restricted. Sign in with your ManuSpectrum account to read what it gives access to.",
+      "confirmLabel": "Sign in",
+      "failureHeader": "Not available",
+      "failureDescription": "Your account does not give access to these data.",
+      "service": [
+        {
+          "@id": "https://iiif.example.org/iiif/auth/1/token",
+          "@type": "AuthTokenService1",
+          "profile": "http://iiif.io/api/auth/1/token"
+        },
+        {
+          "@id": "https://iiif.example.org/iiif/auth/logout",
+          "@type": "AuthLogoutService1",
+          "profile": "http://iiif.io/api/auth/1/logout",
+          "label": "Sign out of external viewers"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "https://iiif.example.org/iiif/v3/annotation/b3cb1957-82e4-43cf-bb2b-88b26bf0c0ca/e69da770-d0c6-4285-a12d-d712056769e8",
+      "type": "Annotation",
+      "motivation": "classifying",
+      "label": {
+        "en": [
+          "vermilion, lead white"
+        ],
+        "fr": [
+          "vermillon, blanc de plomb"
+        ]
+      },
+      "body": [
+        {
+          "type": "TextualBody",
+          "purpose": "describing",
+          "format": "text/plain",
+          "language": "en",
+          "value": "vermilion (Uncertain), lead white (Reliable). Colour: Red. Layer: Colored layer. Elements: Mercury (Major), Lead (Major), Sulfur (Minor), Calcium (Trace), Iron (Trace), Potassium (Trace)."
+        },
+        {
+          "type": "TextualBody",
+          "purpose": "describing",
+          "format": "text/plain",
+          "language": "fr",
+          "value": "vermillon (Incertain), blanc de plomb (Fiable). Couleur : Rouge. Couche : Couche colorée. Éléments : Mercure (Majeur), Plomb (Majeur), Soufre (Mineur), Calcium (Trace), Fer (Trace), Potassium (Trace)."
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "classifying",
+          "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/9deb5cac-1edb-4874-812a-1a280d35f9ba",
+          "label": {
+            "en": [
+              "vermilion"
+            ],
+            "fr": [
+              "vermillon"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "classifying",
+          "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/d9659bf2-00c4-4b06-ab8d-41e7b84f79f8",
+          "label": {
+            "fr": [
+              "blanc de plomb"
+            ],
+            "en": [
+              "lead white"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "assessing",
+          "source": "https://iiif.example.org/plugins/controlled-list-manager/item/81ca5409-6aae-4e4b-93b0-14e21785cb80",
+          "label": {
+            "fr": [
+              "Incertain"
+            ],
+            "en": [
+              "Uncertain"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "assessing",
+          "source": "https://iiif.example.org/plugins/controlled-list-manager/item/439e0195-44c6-4a43-b535-b4e03ab7d30f",
+          "label": {
+            "fr": [
+              "Fiable"
+            ],
+            "en": [
+              "Reliable"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/8fea5a73-2d20-4fcf-a1a5-84c886c25152",
+          "label": {
+            "en": [
+              "Red"
+            ],
+            "fr": [
+              "Rouge"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/40a69b4b-2477-4c60-b301-4fc97cb6bcc8",
+          "label": {
+            "en": [
+              "Colored layer"
+            ],
+            "fr": [
+              "Couche colorée"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "http://data.loterre.fr/ark:/67375/8HQ-H9J0KWB5-L",
+          "label": {
+            "fr": [
+              "Mercure"
+            ],
+            "en": [
+              "Mercury"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "http://data.loterre.fr/ark:/67375/8HQ-NRPKN8GG-H",
+          "label": {
+            "en": [
+              "Lead"
+            ],
+            "fr": [
+              "Plomb"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "http://data.loterre.fr/ark:/67375/8HQ-NK1JKPQC-4",
+          "label": {
+            "fr": [
+              "Soufre"
+            ],
+            "en": [
+              "Sulfur"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "http://data.loterre.fr/ark:/67375/8HQ-SX8VX34H-4",
+          "label": {
+            "en": [
+              "Calcium"
+            ],
+            "fr": [
+              "Calcium"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "http://data.loterre.fr/ark:/67375/8HQ-NQ0K580N-5",
+          "label": {
+            "fr": [
+              "Fer"
+            ],
+            "en": [
+              "Iron"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "describing",
+          "source": "http://data.loterre.fr/ark:/67375/8HQ-LGJQJQQ9-N",
+          "label": {
+            "en": [
+              "Potassium"
+            ],
+            "fr": [
+              "Potassium"
+            ]
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "linking",
+          "source": {
+            "id": "https://iiif.example.org/iiif/v3/annotation/0a169ec8-8bcf-4d46-98fc-d99315722a23/f580d712-c05f-4af5-b7bd-a6981ad5d768",
+            "type": "Annotation"
+          }
+        },
+        {
+          "type": "SpecificResource",
+          "purpose": "linking",
+          "source": {
+            "id": "https://iiif.example.org/iiif/v3/annotation/ccd31a22-5800-4cc3-8dc4-9c3e142c8f68/001919f7-27fd-4cc2-bcdb-5c1cbd7fba9d",
+            "type": "Annotation"
+          }
+        }
+      ],
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://gallica.bnf.fr/iiif/ark:/12148/btv1b10036077p/canvas/f3",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://iiif.example.org/manifest/035a287b-6262-40bc-8142-1465818be291",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=1899,2715,241,389"
+        }
+      },
+      "seeAlso": [
+        {
+          "id": "https://iiif.example.org/report/b3cb1957-82e4-43cf-bb2b-88b26bf0c0ca",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "vermilion, lead white"
+            ],
+            "fr": [
+              "vermillon, blanc de plomb"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

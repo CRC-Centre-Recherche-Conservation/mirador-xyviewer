@@ -51,6 +51,16 @@ describe('AnnotationBodyRenderer', () => {
     expect(code!.textContent).toContain('"type": "Unknown"');
   });
 
+  it('does not crash on a SpecificResource body (rendering comes later)', () => {
+    const body: AnnotationBody = {
+      type: 'SpecificResource',
+      purpose: 'classifying',
+      source: { id: 'https://x/concept', type: 'Concept' },
+    };
+    const { container } = render(<AnnotationBodyRenderer body={body} {...baseProps} />);
+    expect(container.querySelector('code')!.textContent).toContain('"type": "SpecificResource"');
+  });
+
   it('renders multiple bodies with a single divider between them', () => {
     const bodies: AnnotationBody[] = [
       { type: 'Manifest', id: 'https://a/m.json' },

@@ -205,7 +205,7 @@ describe('normalizeAnnotationList — v2 list', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('anno-a');
     expect(result[0].type).toBe('Annotation');
-    expect(result[0].motivation).toBe('oa:commenting');
+    expect(result[0].motivation).toBe('commenting');
   });
 });
 

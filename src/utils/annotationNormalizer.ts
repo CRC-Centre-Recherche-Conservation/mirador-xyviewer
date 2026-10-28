@@ -75,6 +75,8 @@ export interface AnnotationAdapter {
   label(a: Record<string, unknown>): unknown;
   metadata(a: Record<string, unknown>): unknown;
   seeAlso(a: Record<string, unknown>): unknown;
+  /** Optional: properties the normalizer does not model, copied onto the output as-is. */
+  extraProperties?(a: Record<string, unknown>): Record<string, unknown>;
 }
 
 const toArray = (v: unknown): unknown[] =>
@@ -90,6 +92,9 @@ const contextIncludes = (page: Record<string, unknown>, fragment: string): boole
   if (typeof ctx === 'string') return ctx.includes(fragment);
   return Array.isArray(ctx) && ctx.some((c) => typeof c === 'string' && c.includes(fragment));
 };
+
+/** v3 annotation keys the normalizer rebuilds itself; every other key is preserved. */
+const V3_MODELED_KEYS = new Set(['id', 'type', 'motivation', 'label', 'body', 'target', 'metadata', 'seeAlso']);
 
 /**
  * IIIF Presentation 3 / W3C Web Annotation: `AnnotationPage` with `items`, each
@@ -111,6 +116,8 @@ const presentation3Adapter: AnnotationAdapter = {
   label: (a) => a.label,
   metadata: (a) => a.metadata,
   seeAlso: (a) => a.seeAlso,
+  extraProperties: (a) =>
+    Object.fromEntries(Object.entries(a).filter(([key]) => !V3_MODELED_KEYS.has(key) && key !== '__proto__')),
 };
 
 /**
@@ -170,26 +177,117 @@ export function v2ValueToLocalized(
   if (!Array.isArray(value) && isLocalizedMap(value)) return value as LocalizedString;
 
   const entries = Array.isArray(value) ? value : [value];
-  const out: LocalizedString = {};
+  // A Map keeps producer-controlled language tags (`constructor`, `__proto__`) off the prototype chain.
+  const out = new Map<string, string[]>();
+  const add = (lang: string, v: string) => {
+    const list = out.get(lang);
+    if (list) list.push(v);
+    else out.set(lang, [v]);
+  };
   for (const entry of entries) {
     // Per IIIF Presentation 2.1, an array member may be a bare string (no
     // language) or a `{ @value, @language }` object — including mixed arrays.
     if (typeof entry === 'string') {
-      (out.none ||= []).push(entry);
+      add('none', entry);
       continue;
     }
     if (!isObject(entry) || typeof entry['@value'] !== 'string') continue;
     const lang = typeof entry['@language'] === 'string' && entry['@language'] ? entry['@language'] : 'none';
-    (out[lang] ||= []).push(entry['@value']);
+    add(lang, entry['@value']);
   }
-  return out;
+  return Object.fromEntries(out) as LocalizedString;
 }
 
-/** Strip a namespace prefix: `ns:Foo` → `Foo`. */
-const stripPrefix = (type: string): string => type.split(':').pop() || type;
+/** Strip a namespace prefix: `ns:Foo` → `Foo`, `http://www.w3.org/ns/oa#Foo` → `Foo`. */
+const stripPrefix = (type: string): string =>
+  type.replace(/^https?:\/\/www\.w3\.org\/ns\/oa#/, '').replace(/^[A-Za-z][\w.-]*:(?!\/)/, '') || type;
 
-/** v2 `resource` object (or already-v3 body) → normalized AnnotationBody. Never throws. */
-function mapBody(raw: unknown): AnnotationBody {
+/** Strip only the Open Annotation namespace (`oa:x` / `…/ns/oa#x`); other prefixes such as `sc:` stay. */
+const stripOa = (v: string): string => v.replace(/^(?:oa:|https?:\/\/www\.w3\.org\/ns\/oa#)/, '') || v;
+
+/** String value of a JSON-LD reference: a string, or an object's `@id` / `id`. */
+const refId = (v: unknown): string | undefined => {
+  if (typeof v === 'string') return v;
+  if (!isObject(v)) return undefined;
+  const id = v['@id'] ?? v.id;
+  return typeof id === 'string' ? id : undefined;
+};
+
+/** Normalized localized map from any localized value (strings become `{ none: [s] }`). */
+const toLocalizedMap = (v: unknown): LocalizedString | undefined => {
+  const loc = v2ValueToLocalized(v as LocalizedStringV2 | undefined);
+  return loc === undefined ? undefined : asLocalized(loc);
+};
+
+/** `purpose` / `oa:hasPurpose` / `hasPurpose` (string or `{@id|id}`, one or many) → oa:-free purpose. */
+function mapPurpose(raw: Record<string, unknown>): string | string[] | undefined {
+  const value = raw.purpose ?? raw['oa:hasPurpose'] ?? raw.hasPurpose;
+  const purposes = toArray(value).map(refId).filter((p): p is string => !!p).map(stripOa);
+  if (purposes.length === 0) return undefined;
+  return Array.isArray(value) ? purposes : purposes[0];
+}
+
+/** Annotation `motivation` (string, `{@id|id}` or array) with a leading `oa:` removed; `sc:painting` is kept. */
+function mapMotivation(raw: unknown): string | string[] | undefined {
+  const values = toArray(raw).map(refId).filter((m): m is string => !!m).map(stripOa);
+  if (values.length === 0) return undefined;
+  return Array.isArray(raw) ? values : values[0];
+}
+
+/** Keys the Dataset / Textual builders translate themselves (never copied through verbatim). */
+const BODY_HANDLED_KEYS = new Set([
+  '@id', '@type', 'label', 'format', 'service', 'license',
+  'purpose', 'oa:hasPurpose', 'hasPurpose',
+]);
+
+/** Dataset body that keeps every key the wire object carries beyond the explicit ones (e.g. `xyReading`). */
+function buildDataset(
+  raw: Record<string, unknown>,
+  id: string | undefined,
+  base: Record<string, unknown>,
+  format: string | undefined,
+  purpose: string | string[] | undefined
+): AnnotationBody {
+  // Object.fromEntries defines own properties, so a `__proto__` key cannot swap the prototype.
+  const rest: Record<string, unknown> = Object.fromEntries(
+    Object.entries(raw).filter(([key]) => !BODY_HANDLED_KEYS.has(key) && key !== '__proto__')
+  );
+  if (!Object.prototype.hasOwnProperty.call(rest, 'rights') && typeof raw.license === 'string') rest.rights = raw.license;
+  return {
+    ...rest,
+    type: 'Dataset',
+    id: id ?? '',
+    ...base,
+    ...(purpose ? { purpose } : {}),
+    format: format ?? '',
+  } as AnnotationBody;
+}
+
+/** v2 `oa:SpecificResource` body (`full` string or object) → normalized SpecificResource, or undefined without an id. */
+function mapSpecificResourceBody(
+  raw: Record<string, unknown>,
+  base: Record<string, unknown>,
+  purpose: string | string[] | undefined
+): AnnotationBody | undefined {
+  const full = raw.full ?? raw.source ?? raw['oa:hasSource'] ?? raw.hasSource;
+  const id = refId(full);
+  if (!id) return undefined;
+  const fullType = isObject(full) ? (full['@type'] ?? full.type) : undefined;
+  const source = typeof fullType === 'string' ? { id, type: stripPrefix(fullType) } : id;
+  const label = base.label ?? (isObject(full) ? toLocalizedMap(full.label) : undefined);
+  const selector = selectorField(raw.selector ?? raw['oa:hasSelector'] ?? raw.hasSelector);
+  return {
+    type: 'SpecificResource',
+    source,
+    ...(selector ? { selector } : {}),
+    ...base,
+    ...(label ? { label } : {}),
+    ...(purpose ? { purpose } : {}),
+  } as AnnotationBody;
+}
+
+/** v2 `resource` object (or already-v3 body) → normalized AnnotationBody. Never throws; undefined = drop. */
+function mapBody(raw: unknown): AnnotationBody | undefined {
   if (!isObject(raw)) {
     return { type: 'TextualBody', value: typeof raw === 'string' ? raw : '' };
   }
@@ -204,11 +302,13 @@ function mapBody(raw: unknown): AnnotationBody {
   let format = typeof raw.format === 'string' ? raw.format : undefined;
   if (format === 'text/txt') format = 'text/plain';
   const chars = typeof raw.chars === 'string' ? raw.chars : undefined;
-  const label = v2ValueToLocalized(raw.label as LocalizedStringV2 | undefined);
+  const rawLabel = v2ValueToLocalized(raw.label as LocalizedStringV2 | undefined);
+  const label = rawLabel && typeof rawLabel !== 'string' ? rawLabel : undefined;
+  const purpose = mapPurpose(raw);
 
   const base: { format?: string; label?: LocalizedString; service?: IiifService | IiifService[] } = {};
   if (format) base.format = format;
-  if (label && typeof label !== 'string') base.label = label;
+  if (label) base.label = label;
   // Preserve a declared IIIF service (e.g. an Auth service) — needed for token resolution.
   if (raw.service !== undefined) base.service = raw.service as IiifService | IiifService[];
 
@@ -218,26 +318,27 @@ function mapBody(raw: unknown): AnnotationBody {
   }
 
   // Explicit @type wins over format/chars heuristics.
-  if (rawType === 'dctypes:Dataset') {
-    return { type: 'Dataset', id: id ?? '', ...base, format: format ?? '' };
-  }
+  if (rawType === 'dctypes:Dataset') return buildDataset(raw, id, base, format, purpose);
   if (rawType === 'sc:Manifest') {
     return { type: 'Manifest', id: id ?? '', ...base };
   }
+  if (rawType && stripPrefix(rawType) === 'SpecificResource') {
+    return mapSpecificResourceBody(raw, base, purpose);
+  }
   if (rawType && TEXTUAL_TYPES.has(rawType)) {
-    return { type: 'TextualBody', value: chars ?? '', ...base, ...textLang(raw) };
+    // OA → WADM: an oa:Tag is a TextualBody with purpose "tagging" (Mirador's tag list keys on it).
+    const p = purpose ?? (rawType === 'oa:Tag' ? 'tagging' : undefined);
+    return { type: 'TextualBody', value: chars ?? '', ...base, ...textLang(raw), ...(p ? { purpose: p } : {}) };
   }
 
   // Heuristics when @type is absent or unknown.
   if (chars !== undefined) {
-    return { type: 'TextualBody', value: chars, ...base, ...textLang(raw) };
+    return { type: 'TextualBody', value: chars, ...base, ...textLang(raw), ...(purpose ? { purpose } : {}) };
   }
   if (format === 'application/ld+json') {
     return { type: 'Manifest', id: id ?? '', ...base };
   }
-  if (format && DATASET_MIMES.has(format)) {
-    return { type: 'Dataset', id: id ?? '', ...base, format };
-  }
+  if (format && DATASET_MIMES.has(format)) return buildDataset(raw, id, base, format, purpose);
 
   // Unknown namespaced @type → strip prefix into `type`, copy @id → id.
   return { type: rawType ? stripPrefix(rawType) : 'Unknown', ...(id ? { id } : {}), ...base } as AnnotationBody;
@@ -245,6 +346,47 @@ function mapBody(raw: unknown): AnnotationBody {
 
 const textLang = (raw: Record<string, unknown>): { language?: string } =>
   typeof raw.language === 'string' ? { language: raw.language } : {};
+
+/** Nested oa:Choice levels followed (real data uses one); deeper input is dropped, not recursed. */
+const MAX_CHOICE_DEPTH = 4;
+
+/** Selector types Mirador reads `.value.match` on without a guard. */
+const VALUE_SELECTORS = new Set(['FragmentSelector', 'SvgSelector']);
+
+/**
+ * Selector(s) of any shape → flat list of normalized selectors. `oa:Choice` becomes
+ * `[default, ...item]`; prefixes are stripped; Fragment/Svg selectors without a
+ * string `value` are dropped.
+ */
+function mapSelector(raw: unknown, depth = 0): Record<string, unknown>[] {
+  return toArray(raw).flatMap((sel): Record<string, unknown>[] => {
+    if (!isObject(sel)) return [];
+    const rawType = sel['@type'] ?? sel.type;
+    const declared = typeof rawType === 'string' ? stripPrefix(rawType) : undefined;
+    if (declared === 'Choice') {
+      if (depth >= MAX_CHOICE_DEPTH) return [];
+      return [
+        ...mapSelector(sel.default ?? sel['oa:default'], depth + 1),
+        ...mapSelector(sel.item ?? sel['oa:item'] ?? sel.items, depth + 1),
+      ];
+    }
+    const { chars, ...rest } = sel;
+    delete rest['@id'];
+    delete rest['@type'];
+    delete rest['@context'];
+    const value = typeof sel.value === 'string' ? sel.value : typeof chars === 'string' ? chars : undefined;
+    const type =
+      declared ?? (value !== undefined && value.trimStart().startsWith('<svg') ? 'SvgSelector' : 'FragmentSelector');
+    if (VALUE_SELECTORS.has(type) && value === undefined) return [];
+    return [{ ...rest, type, ...(value !== undefined ? { value } : {}) }];
+  });
+}
+
+/** One selector stays an object, several become an array, none → undefined. */
+const selectorField = (raw: unknown): Record<string, unknown> | Record<string, unknown>[] | undefined => {
+  const list = mapSelector(raw);
+  return list.length === 0 ? undefined : list.length === 1 ? list[0] : list;
+};
 
 /** v2 `on` value → normalized AnnotationTarget (or a plain string). */
 function mapTarget(raw: unknown): AnnotationTarget | string {
@@ -258,19 +400,21 @@ function mapTarget(raw: unknown): AnnotationTarget | string {
     };
   }
   if (isObject(raw)) {
-    // Already a v3 target object (uses `source`, not the v2 `full`): pass through.
+    // Already a v3 target object (uses `source`, not the v2 `full`): keep it, normalizing selectors.
     if (raw.full === undefined && ('source' in raw || 'type' in raw)) {
-      return raw as AnnotationTarget;
+      if (raw.selector === undefined) return raw as AnnotationTarget;
+      const { selector: rawSelector, ...rest } = raw;
+      const selector = selectorField(rawSelector);
+      return { ...rest, ...(selector ? { selector } : {}) } as AnnotationTarget;
     }
-    const full = typeof raw.full === 'string' ? raw.full : undefined;
-    const selector = isObject(raw.selector) ? raw.selector : undefined;
-    const value =
-      (typeof selector?.value === 'string' ? selector.value : undefined) ??
-      (typeof selector?.chars === 'string' ? selector.chars : undefined);
+    const full = raw.full ?? raw['oa:hasSource'] ?? raw.hasSource;
+    const fullId = refId(full);
+    const fullType = isObject(full) ? (full['@type'] ?? full.type) : undefined;
+    const selector = selectorField(raw.selector ?? raw['oa:hasSelector'] ?? raw.hasSelector);
     return {
       type: 'SpecificResource',
-      ...(full ? { source: full } : {}),
-      selector: { type: 'FragmentSelector', value: value ?? '' },
+      ...(fullId ? { source: typeof fullType === 'string' ? { id: fullId, type: stripPrefix(fullType) } : fullId } : {}),
+      ...(selector ? { selector } : {}),
     };
   }
   return '';
@@ -403,7 +547,7 @@ export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
     const id = adapter.id(raw);
     if (id === undefined) return [];
 
-    const bodies = adapter.bodies(raw).map(mapBody);
+    const bodies = adapter.bodies(raw).flatMap((b) => mapBody(b) ?? []);
     const targetRaw = adapter.target(raw);
     const target: AnnotationTarget | string = Array.isArray(targetRaw)
       ? // arrays of targets are kept as the postprocessor's multi-target shape
@@ -411,16 +555,15 @@ export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
       : mapTarget(targetRaw);
 
     const annotation: AnnotationV3 = {
+      ...adapter.extraProperties?.(raw),
       id,
       type: 'Annotation',
       body: bodies.length === 1 ? bodies[0] : bodies,
       target,
     };
 
-    const motivation = adapter.motivation(raw);
-    if (typeof motivation === 'string' || Array.isArray(motivation)) {
-      annotation.motivation = motivation as string | string[];
-    }
+    const motivation = mapMotivation(adapter.motivation(raw));
+    if (motivation !== undefined) annotation.motivation = motivation;
 
     const label = v2ValueToLocalized(adapter.label(raw) as LocalizedStringV2 | undefined);
     if (label !== undefined) annotation.label = asLocalized(label);
