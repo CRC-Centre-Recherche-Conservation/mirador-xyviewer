@@ -5,6 +5,7 @@ This guide explains the plugin architecture and how to extend mirador-xyviewer.
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
+- [Annotation Normalizer](#annotation-normalizer)
 - [Plugin System](#plugin-system)
 - [Components](#components)
 - [Services](#services)
@@ -50,6 +51,33 @@ This guide explains the plugin architecture and how to extend mirador-xyviewer.
 │  datasetCache    → URL-based caching with TTL               │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Annotation Normalizer
+
+`src/utils/annotationNormalizer.ts` is the only module that knows IIIF wire formats. An ordered adapter registry recognizes a container (IIIF Presentation 2 / Open Annotation, or Presentation 3 / W3C Web Annotation) and reads its fields; version-blind mappers translate them into one normalized v3 model. It is tolerant: malformed producer input is dropped or passed through, never thrown on.
+
+| Wire input (v2 / Open Annotation) | Normalized (v3) |
+|---|---|
+| `sc:AnnotationList` / `resources` / `@id` / `resource` / `on` | `AnnotationPage`-style annotation: `id` / `body` / `target` |
+| `motivation: "oa:commenting"` (string, `{@id}` or array) | `commenting`; only a leading `oa:` is stripped, `sc:painting` is kept |
+| `cnt:ContentAsText`, `dctypes:Text`, `oa:Tag` + `chars` | `TextualBody` (`value`, `language`, `purpose`; `oa:Tag` defaults to `purpose: "tagging"`) |
+| `dctypes:Dataset` | `Dataset`; unmapped keys (e.g. `xyReading`) are kept, `license` becomes `rights` when `rights` is absent |
+| `sc:Manifest` or `application/ld+json` | `Manifest` |
+| `oa:SpecificResource` + `full` (string) | `SpecificResource`, `source` = the string |
+| `oa:SpecificResource` + `full` (untyped object) | `source` = `full["@id"]`, `full.label` hoisted to the body `label` |
+| `oa:SpecificResource` + `full` (typed object) | `source` = `{ id, type }` (prefix stripped) |
+| `oa:SpecificResource` without an id | body dropped |
+| `oa:hasPurpose` / `hasPurpose` / `purpose` (string, `{@id\|id}`, array) | `purpose` without the `oa:` prefix |
+| `on` string `canvas#xywh=...` | `SpecificResource` target + `FragmentSelector` |
+| `on` object with `selector` (`oa:Choice`, arrays) | `selector` = `[default, ...item]` flattened; one selector stays an object, several become an array |
+| `FragmentSelector` / `SvgSelector` without a string `value` | selector dropped (Mirador calls `value.match` unguarded) |
+| `seeAlso`, `metadata`, `label` (`@value` / `@language`) | v3 equivalents (`LocalizedString` maps) |
+
+Presentation 3 annotations keep every property the normalizer does not model (`bodyValue`, `created`, `creator`, `rights`, `stylesheet`, ...); the normalized keys are written last and win. Selectors on v3 targets go through the same selector mapper.
+
+To support a new format, implement `AnnotationAdapter` and register it; do not add wire-format knowledge anywhere else.
+
+---
 
 ## Plugin System
 

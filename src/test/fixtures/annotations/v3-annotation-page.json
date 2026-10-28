@@ -1,0 +1,400 @@
+{
+  "@context": [
+    "https://iiif.example.org/iiif/context/xy-reading/1.jsonld",
+    "http://iiif.io/api/auth/2/context.json",
+    "http://iiif.io/api/presentation/3/context.json"
+  ],
+  "id": "https://iiif.example.org/iiif/v3/annotation-collection/c3edc570-ccdf-4428-a662-efbaca6eb275/page-3",
+  "type": "AnnotationPage",
+  "label": {
+    "en": [
+      "Analyses of Paris. Bibliothèque nationale de France, Département des manuscrits, Latin 617, NP"
+    ],
+    "fr": [
+      "Analyses de Paris. Bibliothèque nationale de France, Département des manuscrits, Latin 617, NP"
+    ]
+  },
+  "next": {
+    "id": "https://iiif.example.org/iiif/v3/annotation-collection/c3edc570-ccdf-4428-a662-efbaca6eb275/page-14",
+    "type": "AnnotationPage"
+  },
+  "service": [
+    {
+      "@id": "https://iiif.example.org/iiif/auth/login",
+      "@type": "AuthCookieService1",
+      "profile": "http://iiif.io/api/auth/1/login",
+      "label": "Sign in to ManuSpectrum",
+      "header": "Restricted data",
+      "description": "Some data of ManuSpectrum are restricted. Sign in with your ManuSpectrum account to read what it gives access to.",
+      "confirmLabel": "Sign in",
+      "failureHeader": "Not available",
+      "failureDescription": "Your account does not give access to these data.",
+      "service": [
+        {
+          "@id": "https://iiif.example.org/iiif/auth/1/token",
+          "@type": "AuthTokenService1",
+          "profile": "http://iiif.io/api/auth/1/token"
+        },
+        {
+          "@id": "https://iiif.example.org/iiif/auth/logout",
+          "@type": "AuthLogoutService1",
+          "profile": "http://iiif.io/api/auth/1/logout",
+          "label": "Sign out of external viewers"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "https://iiif.example.org/iiif/v3/annotation/08d97e6c-5083-4876-84d3-a777f31e9d30/50165fdd-7723-453d-8a28-a21bd1db02a3",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "label": {
+        "en": [
+          "PAR617-pXRF-0027 — pXRF — blue of \"D\" initial — NP — Paris, Latin 617"
+        ],
+        "fr": [
+          "PAR617-pXRF-0027 — pXRF — bleu de « D » initiale — NP — Paris, Latin 617"
+        ]
+      },
+      "body": [
+        {
+          "id": "https://iiif.example.org/iiif/data/d5f2633b-a876-4d02-9747-7db59e1f8455/series.csv",
+          "type": "Dataset",
+          "format": "text/csv",
+          "label": {
+            "en": [
+              "PAR617-pXRF-0027_spectrum.csv, series"
+            ],
+            "fr": [
+              "PAR617-pXRF-0027_spectrum.csv, série"
+            ]
+          },
+          "rights": "http://creativecommons.org/licenses/by-sa/4.0/",
+          "service": [
+            {
+              "@id": "https://iiif.example.org/iiif/auth/login",
+              "@type": "AuthCookieService1",
+              "profile": "http://iiif.io/api/auth/1/login",
+              "label": "Sign in to ManuSpectrum",
+              "header": "Restricted data",
+              "description": "Some data of ManuSpectrum are restricted. Sign in with your ManuSpectrum account to read what it gives access to.",
+              "confirmLabel": "Sign in",
+              "failureHeader": "Not available",
+              "failureDescription": "Your account does not give access to these data.",
+              "service": [
+                {
+                  "@id": "https://iiif.example.org/iiif/auth/1/token",
+                  "@type": "AuthTokenService1",
+                  "profile": "http://iiif.io/api/auth/1/token"
+                },
+                {
+                  "@id": "https://iiif.example.org/iiif/auth/logout",
+                  "@type": "AuthLogoutService1",
+                  "profile": "http://iiif.io/api/auth/1/logout",
+                  "label": "Sign out of external viewers"
+                }
+              ]
+            },
+            {
+              "id": "https://iiif.example.org/iiif/auth/2/probe/d5f2633b-a876-4d02-9747-7db59e1f8455",
+              "type": "AuthProbeService2",
+              "service": [
+                {
+                  "id": "https://iiif.example.org/iiif/auth/login",
+                  "type": "AuthAccessService2",
+                  "profile": "active",
+                  "label": {
+                    "en": [
+                      "Sign in to ManuSpectrum"
+                    ],
+                    "fr": [
+                      "Se connecter à ManuSpectrum"
+                    ]
+                  },
+                  "heading": {
+                    "en": [
+                      "Restricted data"
+                    ],
+                    "fr": [
+                      "Données restreintes"
+                    ]
+                  },
+                  "note": {
+                    "en": [
+                      "Sign in with your ManuSpectrum account to read what it gives access to."
+                    ],
+                    "fr": [
+                      "Connectez-vous avec votre compte ManuSpectrum pour lire les données auxquelles il donne accès."
+                    ]
+                  },
+                  "confirmLabel": {
+                    "en": [
+                      "Sign in"
+                    ],
+                    "fr": [
+                      "Se connecter"
+                    ]
+                  },
+                  "service": [
+                    {
+                      "id": "https://iiif.example.org/iiif/auth/2/token",
+                      "type": "AuthAccessTokenService2",
+                      "errorHeading": {
+                        "en": [
+                          "Not available"
+                        ],
+                        "fr": [
+                          "Non disponible"
+                        ]
+                      },
+                      "errorNote": {
+                        "en": [
+                          "Your account does not give access to these data."
+                        ],
+                        "fr": [
+                          "Votre compte ne donne pas accès à ces données."
+                        ]
+                      }
+                    },
+                    {
+                      "id": "https://iiif.example.org/iiif/auth/logout",
+                      "type": "AuthLogoutService2",
+                      "label": {
+                        "en": [
+                          "Sign out of external viewers"
+                        ],
+                        "fr": [
+                          "Se déconnecter des visionneuses externes"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "xyReading": {
+            "type": "XYReading",
+            "dialect": {
+              "delimiter": ",",
+              "headerRowCount": 1,
+              "encoding": "utf-8"
+            },
+            "columns": [
+              {
+                "index": 0,
+                "role": "x"
+              },
+              {
+                "index": 1,
+                "role": "yLeft"
+              }
+            ],
+            "x": {
+              "label": {
+                "none": [
+                  "Energy (keV)"
+                ]
+              },
+              "reversed": false
+            },
+            "y": [
+              {
+                "axis": "left",
+                "label": {
+                  "none": [
+                    "Counts"
+                  ]
+                }
+              }
+            ],
+            "corrections": [],
+            "derivedFrom": {
+              "id": "https://iiif.example.org/iiif/data/d5f2633b-a876-4d02-9747-7db59e1f8455/raw",
+              "type": "Dataset",
+              "format": "text/csv",
+              "label": {
+                "en": [
+                  "PAR617-pXRF-0027_spectrum.csv, raw file"
+                ],
+                "fr": [
+                  "PAR617-pXRF-0027_spectrum.csv, fichier brut"
+                ]
+              },
+              "xyReading": {
+                "type": "XYReading",
+                "columns": [
+                  {
+                    "index": 0,
+                    "role": "x"
+                  },
+                  {
+                    "index": 1,
+                    "role": "yLeft"
+                  }
+                ],
+                "corrections": []
+              }
+            }
+          }
+        }
+      ],
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://gallica.bnf.fr/iiif/ark:/12148/btv1b10036077p/canvas/f3",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://iiif.example.org/manifest/035a287b-6262-40bc-8142-1465818be291",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": [
+          {
+            "type": "PointSelector",
+            "x": 1991,
+            "y": 2809
+          },
+          {
+            "type": "SvgSelector",
+            "value": "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 1991 2797 A 12 12 0 1 1 1991 2821 A 12 12 0 1 1 1991 2797\"/></svg>"
+          }
+        ]
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ],
+            "fr": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "en": [
+              "portable X-ray fluorescence"
+            ],
+            "fr": [
+              "Fluorescence X portable"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Dates"
+            ],
+            "fr": [
+              "Dates"
+            ]
+          },
+          "value": {
+            "none": [
+              "2020-03-11"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "https://iiif.example.org/report/08d97e6c-5083-4876-84d3-a777f31e9d30",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "PAR617-pXRF-0027 — pXRF — blue of \"D\" initial — NP — Paris, Latin 617"
+            ],
+            "fr": [
+              "PAR617-pXRF-0027 — pXRF — bleu de « D » initiale — NP — Paris, Latin 617"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "https://iiif.example.org/iiif/v3/annotation/d247a9db-b2c2-4b03-a92e-e3f47a802ec6/aa0de614-02f7-438b-98af-d4974ae619c7",
+      "type": "Annotation",
+      "motivation": "supplementing",
+      "label": {
+        "en": [
+          "PAR617-MA-XRF-0431 — MA-XRF — red of \"D\" initial — NP — Paris, Latin 617"
+        ],
+        "fr": [
+          "PAR617-MA-XRF-0431 — MA-XRF — rouge de « D » initiale — NP — Paris, Latin 617"
+        ]
+      },
+      "target": {
+        "type": "SpecificResource",
+        "source": {
+          "id": "https://gallica.bnf.fr/iiif/ark:/12148/btv1b10036077p/canvas/f3",
+          "type": "Canvas",
+          "partOf": [
+            {
+              "id": "https://iiif.example.org/manifest/035a287b-6262-40bc-8142-1465818be291",
+              "type": "Manifest"
+            }
+          ]
+        },
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=1866,2684,390,434"
+        }
+      },
+      "metadata": [
+        {
+          "label": {
+            "en": [
+              "Technique"
+            ],
+            "fr": [
+              "Technique"
+            ]
+          },
+          "value": {
+            "en": [
+              "X-ray microfluorescence"
+            ],
+            "fr": [
+              "Microfluorescence x"
+            ]
+          }
+        },
+        {
+          "label": {
+            "en": [
+              "Dates"
+            ],
+            "fr": [
+              "Dates"
+            ]
+          },
+          "value": {
+            "none": [
+              "2020-03-11"
+            ]
+          }
+        }
+      ],
+      "seeAlso": [
+        {
+          "id": "https://iiif.example.org/report/d247a9db-b2c2-4b03-a92e-e3f47a802ec6",
+          "type": "Text",
+          "format": "text/html",
+          "label": {
+            "en": [
+              "PAR617-MA-XRF-0431 — MA-XRF — red of \"D\" initial — NP — Paris, Latin 617"
+            ],
+            "fr": [
+              "PAR617-MA-XRF-0431 — MA-XRF — rouge de « D » initiale — NP — Paris, Latin 617"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

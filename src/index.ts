@@ -65,6 +65,7 @@ export type {
   ManifestBody as ManifestBodyType,
   DatasetBody as DatasetBodyType,
   TextualBody as TextualBodyType,
+  SpecificResourceBody as SpecificResourceBodyType,
   AnnotationBody,
   IIIFAnnotation,
   // Dataset types

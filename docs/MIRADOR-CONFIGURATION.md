@@ -95,6 +95,10 @@ annotations: {
 }
 ```
 
+Without this, annotations will load but won't display in the UI.
+
+> **v2 motivations:** Open Annotation motivations reach Mirador without the `oa:` prefix (`oa:commenting` becomes `commenting`, `oa:classifying` becomes `classifying`); `sc:painting` is unchanged. Keep both forms in `filteredMotivations` as above. A host that filters on the `oa:` form of a motivation other than `oa:commenting` / `oa:tagging` must add the bare form.
+
 ### Point Annotation Postprocessor
 
 To make point annotations (1x1 pixel) visible as circles:
