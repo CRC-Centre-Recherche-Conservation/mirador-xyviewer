@@ -96,3 +96,41 @@ describe('ImageComparisonSlider', () => {
     );
   });
 });
+
+describe('ImageComparisonSlider viewer errors', () => {
+  const canvases3 = [canvas('c1', 'https://x/info.json'), canvas('c2', 'https://y/info.json'), canvas('c3', 'https://z/info.json')];
+
+  // Viewers whose destroy() and viewport calls throw, with their event handlers captured.
+  const failingViewers = () => {
+    const handlers: Array<() => void> = [];
+    vi.mocked(OpenSeadragon).mockImplementation((() => ({
+      destroy: vi.fn(() => { throw new Error('destroy failed'); }),
+      addHandler: vi.fn((_event: string, cb: () => void) => handlers.push(cb)),
+      addOnceHandler: vi.fn((_event: string, cb: () => void) => cb()),
+      viewport: {
+        getCenter: vi.fn(() => { throw new Error('no viewport'); }),
+        getZoom: vi.fn(),
+        zoomTo: vi.fn(),
+        panTo: vi.fn(),
+      },
+    })) as never);
+    return handlers;
+  };
+
+  it('ignores a viewer sync error', () => {
+    const handlers = failingViewers();
+    render(<ImageComparisonSlider windowId="w1" canvases={canvases3} />);
+    expect(handlers.length).toBeGreaterThan(0);
+    expect(() => handlers[0]()).not.toThrow();
+  });
+
+  it('ignores destroy errors when re-creating and unmounting the viewers', () => {
+    failingViewers();
+    const { unmount } = render(<ImageComparisonSlider windowId="w1" canvases={canvases3} />);
+    // Picking another image re-creates both viewers.
+    fireEvent.mouseDown(screen.getAllByRole('combobox')[0]);
+    fireEvent.click(screen.getByRole('option', { name: 'c3' }));
+    expect(OpenSeadragon).toHaveBeenCalledTimes(4);
+    expect(() => unmount()).not.toThrow();
+  });
+});

@@ -114,17 +114,8 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
     if (!leftViewerRef.current || !rightViewerRef.current) return;
     if (!leftCanvas || !rightCanvas) return;
 
+    // The previous viewers were destroyed by this effect's cleanup.
     setIsReady(false);
-
-    // Destroy existing viewers
-    if (leftOsdRef.current) {
-      try { leftOsdRef.current.destroy(); } catch { /* ignore */ }
-      leftOsdRef.current = null;
-    }
-    if (rightOsdRef.current) {
-      try { rightOsdRef.current.destroy(); } catch { /* ignore */ }
-      rightOsdRef.current = null;
-    }
 
     const commonOptions = {
       showNavigationControl: false,
