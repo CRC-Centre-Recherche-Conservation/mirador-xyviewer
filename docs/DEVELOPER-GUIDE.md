@@ -534,11 +534,23 @@ const COLORS = [
 
 ### Localization
 
-Components do not use `react-i18next`. User-facing strings are defaults overridable through props (for example the `labels` prop of `SpectrumPlot`), so a host can translate them without a runtime i18n dependency.
+Components do not use `react-i18next`. User-facing strings are overridable props, for example
+`SpectrumPlot` accepts a `labels` object that is merged over `DEFAULT_LABELS`:
+
+```tsx
+<SpectrumPlot data={data} labels={{ expandButton: 'Agrandir', closeButton: 'Fermer' }} />
+```
 
 ### Build externals and peer policy
 
 `config/externals.ts` decides what stays out of `dist/`: every `peerDependencies` entry plus `redux` (type-only import), matched with their subpaths (`react/jsx-runtime`, `@mui/material/styles`, ...). Only `papaparse` and `ipaddr.js` are bundled. `config/externals.test.ts` guards this: when you import a new host-provided package, declare it as a peer.
+
+### Peer dependency policy
+
+Peers are the range we test: the lower end (Mirador 4.2.2, MUI 7, plotly.js 3, react-plotly.js 2.6)
+and the upper end (Mirador 4.3, MUI 9, plotly.js 4, react-plotly.js 4). Dev dependencies track the
+upper end. The lower end is verified by the `Lower-end peers` CI job, which rewrites the dev dependencies to
+that range (see `.github/workflows/ci.yml`) and runs typecheck + tests without the lockfile.
 
 ## Testing
 

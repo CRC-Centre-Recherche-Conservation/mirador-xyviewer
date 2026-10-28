@@ -16,8 +16,20 @@ This guide explains how to configure Mirador 4 to work with mirador-xyviewer.
 ### Installation
 
 ```bash
-npm install mirador mirador-xyviewer
+npm install mirador mirador-xyviewer @mui/icons-material plotly.js react-plotly.js
 ```
+
+**Peer requirements:** `mirador` ^4.2.2, `@mui/material` and `@mui/icons-material` ^7 or ^9
+(same major as your Mirador build: 4.2.2-4.2.4 use MUI 7, 4.2.5 accepts 7 or 9, 4.2.6 should stay on 7 because it pins `@mui/icons-material` 7, 4.3+ needs 9),
+`plotly.js` ^3 or ^4, `react-plotly.js` ^2.6, ^3 or ^4, React 18 or 19.
+
+#### Migration: requiring Mirador 4.2.2+
+
+- Upgrade Mirador to 4.2.2 or later.
+- Install `@mui/icons-material` next to `@mui/material` (now a peer dependency), same major.
+- Upgrade `plotly.js` to 3 or 4. With `plotly.js` 3+, `react-plotly.js` 2.6, 3 or 4 all work.
+- `react-i18next` is no longer a peer dependency of this package (Mirador still needs it).
+- The Plotly "send to cloud" modebar button is explicitly disabled, so plotly.js 4 does not enable it by default.
 
 ### HTML Container
 

@@ -52,6 +52,50 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # Lower end of the declared peer ranges: reinstall without the lockfile and re-run typecheck + tests.
+  lower-end:
+    name: Lower-end peers (Mirador 4.2.2, MUI 7, plotly.js 3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          # npm 10 (Node 22) crashes resolving this peer set ("reading 'edgesOut'"); npm 11 does not.
+          node-version: 24
+
+      - name: Pin dev dependencies to the lower end
+        run: |
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            Object.assign(pkg.devDependencies, {
+              "mirador": "4.2.2",
+              "@mui/material": "^7.3.0",
+              "@mui/system": "^7.3.0",
+              "@mui/icons-material": "^7.3.0",
+              "plotly.js": "^3.0.0",
+              "react-plotly.js": "2.6.0",
+              "@types/react-plotly.js": "^2.6.3",
+            });
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
+          '
+          rm package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npx vitest run
+
   # Surface dependency vulnerabilities introduced BY THIS PR (not historical).
   # Posts a summary comment on the PR and fails only when the PR adds new
   # high/critical CVEs — much fairer than gating on the whole transitive tree.
