@@ -155,6 +155,24 @@ trusted (explicit mode) — fall back to the manual "Open resource" → "Try aga
 > (e.g. in tests). See the **[IIIF Auth integration guide](./docs/IIIF-AUTH.md)** for the
 > trust model, cross-origin setup, API reference, and troubleshooting.
 
+#### Annotation pages (opt-in)
+
+Servers that protect or filter annotation pages per reader are covered by a second, separate
+wire. It sends the stored token on **annotation page requests only**, re-requests the affected
+pages once after a login, drops a token the server rejected, and shows a small **Sign in**
+notice in the annotation panel when a page declares a trusted IIIF Auth 1.0 service (a `401`,
+or an anonymous `200` that still declares one). It shares the trust gates of
+`wireMiradorDatasetAuth` (same `trustedOrigins` / `blocklist`).
+
+```typescript
+import { wireMiradorAnnotationAuth } from 'mirador-xyviewer/mirador-auth';
+
+wireMiradorAnnotationAuth(store, { trustedOrigins: ['https://annotations.lab.example'] });
+```
+
+See [docs/IIIF-AUTH.md](./docs/IIIF-AUTH.md#wiremiradorannotationauthstore-options) for the
+caching notes and limits (a `403` hides the service; Mirador keeps one list per URL).
+
 ## Quick Start
 
 ```bash

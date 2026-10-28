@@ -26,6 +26,9 @@ vi.mock('mirador', () => ({
   SanitizedHtml: () => null,
   addWindow: vi.fn((c) => ({ type: 'ADD_WINDOW', ...c })),
   updateWindow: vi.fn((id, p) => ({ type: 'UPDATE_WINDOW', id, ...p })),
+  updateConfig: vi.fn((config) => ({ type: 'UPDATE_CONFIG', config })),
+  requestAnnotation: vi.fn((targetId, annotationId) => ({ type: 'REQUEST_ANNOTATION', targetId, annotationId })),
+  getAccessTokens: vi.fn((s: { accessTokens?: object }) => s?.accessTokens ?? {}),
 }));
 // mirador-image-tools is spread into the demo's plugin array.
 vi.mock('mirador-image-tools', () => ({ miradorImageToolsPlugin: [] }));

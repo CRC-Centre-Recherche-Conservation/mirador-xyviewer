@@ -189,6 +189,62 @@ interface WireMiradorDatasetAuthOptions {
 }
 ```
 
+### `wireMiradorAnnotationAuth(store, options?)`
+
+From `mirador-xyviewer/mirador-auth`. Opt-in and separate from the dataset wire (it needs a
+store with `subscribe`; a real Mirador store has one). Use it with `wireMiradorDatasetAuth`
+and the same `trustedOrigins` / `blocklist`; the trust gates are shared code, so both follow
+identical rules (https only except loopback, SSRF blocklist, `[]` = deny-all, host-driven
+default, declared-token-service matching). Returns a teardown.
+
+```typescript
+function wireMiradorAnnotationAuth(
+  store: { getState(): unknown; dispatch(action: unknown): unknown; subscribe(l: () => void): () => void },
+  options?: {
+    trustedOrigins?: string[];
+    blocklist?: { deny?: string[]; allow?: string[] };
+    /** Reuse an existing session silently (token service, no window), once per service. Default true. */
+    silent?: boolean;
+    loginDriver?: (discovered, dispatch) => Promise<void>;
+    sessionAcquirer?: (discovered, dispatch) => Promise<boolean>;
+  },
+): () => void;
+```
+
+What it does:
+
+- **Sends the token.** Adds a `requests.preprocessors` entry (via `updateConfig`, so it works
+  after the viewer exists; it is re-asserted if the config is replaced, and a second call
+  supersedes the first). It adds `Authorization: Bearer <token>` **only** to annotation page
+  requests (Mirador marks the page as fetching before the request), for a trusted origin with a
+  matching, not-rejected token. It never overrides an `Authorization` header already present,
+  and never touches manifests, `info.json` or content search. Authenticated requests use
+  `cache: 'no-store'`.
+- **Refetches once.** When a usable token appears (after a login), each affected page is
+  re-requested once per `(page, token)`. Mirador clears the list while it reloads, so the
+  annotation panel briefly empties.
+- **Handles a rejected token.** The deny-list is per `(page, token)`, so one page refusing a
+  token never stops it reaching another page. A page requested with a token is treated as
+  rejecting it when it comes back as an auth stub (no annotations and a declared IIIF Auth
+  service, e.g. a `401` body) or as a fetch error without a body (a `403`, a non-JSON `401`, a
+  CORS preflight refusing `Authorization`). The page is then re-requested once anonymously
+  (no loop; Mirador's auth state is not reset). A legitimately empty page without a `service`
+  (a v2 list with no `resources`, `{}`) keeps the token. Signing in again re-tries the page once,
+  even when the server hands back the same token.
+- **Offers Sign in.** When a stored page declares a trusted IIIF Auth 1.0 service and the reader
+  holds no usable token for it, the annotation panel shows a small "Sign in" notice. This covers
+  a `401` stub carrying the `service` and a `200` that is filtered per reader but still declares
+  the service. The page's own origin must be trusted too, so untrusted content cannot start
+  a login or a silent session check. Sign in opens the access window from the click, fetches the token, and the page is
+  re-requested. Nothing is shown when no trusted service is declared.
+
+Cross-origin auth works the same way as for datasets: list **both** the annotation origin and
+the token-service origin in `trustedOrigins`; the service declared by the page's earlier
+anonymous response is remembered so the token can be matched on the next request.
+
+Server prerequisites: CORS must allow the `Authorization` header on annotation pages (the
+request is preflighted), and per-reader responses should be `Cache-Control: private`.
+
 ### `resolveMiradorToken(state, options)`
 
 From `mirador-xyviewer/mirador-auth`. The shared resolver — the single place that knows
@@ -258,6 +314,8 @@ The plugin fetches datasets cross-origin, so the data host must cooperate:
   dataset loads automatically.
 - If the dataset declares no (trusted) auth service, no Sign-in button is shown — only the
   manual "Open resource" + "Try again" fallback.
+- With `wireMiradorAnnotationAuth`, an annotation page that declares a trusted service (and
+  the reader is not signed in) adds a one-line **Sign in** notice above the annotation list.
 - The login window opens directly from the click, so popup blockers allow it.
 
 ## Limitations
@@ -265,9 +323,21 @@ The plugin fetches datasets cross-origin, so the data host must cooperate:
 - **IIIF Auth 2.0 (probe service)** — not supported: the bundled Mirador 4 implements
   1.0/0.x only. A 2.0 service should be detected and degraded to the manual
   `onAuthRequired` affordance.
-- **Auth on manifest / annotations / content-search** — not implemented (an optional,
-  deferred phase; this is an area the IIIF spec itself has paused). Only image `info.json`
-  (handled by Mirador) and datasets are covered.
+- **Auth on manifests / content-search** — not implemented (the IIIF spec itself has paused
+  this area). Image `info.json` is handled by Mirador, datasets by `wireMiradorDatasetAuth`
+  and annotation pages by the opt-in `wireMiradorAnnotationAuth` (see below).
+- **Annotation pages: a `403` hides the service.** Mirador stores the JSON body of a `401`
+  (so its declared `service` is visible) but drops the body of any other error status. A `403`
+  after a token was sent falls back to one anonymous request; the Sign-in notice still appears
+  if the page declared its service in an earlier response. Otherwise answer `401` (or `200`
+  with the `service` declared).
+- **Annotation pages: redirects.** The token is sent with fetch's default `redirect: 'follow'`;
+  the Fetch standard makes the browser drop `Authorization` on a cross-origin redirect.
+- **Annotation pages: one list per URL.** Mirador stores pages by URL, so a page fetched with a
+  token replaces the anonymous one in the store (one reader per session). The token requests
+  use `cache: 'no-store'` so the browser HTTP cache cannot mix the two; servers should answer
+  with `Cache-Control: private` and `Vary: Authorization`. After a token expires, the
+  already-loaded private list stays in the store until the page is requested again.
 - **Cache** — the dataset cache is keyed by URL only (one auth context per URL per
   session), which holds for a viewer.
 

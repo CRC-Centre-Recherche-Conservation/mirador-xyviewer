@@ -268,3 +268,42 @@ describe('scientific annotation interactions', () => {
     }
   });
 });
+
+describe('annotation sign-in notice', () => {
+  const targetProps = {
+    annotations: [],
+    windowId: 'w1',
+    canvasId: 'c-auth',
+    selectAnnotation: vi.fn(),
+    deselectAnnotation: vi.fn(),
+    hoverAnnotation: vi.fn(),
+  } as never;
+  const page = { id: 'https://iiif.example.org/p.json', service: {} };
+  const renderIt = (signInPage?: typeof page, resources: Record<string, unknown> = {}) =>
+    render(
+      <ScientificAnnotationPluginComponent
+        targetProps={targetProps}
+        TargetComponent={(() => <div data-testid="target" />) as never}
+        dispatch={vi.fn()}
+        addWindow={vi.fn()}
+        annotationResources={resources as never}
+        signInPage={signInPage}
+      />,
+    );
+
+  it('shows Sign in above the default list when a page needs it', () => {
+    renderIt(page);
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.getByTestId('target')).toBeInTheDocument();
+  });
+
+  it('shows nothing extra when no page needs sign-in', () => {
+    renderIt(undefined);
+    expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
+  });
+
+  it('also shows it alongside custom-rendered annotations', () => {
+    renderIt(page, { [datasetAnnotation.id]: datasetAnnotation });
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+  });
+});

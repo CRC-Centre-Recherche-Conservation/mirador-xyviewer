@@ -23,3 +23,5 @@ export type {
   FetchContentStateOptions,
   ResolveContentStateOptions,
 } from './contentStateResolver';
+export { configureAnnotationAuth, getAnnotationAuth } from './annotationAuth';
+export type { AnnotationAuthHandlers, AnnotationPageRef } from './annotationAuth';

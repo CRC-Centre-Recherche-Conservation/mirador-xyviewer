@@ -20,3 +20,5 @@ export { wireMiradorImageAuthReload } from './imageAuthReload';
 export type { MiradorSubscribableStore } from './imageAuthReload';
 export { isBlockedHost } from './blocklist';
 export type { BlocklistConfig } from './blocklist';
+export { wireMiradorAnnotationAuth } from './annotationAuth';
+export type { WireMiradorAnnotationAuthOptions } from './annotationAuth';

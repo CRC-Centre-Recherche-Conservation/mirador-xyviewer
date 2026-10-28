@@ -15,7 +15,7 @@
  * sign in for either and the other unlocks (the plugin reuses the stored token; the image
  * reuses the cookie). `partner-lab` and `imaging-lab` stay isolated — each its own login.
  */
-import { wireMiradorDatasetAuth, wireMiradorImageAuthReload } from '../src/mirador-auth';
+import { wireMiradorAnnotationAuth, wireMiradorDatasetAuth, wireMiradorImageAuthReload } from '../src/mirador-auth';
 import { authServiceFor, serviceForAnnotation } from './demo-auth-config';
 
 const DEMO_ORIGIN = window.location.origin;
@@ -81,10 +81,11 @@ export function setupDemoAuth(store: {
   // Local dev serves the demo (and its `/lab` proxy) from a loopback origin, which the SSRF
   // blocklist refuses by default — opt in so the demo's same-origin tokens attach. Harmless
   // on the deployed https origin. This is exactly the intended "dev loosens the default" path.
-  wireMiradorDatasetAuth(store, {
-    trustedOrigins: TRUSTED_ORIGINS,
-    blocklist: { allow: ['loopback', 'localhost'] },
-  });
+  const blocklist = { allow: ['loopback', 'localhost'] };
+  wireMiradorDatasetAuth(store, { trustedOrigins: TRUSTED_ORIGINS, blocklist });
+  // Same trust rules for annotation pages: send the token, re-request after a login, offer
+  // "Sign in" when a page declares a trusted service.
+  wireMiradorAnnotationAuth(store, { trustedOrigins: TRUSTED_ORIGINS, blocklist });
   // Protected maXRF images are driven by Mirador's own login; reload the canvas once that
   // login lands so the first image appears without re-opening the window.
   wireMiradorImageAuthReload(store);
