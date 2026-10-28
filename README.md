@@ -21,7 +21,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Manifest Links**: Open related IIIF manifests in new windows
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
 - **Point Annotations**: Automatic conversion of analysis points (tiny `xywh`, `PointSelector`) to visible markers, with selector arrays, SVG polygons and `pixel:` fragments handled
-- **Metadata Filters**: Filter annotations by metadata values (panel list and canvas shapes)
+- **Metadata Filters**: Filter annotations by the controlled terms of their bodies and by metadata values, optionally extended to linked annotations (panel list and canvas shapes)
 - **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as named rows that select the linked annotation (also on another canvas, with a way back and "Cited by" on the target), and `Choice` alternatives (any producer; WADM §4.1, §4.3)
 - **Reader language**: IIIF language maps (labels, metadata, localized text bodies) follow Mirador's `language` setting (IIIF Presentation 3 §4.4)
 - **Error containment**: A rendering error in a plugin, annotation or body is contained (the viewer keeps running); `ErrorBoundary` is exported for hosts embedding the standalone components
@@ -258,7 +258,7 @@ Mirador.viewer({
 | [IIIF Annotations](./docs/IIIF-ANNOTATIONS.md) | How to structure annotations for physicochemical data |
 | [Spectral Data Format](./docs/SPECTRAL-DATA-FORMAT.md) | CSV/TSV format specification |
 | [Mirador Configuration](./docs/MIRADOR-CONFIGURATION.md) | Full configuration options |
-| [Metadata Filters](./docs/METADATA-FILTERS.md) | Filter annotations by metadata |
+| [Metadata Filters](./docs/METADATA-FILTERS.md) | Filter annotations by body terms and metadata |
 | [Developer Guide](./docs/DEVELOPER-GUIDE.md) | Architecture and extension |
 
 ## Demo

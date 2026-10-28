@@ -211,6 +211,7 @@ const viewer = Mirador.viewer({
     },
     showAnnotationId: 'menu',                      // 'menu' (default) | 'inline'
     linkSubtitleMetadataLabel: 'Technique',        // metadata shown under each linked-annotation row
+    hiddenFilterGroups: ['Identified materials'],  // filter groups to leave out (see METADATA-FILTERS.md)
   },
 }, [scientificAnnotationPlugin]);
 ```
@@ -219,9 +220,10 @@ const viewer = Mirador.viewer({
 |---|---|---|
 | `labels` | `AnnotationBodyLabels` | UI string overrides, all English by default (see below). |
 | `linkSubtitleMetadataLabel` | `string` | Label of the metadata entry whose value is shown under each linked-annotation row (matched case-insensitively on the target annotation). No default: rows then show only where the target is. |
+| `hiddenFilterGroups` | `string[]` | Filter groups left out of the filter panel: each entry matches a metadata label, a body group caption or a purpose (case-insensitive). See [METADATA-FILTERS.md](./METADATA-FILTERS.md#hiding-filter-groups). |
 | `showAnnotationId` | `'menu' \| 'inline'` | Where the annotation IIIF id is shown on every card. `'menu'` (default) puts "Copy annotation id" and "Open JSON" in the card's "⋮" menu; `'inline'` keeps the id as a link under the title. |
 
-Label keys: `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), for linked rows `linkOnThisPage` ("on this page"), `linkOnCanvas` ("on {canvas}"), `linkUnavailable` ("Not available in this viewer"), `goToPage` ("Go to page"), `hiddenByFilter` ("(hidden by filter)"), `showAll` ("Show all"), `backTo` ("Back to {title}"), `selectLinked` ("Select linked annotation {n} of {total}: {details}"), `citedBy` ("Cited by"), `linkNavigationFailed`, and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `untitled`. `evidence` and `evidenceUnavailable` are deprecated: they are only used as the fallback for `linkedAnnotations` and `linkUnavailable` when those are not set.
+Label keys: `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), for linked rows `linkOnThisPage` ("on this page"), `linkOnCanvas` ("on {canvas}"), `linkUnavailable` ("Not available in this viewer"), `linkCount` ("{n} linked annotations", the accessible name of the link icon and count in a card header) and `linkCountOne` ("1 linked annotation"), `goToPage` ("Go to page"), `hiddenByFilter` ("(hidden by filter)"), `showAll` ("Show all"), `backTo` ("Back to {title}"), `selectLinked` ("Select linked annotation {n} of {total}: {details}"), `citedBy` ("Cited by"), `linkNavigationFailed`, and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `zoomToZone` ("Zoom to zone", frames the annotation's own zone), `untitled`, and for the filter panel and term menu `applyToLinked` ("Apply to linked annotations"), `filtersFromContent` ("From annotation content"), `filtersFromMetadata` ("From metadata"), `showMore` ("Show {n} more"), `showFewer`, `appliesTo` ("{n} annotations"), `appliesToOne` ("1 annotation"), `expandGroup` ("Expand {name}"), `collapseGroup` ("Collapse {name}"), `selectAllIn` ("Select all: {name}"), `deselectAllIn` ("Deselect all: {name}"), `plusLinked` ("+{n} linked"), `filterNone` ("None"), `shownOf` ("{shown} of {total} shown"), `shownBecauseLinked` ("shown because linked to {title}"), `filterBy` ("Filter by {term}"), `removeFilter` ("Remove filter: {term}"), `highlightTerm` ("Highlight annotations with this term"), `filterActive` ("filter active", added to a chip's accessible name while its term filters), `filtersEmpty` ("No metadata available for filtering"). `evidence` and `evidenceUnavailable` are deprecated: they are only used as the fallback for `linkedAnnotations` and `linkUnavailable` when those are not set.
 
 ### Theme Customization
 
@@ -335,7 +337,7 @@ Mirador-xyviewer provides five plugins; all are optional:
 |--------|-------------|
 | `scientificAnnotationPlugin` | Spectrum visualization (CSV/TSV), manifest links, metadata display |
 | `imageComparisonPlugin` | Side-by-side image comparison with synchronized zoom/pan |
-| `metadataFiltersPlugin` | Filter annotations by metadata values (button and panel) and hide the filtered shapes on the canvas. Exported as an array of two Mirador plugins: spread it (`...metadataFiltersPlugin`) |
+| `metadataFiltersPlugin` | Filter annotations by metadata values and by the controlled terms of their bodies (button and panel) and hide the filtered shapes on the canvas. Exported as an array of two Mirador plugins: spread it (`...metadataFiltersPlugin`) |
 | `selectionHighlightPlugin` | Pulse animation to highlight selected annotations on the image |
 | `searchResultFocusPlugin` | Switches the left panel to the Annotations list when a Content Search hit is selected |
 

@@ -24,11 +24,13 @@ import { ErrorBoundary, ErrorNotice } from '../components/ErrorBoundary';
 import { ClassificationCard } from '../components/ClassificationCard';
 import { AnnotationCardMenu } from '../components/AnnotationCardMenu';
 import { classificationKind, buildClassificationView } from '../utils/classificationModel';
-import { resolveLabels, ANNOTATION_LABEL_KEYS } from '../utils/annotationLabels';
+import { resolveLabels, sanitizeLabels } from '../utils/annotationLabels';
 import { AnnotationSignIn } from '../components/AnnotationSignIn';
 import { getAnnotationAuth } from '../services/annotationAuth';
 import type { AnnotationPageRef } from '../services/annotationAuth';
-import { filtersStore } from '../state/filtersStore';
+import { filtersStore, facetGroupKey } from '../state/filtersStore';
+import { TermActionsContext, type TermActionsValue, type TermFacetRef } from '../components/TermActionsContext';
+import type { Term } from '../utils/classificationModel';
 import { linkNavigationStore } from '../state/linkNavigationStore';
 import { CitedBy } from '../components/CitedBy';
 import { LinkContext } from '../components/LinkContext';
@@ -312,6 +314,47 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     linkContext.hover(annotationId ? linkContext.groupOf(annotationId) : []);
   }, [linkContext]);
 
+  // Term chips: filter by a term, highlight its annotations (same facet as the filter panel).
+  const textLabels = useMemo(() => resolveLabels(labels), [labels]);
+  const termActions = useMemo<TermActionsValue>(() => {
+    const locate = (term: Term, facet: TermFacetRef): string | undefined => {
+      if (!windowId || !canvasId) return undefined;
+      return [facet.purpose]
+        .flat()
+        .map((purpose) => facetGroupKey(purpose, purpose === 'describing' ? facet.group : undefined))
+        .find((group) => filtersStore.hasFacet(windowId, canvasId, group, term.key));
+    };
+    return {
+      actionsFor: (term, facet) => {
+        const group = locate(term, facet);
+        if (!group || !windowId || !canvasId) return [];
+        const filtering = filtersStore.isFacetActive(windowId, canvasId, group, term.key);
+        return [
+          {
+            key: 'filter',
+            label: fillTemplate(filtering ? textLabels.removeFilter : textLabels.filterBy, { term: term.label }),
+            onClick: () => {
+              filtersStore.toggleFacet(windowId, canvasId, group, term.key, 'only');
+            },
+          },
+          {
+            key: 'highlight',
+            label: textLabels.highlightTerm,
+            onClick: () => linkContext.hover(filtersStore.getAnnotationIdsWithValue(windowId, canvasId, group, term.key)),
+          },
+        ];
+      },
+      isFiltering: (term, facet) => {
+        const group = locate(term, facet);
+        return !!group && !!windowId && !!canvasId && filtersStore.isFacetActive(windowId, canvasId, group, term.key);
+      },
+      filterActiveLabel: textLabels.filterActive,
+    };
+    // The hidden set changes with every filter change: chips re-read the store.
+  }, [windowId, canvasId, textLabels, linkContext, hiddenAnnotationIds]);
+  const shownBecause =
+    windowId && canvasId && hiddenAnnotationIds.size > 0 ? filtersStore.getShownBecauseLinked(windowId, canvasId) : undefined;
+
   // Back stack of followed links: dropped when the reader moves on.
   const nav = useSyncExternalStore(
     useCallback((cb: () => void) => linkNavigationStore.subscribe((w) => w === windowId && cb()), [windowId]),
@@ -397,6 +440,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   return (
     <LanguageProvider language={language}>
      <LinkContext.Provider value={linkContext}>
+     <TermActionsContext.Provider value={termActions}>
       {signInPage && <AnnotationSignIn page={signInPage} />}
       <MenuList disablePadding>
         {visibleAnnotations.map((annotation) => {
@@ -404,6 +448,14 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           const isScientific = customRenderingIds.has(annotation.id);
           const isSelected = selectedAnnotationId === annotation.id;
           const isHovered = hoveredAnnotationIds.includes(annotation.id);
+          const becauseIds = shownBecause?.get(annotation.id);
+          const becauseNote = becauseIds?.length ? (
+            <Typography variant="caption" role="note" sx={{ display: 'block', mb: 0.5, color: 'text.secondary' }}>
+              {fillTemplate(textLabels.shownBecauseLinked, {
+                title: [...new Set(becauseIds.map((id) => linkContext.titleOf(id)))].join(', '),
+              })}
+            </Typography>
+          ) : null;
           const showFilterBadge = shownOnlyBecauseSelected(
             annotation.id,
             hiddenAnnotationIds,
@@ -455,6 +507,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                     {FILTER_HIDDEN_BADGE}
                   </Typography>
                 )}
+                {becauseNote}
                 {backLink}
                 <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
                   <InsideBoundary>
@@ -550,6 +603,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                   {FILTER_HIDDEN_BADGE}
                 </Typography>
               )}
+              {becauseNote}
               <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
                 <InsideBoundary>
                   {() =>
@@ -647,32 +701,11 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         })}
       </MenuList>
       {failureNotice}
+     </TermActionsContext.Provider>
      </LinkContext.Provider>
     </LanguageProvider>
   );
 };
-
-/**
- * Map state to props - extract annotation resources from Mirador state
- * @internal Exposed for tests; not part of the public API.
- */
-const labelsCache = new WeakMap<object, AnnotationBodyLabels>();
-
-/** Drops malformed values (e.g. from an imported workspace); cached per config object to stay referentially stable. */
-function sanitizeLabels(raw: unknown): AnnotationBodyLabels | undefined {
-  if (!raw || typeof raw !== 'object') return undefined;
-  const cached = labelsCache.get(raw);
-  if (cached) return cached;
-  const r = raw as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
-  const purposes = r.purposes && typeof r.purposes === 'object' && !Array.isArray(r.purposes)
-    ? (r.purposes as Record<string, string>)
-    : undefined;
-  const clean: AnnotationBodyLabels = { purposes };
-  for (const key of ANNOTATION_LABEL_KEYS) clean[key] = str(r[key]);
-  labelsCache.set(raw, clean);
-  return clean;
-}
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined);
 
@@ -689,6 +722,10 @@ function visibleIds(win: object | undefined): string[] | undefined {
   return ids;
 }
 
+/**
+ * Map state to props - extract annotation resources from Mirador state
+ * @internal Exposed for tests; not part of the public API.
+ */
 export function mapStateToProps(
   state: MiradorState,
   { targetProps }: { targetProps: { windowId: string; canvasId?: string } },

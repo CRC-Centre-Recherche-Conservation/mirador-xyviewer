@@ -1,9 +1,10 @@
 /**
  * MetadataFiltersPanel
- * Panel component for filtering annotations by metadata
+ * Panel component for filtering annotations by what they say (controlled terms of their
+ * bodies) and by their metadata.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -14,6 +15,8 @@ import {
   Chip,
   Tooltip,
   Divider,
+  Switch,
+  Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -22,7 +25,21 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import { filtersStore, NONE_KEY, type FilterGroup, type FilterValue } from '../state/filtersStore';
+import {
+  filtersStore,
+  NONE_KEY,
+  type FilterableAnnotation,
+  type FilterGroup,
+  type FilterValue,
+} from '../state/filtersStore';
+import { fillTemplate, resolveLabels } from '../utils/annotationLabels';
+import { FACET_PURPOSES } from '../utils/termFacets';
+import type { AnnotationBodyLabels } from '../types/mirador';
+
+/** Values shown before "Show N more". */
+const COLLAPSED_VALUES = 8;
+
+type PanelText = ReturnType<typeof resolveLabels>;
 
 interface MetadataFiltersPanelProps {
   /** Window ID */
@@ -33,14 +50,10 @@ interface MetadataFiltersPanelProps {
   onFiltersChange?: (hiddenAnnotationIds: Set<string>) => void;
   /** Callback to close the panel */
   onClose?: () => void;
-  /** Annotations with metadata */
-  annotations: Array<{
-    id: string;
-    metadata?: Array<{
-      label: { [lang: string]: string[] };
-      value: { [lang: string]: string[] };
-    }>;
-  }>;
+  /** Annotations to filter: their metadata and bodies are the facets */
+  annotations: FilterableAnnotation[];
+  /** UI string overrides (`config.scientificAnnotations.labels`) */
+  labels?: AnnotationBodyLabels;
   /** Embedded mode - no header/footer (used when inside a window) */
   embedded?: boolean;
 }
@@ -53,12 +66,22 @@ const FilterValueItem: React.FC<{
   labelKey: string;
   windowId: string;
   canvasId: string;
-  onChange: () => void;
-}> = ({ value, labelKey, windowId, canvasId, onChange }) => {
+  text: PanelText;
+  /** `recomputed`: the store already refreshed what is hidden. */
+  onChange: (recomputed?: boolean) => void;
+}> = ({ value, labelKey, windowId, canvasId, text, onChange }) => {
   const handleChange = useCallback(() => {
-    filtersStore.toggleValue(windowId, canvasId, labelKey, value.key);
-    onChange();
+    filtersStore.toggleFacet(windowId, canvasId, labelKey, value.key);
+    onChange(true);
   }, [windowId, canvasId, labelKey, value.key, onChange]);
+
+  const part = (visible: number, total: number) => (visible !== total ? `${visible}/${total}` : `${total}`);
+  const counts =
+    part(value.visibleCount, value.count) +
+    (value.linkedCount > 0
+      ? ` · ${fillTemplate(text.plusLinked, { n: part(value.visibleLinkedCount, value.linkedCount) })}`
+      : '');
+  const nothingVisible = value.visibleCount + value.visibleLinkedCount === 0;
 
   return (
     <Box
@@ -87,16 +110,16 @@ const FilterValueItem: React.FC<{
               {value.displayText}
             </Typography>
             <Chip
-              label={value.visibleCount !== value.count ? `${value.visibleCount}/${value.count}` : value.count}
+              label={counts}
               size="small"
               sx={{
                 height: 18,
                 fontSize: '0.7rem',
                 bgcolor: value.selected
-                  ? (value.visibleCount === 0 ? 'action.disabledBackground' : 'primary.light')
+                  ? (nothingVisible ? 'action.disabledBackground' : 'primary.light')
                   : 'action.disabledBackground',
                 color: value.selected
-                  ? (value.visibleCount === 0 ? 'text.secondary' : 'primary.contrastText')
+                  ? (nothingVisible ? 'text.secondary' : 'primary.contrastText')
                   : 'text.secondary',
               }}
             />
@@ -115,9 +138,11 @@ const FilterGroupItem: React.FC<{
   group: FilterGroup;
   windowId: string;
   canvasId: string;
-  onChange: () => void;
-}> = ({ group, windowId, canvasId, onChange }) => {
+  text: PanelText;
+  onChange: (recomputed?: boolean) => void;
+}> = ({ group, windowId, canvasId, text, onChange }) => {
   const [expanded, setExpanded] = useState(group.expanded);
+  const [showAll, setShowAll] = useState(false);
 
   const handleToggleExpand = useCallback(() => {
     setExpanded(prev => !prev);
@@ -143,6 +168,18 @@ const FilterGroupItem: React.FC<{
   const allSelected = selectedCount === totalCount;
   const noneSelected = selectedCount === 0;
 
+  // "None" last, then by count. Deselected values stay visible so the active filter is readable.
+  const sorted = [...values].sort((a, b) => {
+    if (a.key === NONE_KEY) return 1;
+    if (b.key === NONE_KEY) return -1;
+    return b.count - a.count;
+  });
+  const folded = !showAll && sorted.length > COLLAPSED_VALUES;
+  const shownValues = folded
+    ? sorted.filter((v, i) => i < COLLAPSED_VALUES || !v.selected)
+    : sorted;
+  const hiddenValues = sorted.length - shownValues.length;
+
   return (
     <Box sx={{ mb: 1 }}>
       {/* Group header */}
@@ -161,11 +198,21 @@ const FilterGroupItem: React.FC<{
           },
         }}
       >
-        <IconButton size="small" sx={{ mr: 0.5, p: 0.25 }}>
+        <IconButton
+          size="small"
+          sx={{ mr: 0.5, p: 0.25 }}
+          aria-label={fillTemplate(expanded ? text.collapseGroup : text.expandGroup, { name: group.label })}
+        >
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
         </IconButton>
         <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600 }}>
           {group.label}
+          {group.appliesTo > 0 && (
+            <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 400 }}>
+              {group.appliesTo === 1 ? text.appliesToOne : fillTemplate(text.appliesTo, { n: group.appliesTo })}
+              {group.appliesToLinked > 0 && ` (${fillTemplate(text.plusLinked, { n: group.appliesToLinked })})`}
+            </Typography>
+          )}
         </Typography>
         <Chip
           label={`${selectedCount}/${totalCount}`}
@@ -178,12 +225,13 @@ const FilterGroupItem: React.FC<{
             color: 'white',
           }}
         />
-        <Tooltip title="Select all">
+        <Tooltip title={fillTemplate(text.selectAllIn, { name: group.label })}>
           {/* span wrapper: a disabled button doesn't fire the events Tooltip needs. */}
           <span>
             <IconButton
               size="small"
               onClick={handleSelectAll}
+              aria-label={fillTemplate(text.selectAllIn, { name: group.label })}
               sx={{ p: 0.25 }}
               disabled={allSelected}
             >
@@ -191,11 +239,12 @@ const FilterGroupItem: React.FC<{
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Deselect all">
+        <Tooltip title={fillTemplate(text.deselectAllIn, { name: group.label })}>
           <span>
             <IconButton
               size="small"
               onClick={handleDeselectAll}
+              aria-label={fillTemplate(text.deselectAllIn, { name: group.label })}
               sx={{ p: 0.25 }}
               disabled={noneSelected}
             >
@@ -208,24 +257,22 @@ const FilterGroupItem: React.FC<{
       {/* Group values */}
       <Collapse in={expanded}>
         <Box sx={{ pl: 2, borderLeft: '2px solid', borderColor: 'divider', ml: 1.5, mt: 0.5 }}>
-          {values
-            .sort((a, b) => {
-              // "None" always at the end
-              if (a.key === NONE_KEY) return 1;
-              if (b.key === NONE_KEY) return -1;
-              // Sort by count descending
-              return b.count - a.count;
-            })
-            .map((value, index) => (
-              <FilterValueItem
-                key={`${group.key}-${index}`}
-                value={value}
-                labelKey={group.key}
-                windowId={windowId}
-                canvasId={canvasId}
-                onChange={onChange}
-              />
-            ))}
+          {shownValues.map((value) => (
+            <FilterValueItem
+              key={`${group.key}-${value.key}`}
+              value={value}
+              labelKey={group.key}
+              windowId={windowId}
+              canvasId={canvasId}
+              text={text}
+              onChange={onChange}
+            />
+          ))}
+          {(folded || (showAll && sorted.length > COLLAPSED_VALUES)) && (
+            <Button size="small" onClick={() => setShowAll((prev) => !prev)} sx={{ textTransform: 'none', ml: 0.5 }}>
+              {folded ? fillTemplate(text.showMore, { n: hiddenValues }) : text.showFewer}
+            </Button>
+          )}
         </Box>
       </Collapse>
     </Box>
@@ -239,10 +286,12 @@ export const MetadataFiltersPanel: React.FC<MetadataFiltersPanelProps> = ({
   windowId,
   canvasId,
   annotations,
+  labels,
   onFiltersChange,
   onClose,
   embedded = false,
 }) => {
+  const text = useMemo(() => resolveLabels(labels), [labels]);
   const [groups, setGroups] = useState<FilterGroup[]>([]);
   const [, forceUpdate] = useState({});
 
@@ -252,8 +301,10 @@ export const MetadataFiltersPanel: React.FC<MetadataFiltersPanelProps> = ({
   }, [windowId, canvasId, annotations]);
 
   // Handle filter changes
-  const handleFiltersChange = useCallback(() => {
-    const hiddenIds = filtersStore.updateHiddenAnnotations(windowId, canvasId, annotations);
+  const handleFiltersChange = useCallback((recomputed?: boolean) => {
+    const hiddenIds = recomputed
+      ? filtersStore.getHiddenAnnotationIds(windowId, canvasId)
+      : filtersStore.updateHiddenAnnotations(windowId, canvasId, annotations);
     setGroups(filtersStore.getGroups(windowId, canvasId));
     forceUpdate({});
     onFiltersChange?.(hiddenIds);
@@ -277,14 +328,83 @@ export const MetadataFiltersPanel: React.FC<MetadataFiltersPanelProps> = ({
     return unsubscribe;
   }, [windowId, canvasId]);
 
+  const handleInheritChange = useCallback(
+    (_e: React.ChangeEvent<HTMLInputElement>, on: boolean) => {
+      const hiddenIds = filtersStore.setInheritLinked(windowId, canvasId, on);
+      setGroups(filtersStore.getGroups(windowId, canvasId));
+      onFiltersChange?.(hiddenIds);
+    },
+    [windowId, canvasId, onFiltersChange]
+  );
+
   const hasFilters = filtersStore.hasActiveFilters(windowId, canvasId);
   const hiddenCount = filtersStore.getHiddenAnnotationIds(windowId, canvasId).size;
+  const stats = filtersStore.getStats(windowId, canvasId);
+
+  // Terms of the bodies first (in the order of the cards), then the metadata.
+  const contentGroups = groups
+    .filter((g) => g.kind === 'body')
+    .sort((a, b) => FACET_PURPOSES.indexOf(a.purpose!) - FACET_PURPOSES.indexOf(b.purpose!) || a.label.localeCompare(b.label));
+  const metadataGroups = groups.filter((g) => g.kind === 'metadata').sort((a, b) => a.label.localeCompare(b.label));
+  const showHeadings = contentGroups.length > 0 && metadataGroups.length > 0;
+  const renderGroups = (list: FilterGroup[]) =>
+    list.map((group) => (
+      <FilterGroupItem
+        key={group.key}
+        group={group}
+        windowId={windowId}
+        canvasId={canvasId}
+        text={text}
+        onChange={handleFiltersChange}
+      />
+    ));
+  const heading = (title: string) => (
+    <Typography variant="overline" color="text.secondary" component="h3" sx={{ display: 'block', mt: 0.5, lineHeight: 2 }}>
+      {title}
+    </Typography>
+  );
+
+  const filterBody = (
+    <>
+      {groups.some((g) => g.inherits) && (
+        <Box sx={{ mb: 1 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={filtersStore.getInheritLinked(windowId, canvasId)}
+                onChange={handleInheritChange}
+              />
+            }
+            label={<Typography variant="body2">{text.applyToLinked}</Typography>}
+          />
+          {hasFilters && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 1 }}>
+              {fillTemplate(text.shownOf, { shown: stats.filterable - stats.hidden, total: stats.filterable })}
+            </Typography>
+          )}
+        </Box>
+      )}
+      {contentGroups.length > 0 && (
+        <>
+          {showHeadings && heading(text.filtersFromContent)}
+          {renderGroups(contentGroups)}
+        </>
+      )}
+      {metadataGroups.length > 0 && (
+        <>
+          {showHeadings && heading(text.filtersFromMetadata)}
+          {renderGroups(metadataGroups)}
+        </>
+      )}
+    </>
+  );
 
   if (groups.length === 0) {
     return (
       <Box sx={{ p: 2, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          No metadata available for filtering
+          {text.filtersEmpty}
         </Typography>
       </Box>
     );
@@ -309,17 +429,7 @@ export const MetadataFiltersPanel: React.FC<MetadataFiltersPanelProps> = ({
             p: 1.5,
           }}
         >
-          {groups
-            .sort((a, b) => a.label.localeCompare(b.label))
-            .map((group) => (
-              <FilterGroupItem
-                key={group.key}
-                group={group}
-                windowId={windowId}
-                canvasId={canvasId}
-                onChange={handleFiltersChange}
-              />
-            ))}
+          {filterBody}
         </Box>
 
         {/* Footer with stats */}
@@ -397,17 +507,7 @@ export const MetadataFiltersPanel: React.FC<MetadataFiltersPanelProps> = ({
           p: 1.5,
         }}
       >
-        {groups
-          .sort((a, b) => a.label.localeCompare(b.label)) // Sort alphabetically
-          .map((group) => (
-            <FilterGroupItem
-              key={group.key}
-              group={group}
-              windowId={windowId}
-              canvasId={canvasId}
-              onChange={handleFiltersChange}
-            />
-          ))}
+        {filterBody}
       </Box>
 
       {/* Footer with stats */}

@@ -240,7 +240,7 @@ External AnnotationPage file (`canvas1.json`):
 }
 ```
 
-> **Tip:** Metadata labels are used by the [Metadata Filters](./METADATA-FILTERS.md) plugin to create filter groups. Use consistent labels across annotations for effective filtering (e.g., always use "Technique" instead of mixing "Technique" and "Analysis Type").
+> **Tip:** Metadata labels are used by the [Metadata Filters](./METADATA-FILTERS.md) plugin to create filter groups. Use consistent labels across annotations for effective filtering (e.g., always use "Technique" instead of mixing "Technique" and "Analysis Type"). Give several values of one metadata as an array of strings (`"value": {"en": ["lapis lazuli", "lead white"]}`): each entry is one filter value, and a joined string is never split. The `SpecificResource` bodies with a `classifying`, `identifying`, `assessing`, `describing` or `tagging` purpose are also filter facets, keyed by their source URI.
 
 ## Body Types
 

@@ -4,6 +4,7 @@
  */
 
 import type { AnnotationBodyLabels } from '../types/mirador';
+import type { FacetPurpose } from './termFacets';
 
 type StringLabelKey = Exclude<keyof AnnotationBodyLabels, 'purposes'>;
 
@@ -39,6 +40,26 @@ export const DEFAULT_ANNOTATION_LABELS: Required<Pick<AnnotationBodyLabels, Stri
   copyAnnotationId: 'Copy annotation id',
   openJson: 'Open JSON',
   untitled: 'Untitled annotation',
+  applyToLinked: 'Apply to linked annotations',
+  filtersFromContent: 'From annotation content',
+  filtersFromMetadata: 'From metadata',
+  showMore: 'Show {n} more',
+  showFewer: 'Show fewer',
+  appliesTo: '{n} annotations',
+  appliesToOne: '1 annotation',
+  expandGroup: 'Expand {name}',
+  collapseGroup: 'Collapse {name}',
+  selectAllIn: 'Select all: {name}',
+  deselectAllIn: 'Deselect all: {name}',
+  plusLinked: '+{n} linked',
+  filterNone: 'None',
+  shownOf: '{shown} of {total} shown',
+  shownBecauseLinked: 'shown because linked to {title}',
+  filterBy: 'Filter by {term}',
+  removeFilter: 'Remove filter: {term}',
+  highlightTerm: 'Highlight annotations with this term',
+  filterActive: 'filter active',
+  filtersEmpty: 'No metadata available for filtering',
 };
 
 /** Keys of {@link AnnotationBodyLabels} holding a plain string. */
@@ -67,4 +88,40 @@ export function resolveLabels(labels?: AnnotationBodyLabels): typeof DEFAULT_ANN
 /** Fills `{name}` placeholders of a label template. */
 export function fillTemplate(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (m, k: string) => (Object.prototype.hasOwnProperty.call(values, k) ? String(values[k]) : m));
+}
+
+/** Caption of a term group (card and filter panel): the host's `purposes` entry, else the label key. */
+export function termGroupCaption(labels: AnnotationBodyLabels | undefined, purpose: FacetPurpose): string {
+  const own = labels?.purposes;
+  if (own && Object.prototype.hasOwnProperty.call(own, purpose) && typeof own[purpose] === 'string') return own[purpose];
+  const text = resolveLabels(labels);
+  switch (purpose) {
+    case 'classifying':
+      return text.classifiedAs;
+    case 'identifying':
+      return text.identifiedAs;
+    case 'assessing':
+      return text.assessment;
+    case 'describing':
+      return text.description;
+    default:
+      return text.tags;
+  }
+}
+
+const labelsCache = new WeakMap<object, AnnotationBodyLabels>();
+
+/** Drops malformed values (e.g. from an imported workspace); cached per config object to stay referentially stable. */
+export function sanitizeLabels(raw: unknown): AnnotationBodyLabels | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const cached = labelsCache.get(raw);
+  if (cached) return cached;
+  const r = raw as Record<string, unknown>;
+  const purposes = r.purposes && typeof r.purposes === 'object' && !Array.isArray(r.purposes)
+    ? (r.purposes as Record<string, string>)
+    : undefined;
+  const clean: AnnotationBodyLabels = { purposes };
+  for (const key of ANNOTATION_LABEL_KEYS) clean[key] = typeof r[key] === 'string' ? (r[key] as string) : undefined;
+  labelsCache.set(raw, clean);
+  return clean;
 }

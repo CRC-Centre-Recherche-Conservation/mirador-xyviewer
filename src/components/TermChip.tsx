@@ -4,11 +4,13 @@
  * "Open in vocabulary" is built in, other entries are passed in `actions`.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Chip, Menu, MenuItem } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import type { Term } from '../utils/classificationModel';
 import { isValidUrl } from '../utils/security';
+import { useTermActions, type TermFacetRef } from './TermActionsContext';
 
 export interface TermChipAction {
   key: string;
@@ -23,15 +25,26 @@ export interface TermChipProps {
   openVocabularyLabel?: string;
   /** Extra menu entries, shown before the vocabulary link. */
   actions?: TermChipAction[];
+  /** Filter group of the term: adds "Filter by" and "Highlight" entries when the canvas is filterable. */
+  facet?: TermFacetRef;
+  /** State appended to the accessible name while the term filters (default "filter active"). */
+  filterActiveLabel?: string;
 }
 
 export const TermChip: React.FC<TermChipProps> = ({
   term,
   variant = 'outlined',
   openVocabularyLabel = 'Open in vocabulary',
-  actions = [],
+  actions: ownActions = [],
+  facet,
+  filterActiveLabel,
 }) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  // Run after the menu closed: its focus restore would otherwise override the action (hover).
+  const pending = useRef<(() => void) | undefined>(undefined);
+  const termActions = useTermActions();
+  const actions = facet && termActions ? [...termActions.actionsFor(term, facet), ...ownActions] : ownActions;
+  const filtering = !!facet && !!termActions?.isFiltering(term, facet);
   const href = term.uri && isValidUrl(term.uri) ? term.uri : undefined;
   const interactive = !!href || actions.length > 0;
   const close = () => setAnchor(null);
@@ -42,7 +55,9 @@ export const TermChip: React.FC<TermChipProps> = ({
         size="small"
         variant={variant}
         label={term.label}
+        {...(filtering ? { icon: <FilterAltIcon fontSize="small" /> } : {})}
         title={term.uri || undefined}
+        {...(filtering ? { 'aria-label': `${term.label} (${filterActiveLabel ?? termActions?.filterActiveLabel ?? 'filter active'})` } : {})}
         {...(interactive
           ? {
               clickable: true,
@@ -62,13 +77,22 @@ export const TermChip: React.FC<TermChipProps> = ({
           open={!!anchor}
           onClose={close}
           onClick={(e) => e.stopPropagation()}
-          slotProps={{ list: { dense: true, 'aria-label': term.label } }}
+          slotProps={{
+            list: { dense: true, 'aria-label': term.label },
+            transition: {
+              onExited: () => {
+                const run = pending.current;
+                pending.current = undefined;
+                run?.();
+              },
+            },
+          }}
         >
           {actions.map((a) => (
             <MenuItem
               key={a.key}
               onClick={() => {
-                a.onClick(term);
+                pending.current = () => a.onClick(term);
                 close();
               }}
             >

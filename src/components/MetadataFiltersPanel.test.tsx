@@ -78,7 +78,7 @@ describe('MetadataFiltersPanel', () => {
     seed();
     render(<MetadataFiltersPanel windowId={WIN} canvasId={CANVAS} annotations={annotations} />);
     // Footer text: "2 annotations | 1 filter groups"
-    expect(screen.getByText(/2 annotations/)).toBeInTheDocument();
+    expect(screen.getByText(/2 annotations [|]/)).toBeInTheDocument();
     expect(screen.getByText(/1 filter groups/)).toBeInTheDocument();
   });
 });

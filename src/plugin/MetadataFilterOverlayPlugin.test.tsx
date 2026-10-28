@@ -80,7 +80,7 @@ describe('multi-target expansion', () => {
     expect(ids).toEqual(['multi#target-0', 'multi#target-1', 'single']);
 
     filtersStore.initializeFromAnnotations(W, 'c1', expanded as never, true, ['en']);
-    filtersStore.toggleValue(W, 'c1', 'kind', 'x');
+    filtersStore.toggleValue(W, 'c1', 'meta:kind', 'x');
     filtersStore.updateHiddenAnnotations(W, 'c1', expanded as never);
 
     const lists = [{ resources: ids.map((id) => ({ id, targetId: 'c1' })) }];
@@ -127,7 +127,7 @@ describe('MetadataFilterOverlayPluginComponent', () => {
   it('follows the filter store live', () => {
     renderPlugin();
     act(() => {
-      filtersStore.toggleValue(W, C, 'kind', 'two');
+      filtersStore.toggleValue(W, C, 'meta:kind', 'two');
       filtersStore.updateHiddenAnnotations(W, C, [
         { id: 'a', metadata: meta('one') },
         { id: 'b', metadata: meta('two') },
@@ -150,7 +150,7 @@ describe('MetadataFilterOverlayPluginComponent', () => {
   });
 
   it('keeps the selected annotation drawn', () => {
-    filtersStore.toggleValue(W, C, 'kind', 'two');
+    filtersStore.toggleValue(W, C, 'meta:kind', 'two');
     filtersStore.updateHiddenAnnotations(W, C, [
       { id: 'a', metadata: meta('one') },
       { id: 'b', metadata: meta('two') },
@@ -162,7 +162,7 @@ describe('MetadataFilterOverlayPluginComponent', () => {
   it('ignores UI-only events such as toggle-group', () => {
     renderPlugin();
     const before = seen.length;
-    act(() => filtersStore.toggleGroupExpanded(W, C, 'kind'));
+    act(() => filtersStore.toggleGroupExpanded(W, C, 'meta:kind'));
     expect(seen.length).toBe(before);
   });
 
@@ -170,7 +170,7 @@ describe('MetadataFilterOverlayPluginComponent', () => {
     const W2 = 'w-book';
     const items = [{ id: 'x', metadata: meta('one') }];
     filtersStore.initializeFromAnnotations(W2, 'c2', items, true, ['en']);
-    filtersStore.toggleValue(W2, 'c2', 'kind', 'one');
+    filtersStore.toggleValue(W2, 'c2', 'meta:kind', 'one');
     filtersStore.updateHiddenAnnotations(W2, 'c2', items);
     const lists = [{ resources: [res('x', 'c1'), res('x', 'c2')] }];
     render(
@@ -192,7 +192,7 @@ describe('MetadataFilterOverlayPluginComponent', () => {
       if (!done) {
         done = true;
         filtersStore.initializeFromAnnotations(W3, C, items, true, ['en']);
-        filtersStore.toggleValue(W3, C, 'kind', 'two');
+        filtersStore.toggleValue(W3, C, 'meta:kind', 'two');
         filtersStore.updateHiddenAnnotations(W3, C, items);
       }
       seen.push((a ?? []).flatMap((l) => (l.resources ?? []).map((r) => r.id as string)));
@@ -210,7 +210,7 @@ describe('MetadataFilterOverlayPluginComponent', () => {
   });
 
   it('does not filter searchAnnotations', () => {
-    filtersStore.toggleValue(W, C, 'kind', 'two');
+    filtersStore.toggleValue(W, C, 'meta:kind', 'two');
     filtersStore.updateHiddenAnnotations(W, C, [
       { id: 'a', metadata: meta('one') },
       { id: 'b', metadata: meta('two') },
@@ -245,7 +245,7 @@ describe('overlay with metadata-less and embedded annotations', () => {
       { id: 'cls' },
     ];
     filtersStore.initializeFromAnnotations(W, 'c1', items, true, ['en']);
-    filtersStore.toggleValue(W, 'c1', 'technique', '__none__');
+    filtersStore.toggleValue(W, 'c1', 'meta:technique', '\u0000none');
     filtersStore.updateHiddenAnnotations(W, 'c1', items);
     const lists = [{ resources: items.map((i) => res(i.id)) }];
     const hiddenFor = (c: string) => (filtersStore.hasFiltersInitialized(W, c) ? filtersStore.getHiddenAnnotationIds(W, c) : undefined);
@@ -259,9 +259,9 @@ describe('overlay with metadata-less and embedded annotations', () => {
       { id: 'blank', metadata: meta('') },
     ];
     filtersStore.initializeFromAnnotations(W, 'c1', items, true, ['en']);
-    filtersStore.toggleValue(W, 'c1', 'technique', '__none__');
+    filtersStore.toggleValue(W, 'c1', 'meta:technique', '\u0000none');
     expect([...filtersStore.updateHiddenAnnotations(W, 'c1', items)]).toEqual([]);
-    expect(filtersStore.getGroups(W, 'c1').find((g) => g.key === 'technique')!.values.get('__none__')).toBeUndefined();
+    expect(filtersStore.getGroups(W, 'c1').find((g) => g.key === 'meta:technique')!.values.get('\u0000none')).toBeUndefined();
     filtersStore.clearWindow(W);
   });
 
@@ -288,7 +288,7 @@ describe('overlay with metadata-less and embedded annotations', () => {
     expect(items.map((i) => i.id)).toEqual(['multi#target-0', 'multi#target-1', 'tiny', 'cls']);
 
     filtersStore.initializeFromAnnotations(W, CANVAS, items, true, ['en']);
-    filtersStore.toggleValue(W, CANVAS, 'technique', 'xrf');
+    filtersStore.toggleValue(W, CANVAS, 'meta:technique', 'xrf');
     filtersStore.updateHiddenAnnotations(W, CANVAS, items);
     // Resources as Mirador models them, so targetId matches the per-canvas filter key.
     const resources = items.map((i) => new AnnotationItem(i));

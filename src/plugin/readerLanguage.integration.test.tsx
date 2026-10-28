@@ -113,7 +113,7 @@ describe('MetadataFiltersPluginComponent language change', () => {
     const { rerender } = render(<MetadataFiltersPluginComponent {...props} language="en" />);
     expect([...filtersStore.getGroups('lw', 'c1')[0].values.keys()].sort()).toEqual(['drawing', 'painting']);
 
-    filtersStore.toggleValue('lw', 'c1', 'technique', 'painting');
+    filtersStore.toggleValue('lw', 'c1', 'meta:technique', 'painting');
     filtersStore.updateHiddenAnnotations('lw', 'c1', [
       { id: 'a1', metadata: resources.a1.metadata },
       { id: 'a2', metadata: resources.a2.metadata },

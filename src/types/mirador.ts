@@ -118,6 +118,37 @@ export interface AnnotationBodyLabels {
   openJson?: string;
   /** Title of a classification card without any label or text (default "Untitled annotation"). */
   untitled?: string;
+  /** Filter panel: switch extending the class filters to linked annotations (default "Apply to linked annotations"). */
+  applyToLinked?: string;
+  /** Filter panel block titles (defaults "From annotation content" and "From metadata"). */
+  filtersFromContent?: string;
+  filtersFromMetadata?: string;
+  /** Filter groups: fold/unfold (defaults "Show {n} more" and "Show fewer"). */
+  showMore?: string;
+  showFewer?: string;
+  /** Group header: annotations carrying a value of the group and, through links, others (defaults "{n} annotations", "1 annotation" and "+{n} linked"). */
+  appliesTo?: string;
+  appliesToOne?: string;
+  plusLinked?: string;
+  /** Accessible names of a filter group's buttons (defaults "Expand {name}", "Collapse {name}", "Select all: {name}", "Deselect all: {name}"). */
+  expandGroup?: string;
+  collapseGroup?: string;
+  selectAllIn?: string;
+  deselectAllIn?: string;
+  /** Filter value standing for annotations without a value (default "None"). */
+  filterNone?: string;
+  /** Panel summary when a filter is active (default "{shown} of {total} shown"). */
+  shownOf?: string;
+  /** Note on an annotation kept by a filter only through a link (default "shown because linked to {title}"). */
+  shownBecauseLinked?: string;
+  /** Term menu entries (defaults "Filter by {term}", "Remove filter: {term}" and "Highlight annotations with this term"). */
+  filterBy?: string;
+  removeFilter?: string;
+  highlightTerm?: string;
+  /** Chip state added to its accessible name while its term filters the canvas (default "filter active"). */
+  filterActive?: string;
+  /** Filter panel without any facet (default "No metadata available for filtering"). */
+  filtersEmpty?: string;
 }
 
 /** Host options for the scientific annotation plugin, read from the Mirador config key `scientificAnnotations`. */
@@ -128,6 +159,8 @@ export interface ScientificAnnotationsConfig {
   showAnnotationId?: 'menu' | 'inline';
   /** Metadata label whose value is shown under each linked-annotation row (e.g. "Technique"). */
   linkSubtitleMetadataLabel?: string;
+  /** Filter groups to leave out of the filter panel: a metadata label, a term group caption or a purpose (e.g. "Identified materials"). */
+  hiddenFilterGroups?: string[];
 }
 
 /** Mirador config */

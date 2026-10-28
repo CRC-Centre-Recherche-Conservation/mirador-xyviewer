@@ -39,6 +39,8 @@ export type { ClassificationCardProps } from './ClassificationCard';
 
 export { TermChip } from './TermChip';
 export type { TermChipProps, TermChipAction } from './TermChip';
+export { TermActionsContext, useTermActions } from './TermActionsContext';
+export type { TermActionsValue, TermFacetRef } from './TermActionsContext';
 
 export { AnnotationCardMenu } from './AnnotationCardMenu';
 export type { AnnotationCardMenuProps } from './AnnotationCardMenu';

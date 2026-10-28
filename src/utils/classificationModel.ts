@@ -9,7 +9,6 @@
 import type {
   AnnotationBody,
   IIIFAnnotation,
-  LocalizedString,
   SeeAlsoEntry,
   SpecificResourceBody,
   TextualBody,
@@ -28,6 +27,7 @@ import {
 import { pickChoiceItem, selectLanguageVariants } from '../components/AnnotationBodyRenderer';
 import { getLocalizedString } from './localization';
 import { baseAnnotationId } from './linkIndex';
+import { lastSegment, schemeName } from './termFacets';
 import { isValidUrl, stripTags } from './security';
 
 export type ClassificationKind = 'classifying' | 'identifying';
@@ -91,15 +91,6 @@ export interface ClassificationView {
   links: ClassificationLink[];
 }
 
-const lastSegment = (iri: string): string => {
-  const seg = iri.replace(/[/#]+$/, '').split(/[/#]/).pop() ?? iri;
-  try {
-    return decodeURIComponent(seg);
-  } catch {
-    return seg;
-  }
-};
-
 const stripPrefix = (m: string): string => m.replace(/^.*[:/#]/, '');
 
 /** True when the motivation(s) include `classifying` or `identifying`. */
@@ -144,15 +135,6 @@ interface Leaf {
 interface Composite {
   label: string;
   leaves: Leaf[];
-}
-
-/** Display name of a concept scheme the source declares (`inScheme`), if any. */
-function schemeName(body: SpecificResourceBody, prefs: string[]): string | undefined {
-  const source = body.source as { inScheme?: unknown };
-  const scheme = typeof source === 'object' && source ? source.inScheme : undefined;
-  const first = Array.isArray(scheme) ? scheme[0] : scheme;
-  const label = first && typeof first === 'object' ? (first as { label?: LocalizedString }).label : undefined;
-  return label ? getLocalizedString(label, prefs) || undefined : undefined;
 }
 
 export function buildClassificationView(

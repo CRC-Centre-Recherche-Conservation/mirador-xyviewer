@@ -20,14 +20,14 @@ import {
 } from '../test/fixtures/miradorState';
 
 describe('extractAnnotationsWithMetadata', () => {
-  it('maps resources to {id, metadata}', () => {
+  it('maps resources to {id, metadata, body}', () => {
     const result = extractAnnotationsWithMetadata({
       [datasetAnnotation.id]: datasetAnnotation,
       [textualAnnotation.id]: textualAnnotation,
     });
     expect(result).toEqual([
-      { id: 'anno-dataset', metadata: datasetAnnotation.metadata },
-      { id: 'anno-text', metadata: undefined },
+      { id: 'anno-dataset', metadata: datasetAnnotation.metadata, body: datasetAnnotation.body },
+      { id: 'anno-text', metadata: undefined, body: textualAnnotation.body },
     ]);
   });
 });
@@ -50,7 +50,7 @@ describe('mapStateToProps', () => {
 
     // v2 metadata is normalized to the v3 LocalizedString-map shape and extracted.
     expect(extractAnnotationsWithMetadata(props.annotationResources!)).toEqual([
-      { id: 'anno-dataset', metadata: datasetAnnotation.metadata },
+      { id: 'anno-dataset', metadata: datasetAnnotation.metadata, body: datasetAnnotation.body },
     ]);
   });
 

@@ -24,6 +24,7 @@ import { LinkedAnnotationList } from './LinkedAnnotationList';
 import { AnnotationCardMenu } from './AnnotationCardMenu';
 import { ChipRow } from './ChipRow';
 import { TermChip } from './TermChip';
+import type { TermFacetRef } from './TermActionsContext';
 
 export interface ClassificationCardProps {
   annotation: IIIFAnnotation;
@@ -71,13 +72,14 @@ const Group: React.FC<{
   terms: Term[];
   variant?: 'filled' | 'outlined';
   openVocabularyLabel: string;
-}> = ({ caption, terms, variant, openVocabularyLabel }) =>
+  facet?: TermFacetRef;
+}> = ({ caption, terms, variant, openVocabularyLabel, facet }) =>
   terms.length === 0 ? null : (
     <Box role="group" aria-label={caption} sx={{ mt: 1 }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
         {caption}
       </Typography>
-      <ChipRow terms={terms} variant={variant} openVocabularyLabel={openVocabularyLabel} />
+      <ChipRow terms={terms} variant={variant} openVocabularyLabel={openVocabularyLabel} facet={facet} />
     </Box>
   );
 
@@ -172,9 +174,14 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
                   key={pair.term.key}
                   sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5, mt: 0.5 }}
                 >
-                  <TermChip term={pair.term} variant="filled" openVocabularyLabel={vocab} />
+                  <TermChip
+                    term={pair.term}
+                    variant="filled"
+                    openVocabularyLabel={vocab}
+                    facet={{ purpose: ['classifying', 'identifying'] }}
+                  />
                   {pair.assessments.map((a) => (
-                    <TermChip key={a.key} term={a} openVocabularyLabel={vocab} />
+                    <TermChip key={a.key} term={a} openVocabularyLabel={vocab} facet={{ purpose: 'assessing' }} />
                   ))}
                 </Box>
               ))}
@@ -186,12 +193,14 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
             terms={view.terms.classifying}
             variant="filled"
             openVocabularyLabel={vocab}
+            facet={{ purpose: 'classifying' }}
           />
           <Group
             caption={purposeCaption('identifying', text.identifiedAs)}
             terms={view.terms.identifying}
             variant="filled"
             openVocabularyLabel={vocab}
+            facet={{ purpose: 'identifying' }}
           />
           <Group
             caption={
@@ -201,6 +210,7 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
             }
             terms={view.assessments}
             openVocabularyLabel={vocab}
+            facet={{ purpose: 'assessing' }}
           />
           {view.properties.map((g, i) => (
             <Group
@@ -208,9 +218,15 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
               caption={g.name ?? purposeCaption('describing', text.description)}
               terms={g.terms}
               openVocabularyLabel={vocab}
+              facet={{ purpose: 'describing', group: g.name }}
             />
           ))}
-          <Group caption={purposeCaption('tagging', text.tags)} terms={view.tags} openVocabularyLabel={vocab} />
+          <Group
+            caption={purposeCaption('tagging', text.tags)}
+            terms={view.tags}
+            openVocabularyLabel={vocab}
+            facet={{ purpose: 'tagging' }}
+          />
           <Group caption={text.otherTerms} terms={view.other} openVocabularyLabel={vocab} />
 
           {explicit && hasProse && (
