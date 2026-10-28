@@ -182,7 +182,7 @@ Mirador.viewer({
 ]);
 ```
 
-IIIF Presentation 2 motivations reach Mirador without the `oa:` prefix (`oa:commenting` becomes `commenting`; `sc:painting` is unchanged), so keep both forms in `filteredMotivations`.
+`annotationPostprocessor` converts IIIF Presentation 2 annotations to the W3C model, so their motivations reach Mirador without the `oa:` prefix (`oa:commenting` becomes `commenting`; `sc:painting` is kept). If you restrict `annotations.filteredMotivations`, list the bare names.
 
 ## Documentation
 
