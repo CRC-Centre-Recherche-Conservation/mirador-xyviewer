@@ -42,6 +42,12 @@ declare module 'mirador' {
   ): AnyAction;
   export function removeInfoResponse(infoId: string): AnyAction;
 
+  // Mirador annotation fetch action: (re)request one annotation page; clears its stored json.
+  export function requestAnnotation(targetId: string, annotationId: string): AnyAction;
+
+  // Mirador updateConfig action creator (arrays in the patch REPLACE the stored ones).
+  export function updateConfig(config: Record<string, unknown>): AnyAction;
+
   // Mirador updateViewport action creator - updates the viewport position/zoom
   export function updateViewport(
     windowId: string,

@@ -1,14 +1,9 @@
 import { configureDatasetAuth, configureDatasetRequests } from '../services';
 import type { DatasetRequestOptions, DatasetRequestProvider } from '../types/dataset';
-import {
-  discoverAuthService,
-  isSecureTransport,
-  originOf,
-  resolveMiradorToken,
-} from './resolveToken';
+import { isSecureTransport, originOf } from './resolveToken';
 import type { DiscoveredAuthService } from './resolveToken';
 import { acquireTokenViaSession, runIiifAuthLogin } from './loginDriver';
-import { isBlockedHost } from './blocklist';
+import { createTrustGates } from './trust';
 import type { BlocklistConfig } from './blocklist';
 
 /**
@@ -91,42 +86,15 @@ export function wireMiradorDatasetAuth(
   store: MiradorStoreLike,
   options: WireMiradorDatasetAuthOptions,
 ): () => void {
-  const { trustedOrigins, cookie = false, blocklist } = options;
-
-  // Canonicalize once at setup; drop unparseable entries (a bare host or a trailing slash
-  // would otherwise silently never match `new URL().origin` — a no-op footgun).
-  const canonical = [...new Set((trustedOrigins ?? []).map(originOf).filter((o): o is string => o !== undefined))];
-  // Host-driven only when the allowlist is OMITTED. An explicit list (incl. [] or all-invalid)
-  // is a strict gate: [] is a deny-all kill-switch (no token / cookie / login attached anywhere).
-  const hostDriven = trustedOrigins === undefined;
-  // Warn only on a real misconfiguration: an allowlist was passed but every entry was
-  // invalid. An omitted / empty list is the intentional host-driven default (no warning).
-  if (trustedOrigins && trustedOrigins.length > 0 && canonical.length === 0) {
-    console.warn(
-      '[mirador-xyviewer/mirador-auth] wireMiradorDatasetAuth: every trustedOrigins entry was ' +
-        'invalid and ignored. Pass bare origins, e.g. ["https://data.lab.example"].',
-    );
-  }
-  const cleartext = canonical.filter((o) => !isSecureTransport(o));
-  if (cleartext.length) {
-    console.warn(
-      `[mirador-xyviewer/mirador-auth] wireMiradorDatasetAuth: ignoring cleartext http origin(s) ` +
-        `${cleartext.join(', ')} — tokens/cookies are only sent over https (or loopback).`,
-    );
-  }
+  const { cookie = false } = options;
+  const { canonical, isBlocked, tokenFor, discoverTrusted } = createTrustGates(options, 'wireMiradorDatasetAuth');
 
   const provider: DatasetRequestProvider = (url, context): DatasetRequestOptions | undefined => {
     // SSRF defense-in-depth — the single attach point for both fetchDataset and
     // fetchDatasetBlob (download): never attach a credential to an internal / non-public host.
-    if (isBlockedHost(url, blocklist)) return undefined;
+    if (isBlocked(url)) return undefined;
 
-    const token = resolveMiradorToken(store.getState(), {
-      url,
-      service: context?.service,
-      // Host-driven must reach the resolver as undefined; an explicit list (incl. [] → deny-all)
-      // passes the canonical array.
-      trustedOrigins: hostDriven ? undefined : canonical,
-    });
+    const token = tokenFor(store.getState(), url, context?.service);
     if (token) return { headers: { Authorization: `Bearer ${token}` } };
 
     // Cookie fallback requires an explicit allowlist (a cookie target can't be token-derived);
@@ -142,29 +110,6 @@ export function wireMiradorDatasetAuth(
   // auth service, then resolves so DatasetBody auto-retries.
   const drive = options.loginDriver ?? runIiifAuthLogin;
   const acquireSession = options.sessionAcquirer ?? acquireTokenViaSession;
-  const trustedAndSecure = (url: string): boolean => {
-    const o = originOf(url);
-    if (o === undefined || !isSecureTransport(url) || isBlockedHost(url, blocklist)) return false;
-    // Explicit allowlist, or — host-driven — the resource's own declared (secure, public) origin.
-    return hostDriven || canonical.includes(o);
-  };
-  // The body's declared auth service, but only if it may be logged into: a secure, non-internal
-  // origin that is either explicitly trusted or — host-driven — the resource's OWN origin. Never
-  // open a popup or acquire a token for an arbitrary manifest-declared host. Single source for
-  // both the login and the Sign-in button visibility.
-  const discoverTrusted = (body: { id?: string; service?: unknown }): DiscoveredAuthService | undefined => {
-    const d = discoverAuthService(body.service);
-    if (!d || !trustedAndSecure(d.authServiceId) || !trustedAndSecure(d.tokenServiceId)) return undefined;
-    if (hostDriven) {
-      // Host-driven mirrors the same-origin token-reuse rule (resolveToken path a): a login is
-      // offered only for the resource's own origin; cross-origin login needs an explicit allowlist.
-      const ownOrigin = body.id ? originOf(body.id) : undefined;
-      if (!ownOrigin || originOf(d.authServiceId) !== ownOrigin || originOf(d.tokenServiceId) !== ownOrigin) {
-        return undefined;
-      }
-    }
-    return d;
-  };
 
   configureDatasetAuth(
     async (body, opts) => {

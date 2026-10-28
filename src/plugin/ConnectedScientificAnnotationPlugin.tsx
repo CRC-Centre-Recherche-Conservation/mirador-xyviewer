@@ -16,6 +16,9 @@ import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/ma
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { LanguageProvider } from '../utils/LanguageContext';
+import { AnnotationSignIn } from '../components/AnnotationSignIn';
+import { getAnnotationAuth } from '../services/annotationAuth';
+import type { AnnotationPageRef } from '../services/annotationAuth';
 import { filtersStore } from '../state/filtersStore';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type {
@@ -125,6 +128,8 @@ interface PluginWrapperProps {
   annotationResources: Record<string, IIIFAnnotation>;
   /** Mirador config language (reader's language for IIIF language maps). */
   language?: string;
+  /** First annotation page of this canvas for which a sign-in can be offered. */
+  signInPage?: AnnotationPageRef;
 }
 
 /**
@@ -137,6 +142,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   addWindow,
   annotationResources,
   language,
+  signInPage,
 }) => {
   const {
     annotations = [],
@@ -231,12 +237,18 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 
   // If no scientific annotations and no hidden annotations, render original component
   if (customRenderingIds.size === 0 && hiddenAnnotationIds.size === 0) {
-    return <TargetComponent {...targetProps} />;
+    return (
+      <>
+        {signInPage && <AnnotationSignIn page={signInPage} />}
+        <TargetComponent {...targetProps} />
+      </>
+    );
   }
 
   // Render mixed annotations - scientific ones custom, others default
   return (
     <LanguageProvider language={language}>
+      {signInPage && <AnnotationSignIn page={signInPage} />}
       <MenuList disablePadding>
         {visibleAnnotations.map((annotation) => {
           const resource = annotationResources[annotation.id];
@@ -391,12 +403,15 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
  * Map state to props - extract annotation resources from Mirador state
  * @internal Exposed for tests; not part of the public API.
  */
-export function mapStateToProps(state: MiradorState, { targetProps }: { targetProps: { windowId: string } }) {
+export function mapStateToProps(
+  state: MiradorState,
+  { targetProps }: { targetProps: { windowId: string; canvasId?: string } },
+) {
   const { windowId } = targetProps;
 
-  // Get window to find canvas
+  // Mirador renders one panel per visible canvas (book view); fall back to the window's canvas.
   const window = state.windows?.[windowId];
-  const canvasId = window?.canvasId;
+  const canvasId = targetProps.canvasId ?? window?.canvasId;
 
   // Normalize annotation resources for this canvas (handles both v2 and v3).
   const annotationResources: Record<string, IIIFAnnotation> = normalizeAnnotationResources(
@@ -406,7 +421,39 @@ export function mapStateToProps(state: MiradorState, { targetProps }: { targetPr
   return {
     annotationResources,
     language: state.config?.language,
+    signInPage: findSignInPage(canvasId ? state.annotations?.[canvasId] : undefined),
   };
+}
+
+// Stable reference per Redux page object, so connect() doesn't re-render on unrelated ticks.
+const signInRefs = new WeakMap<object, AnnotationPageRef>();
+
+/**
+ * The first fetched annotation page (a 401 stub, an anonymous 200 or a fetch error) whose
+ * declared auth `service` the registered handler says can sign in. An error entry has no
+ * body, so the handler falls back to the service the page declared earlier.
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function findSignInPage(
+  pages: Record<string, { id?: string; json?: unknown; error?: unknown }> | undefined,
+): AnnotationPageRef | undefined {
+  const auth = getAnnotationAuth();
+  if (!auth || !pages || typeof pages !== 'object') return undefined;
+  for (const [key, entry] of Object.entries(pages)) {
+    const json = entry?.json;
+    // A fetch error has no body: let the handler fall back to the service it saw earlier.
+    const failed = json === undefined && entry?.error !== undefined;
+    if (!failed && (!json || typeof json !== 'object')) continue;
+    const service = failed ? undefined : (json as { service?: unknown }).service;
+    if (!failed && !service) continue;
+    let ref = signInRefs.get(entry as object);
+    if (!ref || ref.service !== service) {
+      ref = { id: entry.id ?? key, service };
+      signInRefs.set(entry as object, ref);
+    }
+    if (auth.canSignIn(ref)) return ref;
+  }
+  return undefined;
 }
 
 /**

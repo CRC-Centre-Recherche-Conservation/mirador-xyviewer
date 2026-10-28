@@ -271,6 +271,26 @@ export function SpectrumPlot({ data, height = 300 }: Props) {
 }
 ```
 
+## IIIF Auth for annotation pages
+
+`src/mirador-auth/trust.ts` (`createTrustGates`) is the single implementation of the trust
+rules (allowlist or host-driven default, https except loopback, SSRF blocklist, token and
+login-service matching). `wire.ts` (datasets) and `annotationAuth.ts` (annotation pages) both
+consume it, so they cannot drift.
+
+`wireMiradorAnnotationAuth(store)` needs a store with `subscribe` (kept out of
+`MiradorStoreLike` to avoid a breaking type change). It relies on how Mirador 4.2.2 - 4.3 fetches
+annotation pages: the saga marks `state.annotations[target][url].isFetching`, then applies
+`config.requests.preprocessors` as `(url, options) => options` at fetch time, so a preprocessor
+added later with `updateConfig` (arrays replace) applies. A `401` with a JSON body is stored as a
+successful page; other errors drop the body. The wire keeps small module-level maps (declared
+services, sent tokens, deny-list, once-per-token refetch keys) and only the newest wire is live.
+
+The core never sees Mirador's auth state: the wire registers `canSignIn` / `signIn` through
+`configureAnnotationAuth` (`src/services/annotationAuth.ts`), and `ConnectedScientificAnnotationPlugin`
+renders `AnnotationSignIn` above the list when `findSignInPage` finds a stored page that
+declares a service the handler accepts. Pages Mirador stored as errors have no `json` and are skipped.
+
 ## Services
 
 ### Dataset Fetcher
