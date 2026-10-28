@@ -1,11 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { extractBodyFacets, lastSegment } from './termFacets';
+import { asPropertyGroupOf, extractBodyFacets, lastSegment } from './termFacets';
 
 const sr = (purpose: string | string[], source: unknown, label?: unknown) => ({
   type: 'SpecificResource',
   purpose,
   source,
   ...(label ? { label } : {}),
+});
+
+describe('asPropertyGroupOf', () => {
+  it('keeps a function and drops anything else', () => {
+    const fn = () => 'x';
+    expect(asPropertyGroupOf(fn)).toBe(fn);
+    expect(asPropertyGroupOf('x')).toBeUndefined();
+    expect(asPropertyGroupOf(undefined)).toBeUndefined();
+  });
 });
 
 describe('extractBodyFacets', () => {
@@ -59,6 +68,16 @@ describe('extractBodyFacets', () => {
       ['en'],
     );
     expect(facets.map((f) => f.groupName)).toEqual(['Colour', 'Elements', undefined, undefined]);
+  });
+
+  it('names describing sub-groups with the host hook when nothing else does', () => {
+    const hook = (uri: string) => (uri.includes('loterre') ? ' Elements ' : undefined);
+    const facets = extractBodyFacets(
+      [sr('describing', 'http://data.loterre.fr/x'), sr('describing', 'http://v/y'), sr('classifying', 'http://data.loterre.fr/z')],
+      ['en'],
+      hook,
+    );
+    expect(facets.map((f) => f.groupName)).toEqual(['Elements', undefined, undefined]);
   });
 
   it('walks Choice, List and Independents and ignores malformed data', () => {

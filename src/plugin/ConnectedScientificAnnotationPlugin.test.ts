@@ -88,6 +88,17 @@ describe('plugin export', () => {
     expect(mapStateToProps(state, { targetProps: { windowId: 'window-1' } }).language).toBe('fr');
   });
 
+  it('passes a propertyGroupOf function through and drops other values', () => {
+    const fn = () => 'G';
+    const run = (propertyGroupOf: unknown) =>
+      mapStateToProps(
+        { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { propertyGroupOf } } } as never,
+        { targetProps: { windowId: 'window-1' } },
+      ).propertyGroupOf;
+    expect(run(fn)).toBe(fn);
+    expect(run('x')).toBeUndefined();
+  });
+
   it('passes config.scientificAnnotations.labels through', () => {
     const labels = { evidence: 'Proof', purposes: { classifying: 'Class' } };
     const state = { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { labels } } };

@@ -160,6 +160,11 @@ export interface ScientificAnnotationsConfig {
   showAnnotationId?: 'menu' | 'inline';
   /** Metadata label whose value is shown under each linked-annotation row (e.g. "Technique"). */
   linkSubtitleMetadataLabel?: string;
+  /**
+   * Names the group of a descriptive term from its source URI (e.g. one row per thesaurus), used
+   * when neither the enclosing Composite label nor the source's `inScheme` names it.
+   */
+  propertyGroupOf?: (uri: string) => string | undefined;
   /** Filter groups to leave out of the filter panel: a metadata label, a term group caption or a purpose (e.g. "Identified materials"). */
   hiddenFilterGroups?: string[];
 }

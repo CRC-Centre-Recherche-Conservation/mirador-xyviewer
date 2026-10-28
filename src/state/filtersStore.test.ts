@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { parseValueWithUrl, normalizeKey, createKey } from './filtersStore';
+import { parseValueWithUrl, normalizeKey, createKey, facetGroupKey, filtersStore } from './filtersStore';
 
 /**
  * Tests for filtersStore
@@ -765,5 +765,40 @@ describe('annotations without metadata', () => {
     expect(filtersStore.isAnnotationVisible(w, c, 'cls-empty')).toBe(true);
     const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'meta:technique')!;
     expect(technique.values.get(NONE_KEY)!.visibleCount).toBe(0);
+  });
+
+  describe('propertyGroupOf', () => {
+    const body = (uri: string) => ({
+      type: 'SpecificResource',
+      purpose: 'describing',
+      source: uri,
+      label: { en: [uri.split('/').pop()!] },
+    });
+    const annotations = [
+      { id: 'a1', body: [body('http://data.loterre.fr/lead'), body('http://v/layer')] },
+      { id: 'a2', body: [body('http://data.loterre.fr/iron')] },
+    ];
+    const init = (fn?: (uri: string) => string | undefined, language = 'en') =>
+      filtersStore.initializeFromAnnotations('w-hook', 'c-hook', annotations as never, false, [language], { propertyGroupOf: fn });
+
+    it('captions a describing group with the hook result', () => {
+      init((u) => (u.includes('loterre') ? 'Elements' : undefined));
+      const group = filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === facetGroupKey('describing', 'Elements'));
+      expect(group?.label).toBe('Elements');
+      expect(group?.values.size).toBe(2);
+    });
+
+    it('keeps the selection for the same hook and resets it for a new one', () => {
+      const hook = (u: string) => (u.includes('loterre') ? 'Elements' : undefined);
+      init(hook);
+      const key = facetGroupKey('describing', 'Elements');
+      const valueKey = [...filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === key)!.values.keys()][0];
+      filtersStore.toggleFacet('w-hook', 'c-hook', key, valueKey);
+      init(hook);
+      expect(filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === key)!.values.get(valueKey)!.selected).toBe(false);
+      init((u) => (u.includes('loterre') ? 'Elements' : undefined));
+      expect(filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === key)!.values.get(valueKey)!.selected).toBe(true);
+      filtersStore.clearFilters('w-hook', 'c-hook');
+    });
   });
 });

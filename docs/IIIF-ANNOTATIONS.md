@@ -421,7 +421,7 @@ A chip label is the body `label`, else the source `label`, else the last segment
 - a `Composite` (non-normative in WADM, read tolerantly) holds one class and its assessments;
 - one annotation per class (each card then has a single class).
 
-Otherwise the assessments are captioned "Overall assessment (see text)" and the text carries the pairing. A `Composite` with a `label` and `describing` items, or a source with `inScheme.label`, makes a named "Description" row. Without a text, only the term groups are shown.
+Otherwise the assessments are captioned "Overall assessment (see text)" and the text carries the pairing. A `Composite` with a `label` and `describing` items, or a source with `inScheme.label` (or a URI named by the host's `propertyGroupOf` option), makes a named "Description" row. Without a text, only the term groups are shown.
 
 ### 5. Choice (Alternatives)
 

@@ -21,6 +21,28 @@ import { openLocalFilePlugins } from './openLocalFilePlugin';
 // also registered in the catalog so both IIIF versions are available from
 // Mirador's own "Add resource" UI.
 const EMMSM_MANIFEST = 'https://emmsm.unicaen.fr/manifests/Avranches_BM_59.json';
+// The INHA thesaurus holds both colours and layers under one host, so the host alone cannot tell
+// the rows apart: the demo names the concepts of the sample data. Loterre terms are all elements.
+const INHA_GROUPS: Record<string, string> = {
+  'd549884f-ed29-4a28-87c8-07311d9a14ad': 'Colour', // Blue
+  '65911707-7503-4511-a7f8-50d7950e8178': 'Colour', // Orange
+  '40a69b4b-2477-4c60-b301-4fc97cb6bcc8': 'Layer', // Colored layer
+};
+
+function demoPropertyGroupOf(uri: string): string | undefined {
+  try {
+    const { hostname, pathname } = new URL(uri);
+    if (hostname === 'data.loterre.fr') return 'Elements';
+    if (hostname === 'thesaurus.inha.fr') {
+      const id = pathname.split('/').pop() ?? '';
+      return Object.prototype.hasOwnProperty.call(INHA_GROUPS, id) ? INHA_GROUPS[id] : undefined;
+    }
+  } catch {
+    // not a URL: no group
+  }
+  return undefined;
+}
+
 const V3_MANIFEST = `${import.meta.env.BASE_URL}avranches-manifest-v3.json`;
 
 // Canvases (…/AVRANCHES_MS059/<N>) for which a v2 annotation list is bundled.
@@ -130,6 +152,15 @@ function initMirador() {
         { manifestId: EMMSM_MANIFEST },
         { manifestId: V3_MANIFEST },
       ],
+      // Host options of the scientific annotation plugin.
+      scientificAnnotations: {
+        labels: {
+          linkedAnnotations: 'Evidence',
+          linkUnavailable: 'Evidence not available in this viewer',
+        },
+        propertyGroupOf: demoPropertyGroupOf,
+        linkSubtitleMetadataLabel: 'Technique',
+      },
       // Mirador configuration
       window: {
         allowClose: true,

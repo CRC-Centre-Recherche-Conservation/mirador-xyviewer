@@ -19,6 +19,7 @@ import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { MiradorState, MiradorPlugin, AnnotationBodyLabels } from '../types/mirador';
 import type { IIIFAnnotation } from '../types/iiif';
 import { containPlugin } from './containPlugin';
+import { asPropertyGroupOf } from '../utils/termFacets';
 import { metadataFilterOverlayPlugin } from './MetadataFilterOverlayPlugin';
 
 /** Plugin component props */
@@ -39,6 +40,8 @@ interface MetadataFiltersPluginProps {
   labels?: AnnotationBodyLabels;
   /** `config.scientificAnnotations.hiddenFilterGroups` */
   hiddenFilterGroups?: string[];
+  /** `config.scientificAnnotations.propertyGroupOf` */
+  propertyGroupOf?: (uri: string) => string | undefined;
 }
 
 /** Default window size */
@@ -73,6 +76,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
       language,
       labels,
       hiddenFilterGroups,
+      propertyGroupOf,
     },
     ref
   ) {
@@ -94,7 +98,10 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
       () => annotationsWithMetadata.some(hasFacets),
       [annotationsWithMetadata]
     );
-    const filterOptions = useMemo(() => ({ labels, hiddenGroups: hiddenFilterGroups }), [labels, hiddenFilterGroups]);
+    const filterOptions = useMemo(
+      () => ({ labels, hiddenGroups: hiddenFilterGroups, propertyGroupOf }),
+      [labels, hiddenFilterGroups, propertyGroupOf]
+    );
 
     // Reader's language preferences; filter keys depend on them
     const prefs = useMemo(() => resolvePreferredLanguages(language), [language]);
@@ -375,6 +382,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
   }
 );
 
+
 const hiddenCache = new WeakMap<object, string[]>();
 
 /** The host's group names as a stable array (strings only). */
@@ -414,6 +422,7 @@ export function mapStateToProps(
     language: state.config?.language,
     labels: sanitizeLabels(state.config?.scientificAnnotations?.labels),
     hiddenFilterGroups: hiddenGroups(state.config?.scientificAnnotations?.hiddenFilterGroups),
+    propertyGroupOf: asPropertyGroupOf(state.config?.scientificAnnotations?.propertyGroupOf),
   };
 }
 

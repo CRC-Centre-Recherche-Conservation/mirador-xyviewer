@@ -35,6 +35,8 @@ export interface ClassificationCardProps {
   ruleSet?: string;
   /** Where the annotation id is shown (default 'menu'). */
   showAnnotationId?: 'menu' | 'inline';
+  /** Host hook naming the group of a descriptive term (`scientificAnnotations.propertyGroupOf`). */
+  propertyGroupOf?: (uri: string) => string | undefined;
   windowId?: string;
   selectAnnotation?: (windowId: string, annotationId: string) => void;
   canvasAnnotationIds?: Iterable<string>;
@@ -89,6 +91,7 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
   labels,
   ruleSet = 'iiif',
   showAnnotationId = 'menu',
+  propertyGroupOf,
   windowId,
   selectAnnotation,
   canvasAnnotationIds,
@@ -98,7 +101,7 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
 }) => {
   const prefs = useLanguagePreferences();
   const text = useMemo(() => resolveLabels(labels), [labels]);
-  const view = useMemo(() => buildClassificationView(annotation, prefs), [annotation, prefs]);
+  const view = useMemo(() => buildClassificationView(annotation, prefs, propertyGroupOf), [annotation, prefs, propertyGroupOf]);
   const purposeCaption = (purpose: string, fallback: string) => {
     const own = labels?.purposes;
     return own && Object.prototype.hasOwnProperty.call(own, purpose) && typeof own[purpose] === 'string'

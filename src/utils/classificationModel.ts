@@ -27,7 +27,7 @@ import {
 import { pickChoiceItem, selectLanguageVariants } from '../components/AnnotationBodyRenderer';
 import { getLocalizedString } from './localization';
 import { baseAnnotationId } from './linkIndex';
-import { lastSegment, schemeName } from './termFacets';
+import { hostGroupName, lastSegment, schemeName, type PropertyGroupOf } from './termFacets';
 import { isValidUrl, stripTags } from './security';
 
 export type ClassificationKind = 'classifying' | 'identifying';
@@ -47,7 +47,7 @@ export interface PairedTerm {
   assessments: Term[];
 }
 
-/** Descriptive terms sharing a name (enclosing Composite label, else the source's scheme). */
+/** Descriptive terms sharing a name (enclosing Composite label, else the source's scheme, else the host hook). */
 export interface PropertyGroup {
   /** Undefined for the default "Description" row. */
   name?: string;
@@ -129,7 +129,7 @@ interface Leaf {
   seq: number;
   slot: Slot;
   term: Term;
-  /** Name of the group the term was found in (Composite label or source scheme). */
+  /** Name of the group the term was found in (Composite label, source scheme or host hook). */
   group?: string;
 }
 interface Composite {
@@ -140,6 +140,7 @@ interface Composite {
 export function buildClassificationView(
   annotation: IIIFAnnotation,
   prefs: string[],
+  propertyGroupOf?: PropertyGroupOf,
 ): ClassificationView {
   const kind = classificationKind(annotation.motivation) ?? 'classifying';
   const prose: ProseBlock[] = [];
@@ -186,7 +187,11 @@ export function buildClassificationView(
           }
         } else {
           const term = termOf(body);
-          if (term.label) into.push({ seq: seq++, slot: slotOf(body), term, group: group ?? schemeName(body, prefs) });
+          const slot = slotOf(body);
+          if (term.label) {
+            const named = group ?? schemeName(body, prefs) ?? (slot === 'describing' ? hostGroupName(propertyGroupOf, term.uri) : undefined);
+            into.push({ seq: seq++, slot, term, group: named });
+          }
         }
       } else {
         rest.push(body);

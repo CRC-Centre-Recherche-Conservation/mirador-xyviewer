@@ -132,7 +132,7 @@ Annotations carry their meaning in `SpecificResource` bodies whose `purpose` say
 | `classifying` | Classified as |
 | `identifying` | Identified as |
 | `assessing` | Assessment |
-| `describing` | Description (split into sub-groups named after the enclosing `Composite` label, else the source's `inScheme` label) |
+| `describing` | Description (split into sub-groups named after the enclosing `Composite` label, else the source's `inScheme` label, else the host's `propertyGroupOf(uri)`) |
 | `tagging` | Tags |
 
 Rules:

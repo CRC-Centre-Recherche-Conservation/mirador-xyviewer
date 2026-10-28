@@ -62,7 +62,9 @@ Annotations with a `classifying` or `identifying` motivation are shown as summar
 (title, text, terms grouped by role, linked annotations, report link). The annotation id
 is in each card's "⋮" menu; set `scientificAnnotations.showAnnotationId: 'inline'` to keep
 it visible on the card. `scientificAnnotations.linkSubtitleMetadataLabel` (for example `'Technique'`)
-names the metadata whose value is shown under each linked-annotation row.
+names the metadata whose value is shown under each linked-annotation row. `scientificAnnotations.propertyGroupOf(uri)` names the card row
+and filter group of a `describing` term when neither the enclosing `Composite` label nor the
+source's `inScheme` does (see docs/MIRADOR-CONFIGURATION.md).
 
 ## IIIF API compatibility
 

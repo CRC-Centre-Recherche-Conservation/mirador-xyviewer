@@ -17,7 +17,7 @@ import { getLocalizedString, getLocalizedStrings, resolvePreferredLanguages } fr
 import { resolveLabels, termGroupCaption } from '../utils/annotationLabels';
 import { baseAnnotationId, collectLinkingBodies } from '../utils/linkIndex';
 import { srSourceId } from '../types/iiif';
-import { extractBodyFacets, FACET_PURPOSES, type FacetPurpose } from '../utils/termFacets';
+import { extractBodyFacets, FACET_PURPOSES, type FacetPurpose, type PropertyGroupOf } from '../utils/termFacets';
 
 /** Filter value entry */
 export interface FilterValue {
@@ -68,6 +68,8 @@ export interface FilterOptions {
   labels?: AnnotationBodyLabels;
   /** Groups to leave out: a metadata label, a group caption or a purpose. */
   hiddenGroups?: string[];
+  /** Names the group of a descriptive term from its source URI (`scientificAnnotations.propertyGroupOf`). */
+  propertyGroupOf?: PropertyGroupOf;
 }
 
 /** What the store reads from an annotation. */
@@ -229,7 +231,7 @@ function facetEntries(
     }
   }
   if (annotation.body) {
-    for (const f of extractBodyFacets(annotation.body, prefs)) {
+    for (const f of extractBodyFacets(annotation.body, prefs, options.propertyGroupOf)) {
       const groupLabel = f.groupName ?? termGroupCaption(options.labels, f.purpose);
       const groupKey = facetGroupKey(f.purpose, f.groupName);
       if (isHiddenGroup(hidden, groupKey, groupLabel, f.purpose)) continue;
@@ -257,9 +259,23 @@ export function createKey(windowId: string, canvasId: string): string {
   return `${windowId}::${canvasId}`;
 }
 
+const hookIds = new WeakMap<object, number>();
+/** Stable per-function id, so a new hook rebuilds the groups. */
+function hookId(fn: unknown): number {
+  if (typeof fn !== 'function') return 0;
+  let id = hookIds.get(fn);
+  if (!id) {
+    id = ++hookCounter;
+    hookIds.set(fn, id);
+  }
+  return id;
+}
+let hookCounter = 0;
+
 const signatureOf = (options: FilterOptions): string =>
   JSON.stringify([
     options.hiddenGroups ?? [],
+    hookId(options.propertyGroupOf),
     FACET_PURPOSES.map((p) => termGroupCaption(options.labels, p)),
     resolveLabels(options.labels).filterNone,
   ]);

@@ -67,6 +67,19 @@ describe('mapStateToProps', () => {
   });
 });
 
+describe('mapStateToProps propertyGroupOf', () => {
+  it('passes a function through and drops other values', () => {
+    const fn = () => 'G';
+    const run = (propertyGroupOf: unknown) =>
+      mapStateToProps(
+        { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { propertyGroupOf } } } as never,
+        { windowId: 'window-1' },
+      ).propertyGroupOf;
+    expect(run(fn)).toBe(fn);
+    expect(run('x')).toBeUndefined();
+  });
+});
+
 describe('mapStateToProps language', () => {
   it('passes Mirador config.language through', () => {
     const state = { ...miradorState, config: { ...miradorState.config, language: 'fr' } };

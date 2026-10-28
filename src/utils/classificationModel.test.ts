@@ -109,6 +109,32 @@ describe('pairing rules', () => {
     };
     expect(buildClassificationView(ann([body]), en).properties[0].name).toBe('Colour');
   });
+
+  it('uses the host hook last: Composite label and scheme win, a bad hook is ignored', () => {
+    const hook = (uri: string) => (uri.startsWith('http://t/') ? 'Thesaurus' : undefined);
+    const groups = (body: unknown[], fn = hook) =>
+      buildClassificationView(ann(body), en, fn).properties.map((p) => [p.name, p.terms.map((t) => t.label)]);
+    expect(groups([sr('describing', 'http://t/a', 'A'), sr('describing', 'http://o/b', 'B')])).toEqual([
+      ['Thesaurus', ['A']],
+      [undefined, ['B']],
+    ]);
+    const composite = { type: 'Composite', label: { en: ['Layer'] }, items: [sr('describing', 'http://t/a', 'A')] };
+    expect(groups([composite])).toEqual([['Layer', ['A']]]);
+    const throwing = () => {
+      throw new Error('boom');
+    };
+    expect(groups([sr('describing', 'http://t/a', 'A')], throwing)).toEqual([[undefined, ['A']]]);
+  });
+
+  it('consults the host hook for describing terms only', () => {
+    const calls: string[] = [];
+    const hook = (uri: string) => {
+      calls.push(uri);
+      return 'G';
+    };
+    buildClassificationView(ann([sr('classifying', 'http://t/c', 'C'), sr('describing', 'http://t/d', 'D')]), en, hook);
+    expect(calls).toEqual(['http://t/d']);
+  });
 });
 
 describe('graceful degradation', () => {

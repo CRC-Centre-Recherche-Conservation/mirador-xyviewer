@@ -56,6 +56,7 @@ import type { SpectrumData } from '../types/dataset';
 import type { MiradorState, MiradorPlugin, AnnotationBodyLabels } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
 import { containPlugin } from './containPlugin';
+import { asPropertyGroupOf } from '../utils/termFacets';
 
 /** Evaluates its render function in its own render so an enclosing boundary catches parent-built expressions. */
 const InsideBoundary: React.FC<{ children: () => React.ReactNode }> = ({ children }) => <>{children()}</>;
@@ -202,6 +203,8 @@ interface PluginWrapperProps {
   signInPage?: AnnotationPageRef;
   /** Links between the annotations loaded for the window's manifest. */
   linkIndex?: LinkIndex;
+  /** `config.scientificAnnotations.propertyGroupOf`. */
+  propertyGroupOf?: (uri: string) => string | undefined;
   /** `config.scientificAnnotations.linkSubtitleMetadataLabel`. */
   linkSubtitleMetadataLabel?: string;
   /** Canvas the window shows (a panel in book view may show another). */
@@ -229,6 +232,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   signInPage,
   linkIndex = EMPTY_LINK_INDEX,
   linkSubtitleMetadataLabel,
+  propertyGroupOf,
   windowCanvasId,
   visibleCanvasIds,
   pageGroups = EMPTY_PAGE_GROUPS,
@@ -658,6 +662,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                   labels={labels}
                   ruleSet={ruleSet}
                   showAnnotationId={showAnnotationId}
+                  propertyGroupOf={propertyGroupOf}
                   windowId={windowId}
                   selectAnnotation={selectAnnotation}
                   canvasAnnotationIds={canvasAnnotationIds}
@@ -843,6 +848,7 @@ export function mapStateToProps(
     signInPage: findSignInPage(canvasId ? state.annotations?.[canvasId] : undefined),
     linkIndex: getLinkIndex(state, windowId),
     linkSubtitleMetadataLabel: str(state.config?.scientificAnnotations?.linkSubtitleMetadataLabel),
+    propertyGroupOf: asPropertyGroupOf(state.config?.scientificAnnotations?.propertyGroupOf),
     windowCanvasId: window?.canvasId,
     visibleCanvasIds: visibleIds(window),
     pageGroups: canvasId ? safePageGroups(state.annotations?.[canvasId]) : EMPTY_PAGE_GROUPS,

@@ -22,7 +22,7 @@ export type FacetPurpose = (typeof FACET_PURPOSES)[number];
 
 export interface BodyFacet {
   purpose: FacetPurpose;
-  /** Sub-group of `describing` terms (enclosing Composite label, else the source's scheme). */
+  /** Sub-group of `describing` terms (enclosing Composite label, else the source's scheme, else the host hook). */
   groupName?: string;
   /** Source URI: the language-independent key of the term. */
   uri: string;
@@ -43,6 +43,24 @@ export const lastSegment = (iri: string): string => {
   }
 };
 
+/** Host hook naming the group of a descriptive term from its source URI. */
+export type PropertyGroupOf = (uri: string) => string | undefined;
+
+/** Config value to hook: anything but a function is ignored. */
+export const asPropertyGroupOf = (raw: unknown): PropertyGroupOf | undefined =>
+  typeof raw === 'function' ? (raw as PropertyGroupOf) : undefined;
+
+/** Group name from the host hook; a throwing hook or a non-string result gives none. */
+export function hostGroupName(hook: PropertyGroupOf | undefined, uri: string): string | undefined {
+  if (!hook || !uri) return undefined;
+  try {
+    const name = hook(uri);
+    return typeof name === 'string' && name.trim() ? name.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Display name of a concept scheme the source declares (`inScheme`), if any. */
 export function schemeName(body: SpecificResourceBody, prefs: string[]): string | undefined {
   const source = body.source as { inScheme?: unknown };
@@ -53,7 +71,7 @@ export function schemeName(body: SpecificResourceBody, prefs: string[]): string 
 }
 
 /** Facetable terms of a body tree, in source order (Choice, Composite, List and Independents included). */
-export function extractBodyFacets(body: unknown, prefs: string[]): BodyFacet[] {
+export function extractBodyFacets(body: unknown, prefs: string[], propertyGroupOf?: PropertyGroupOf): BodyFacet[] {
   const out: BodyFacet[] = [];
 
   function walk(bodies: unknown, depth: number, group?: string): void {
@@ -67,7 +85,7 @@ export function extractBodyFacets(body: unknown, prefs: string[]): BodyFacet[] {
         if (!purpose || !uri) continue;
         out.push({
           purpose,
-          ...(purpose === 'describing' ? { groupName: group ?? schemeName(b, prefs) } : {}),
+          ...(purpose === 'describing' ? { groupName: group ?? schemeName(b, prefs) ?? hostGroupName(propertyGroupOf, uri) } : {}),
           uri,
           label: getLocalizedString(srLabel(b), prefs) || lastSegment(uri),
         });
