@@ -630,3 +630,133 @@ describe('isContentSearchResponse', () => {
     expect(isContentSearchResponse('x')).toBe(false);
   });
 });
+
+describe('normalizeAnnotationList — Composite / List / Independents (non-normative)', () => {
+  const v2 = (resource: unknown) =>
+    firstBody(
+      normalizeAnnotationList({
+        resources: [{ '@id': 'a', '@type': 'oa:Annotation', on: 'c#xywh=0,0,1,1', resource }],
+      })[0].body
+    ) as unknown as { type: string; items: Array<Record<string, unknown>>; [k: string]: unknown };
+  const v3 = (body: unknown) =>
+    firstBody(
+      normalizeAnnotationList({
+        '@context': 'http://iiif.io/api/presentation/3/context.json',
+        type: 'AnnotationPage',
+        id: 'p',
+        items: [{ id: 'a', type: 'Annotation', motivation: 'classifying', body, target: 'c' }],
+      })[0].body
+    ) as unknown as { type: string; items: Array<Record<string, unknown>>; [k: string]: unknown };
+
+  const material = (id: string) => ({ type: 'SpecificResource', source: id, purpose: 'classifying' });
+  const level = { type: 'SpecificResource', source: 'https://x/high', purpose: 'assessing' };
+
+  it('v3 Composite keeps items in order with their own purpose', () => {
+    const b = v3({ type: 'Composite', id: 'comp', label: { en: ['Lead'] }, items: [material('https://x/lead'), level] });
+    expect(b.type).toBe('Composite');
+    expect(b.id).toBe('comp');
+    expect(b.label).toEqual({ en: ['Lead'] });
+    expect(b.items.map((i) => i.purpose)).toEqual(['classifying', 'assessing']);
+  });
+
+  it('v3 List and Independents are recognised', () => {
+    expect(v3({ type: 'List', items: [material('a')] }).type).toBe('List');
+    expect(v3({ type: 'Independents', items: [material('a')] }).type).toBe('Independents');
+  });
+
+  it('v2 oa:Composite with oa:item and oa:hasPurpose items', () => {
+    const b = v2({
+      '@type': 'oa:Composite',
+      item: [
+        { '@type': 'oa:SpecificResource', full: 'https://x/lead', 'oa:hasPurpose': 'oa:classifying' },
+        { '@type': 'cnt:ContentAsText', chars: 'Highly reliable', purpose: 'oa:assessing' },
+      ],
+    });
+    expect(b.type).toBe('Composite');
+    expect(b.items[0]).toMatchObject({ type: 'SpecificResource', source: 'https://x/lead', purpose: 'classifying' });
+    expect(b.items[1]).toMatchObject({ type: 'TextualBody', value: 'Highly reliable', purpose: 'assessing' });
+  });
+
+  it('v2 oa:List accepts a JSON-LD @list and an IRI-form type', () => {
+    const b = v2({
+      '@type': 'http://www.w3.org/ns/oa#List',
+      item: { '@list': [{ '@type': 'cnt:ContentAsText', chars: 'one' }, { '@type': 'cnt:ContentAsText', chars: 'two' }] },
+    });
+    expect(b.type).toBe('List');
+    expect(b.items.map((i) => i.value)).toEqual(['one', 'two']);
+  });
+
+  it('a single non-array item becomes a one-item list', () => {
+    const b = v3({ type: 'Independents', items: material('a') });
+    expect(b.items).toHaveLength(1);
+  });
+
+  it('v2-style items inside a v3 container are normalized', () => {
+    const b = v3({ type: 'Composite', items: [{ '@type': 'cnt:ContentAsText', chars: 'hi' }] });
+    expect(b.items[0]).toMatchObject({ type: 'TextualBody', value: 'hi' });
+  });
+
+  it('nested constructs and Choice are followed', () => {
+    const b = v3({ type: 'List', items: [{ type: 'Composite', items: [material('a'), level] }] });
+    expect(b.items[0]).toMatchObject({ type: 'Composite' });
+    expect((b.items[0].items as unknown[]).length).toBe(2);
+  });
+
+  it('does not affect Choice or plain bodies', () => {
+    expect(v2({ '@type': 'oa:Choice', default: { chars: 'a' }, item: [{ chars: 'b' }] }).type).toBe('Choice');
+    expect(v3({ type: 'TextualBody', value: 'x' }).type).toBe('TextualBody');
+  });
+
+  describe('hostile input', () => {
+    it('non-array, missing or junk items give an empty list without throwing', () => {
+      for (const items of [undefined, null, 5, 'str', true, [null, 1, 'x', []]]) {
+        const b = v3({ type: 'Composite', items });
+        expect(b.type).toBe('Composite');
+        expect(Array.isArray(b.items)).toBe(true);
+        expect(b.items).toEqual([]);
+      }
+    });
+
+    it('bounds nesting depth', () => {
+      let deep: Record<string, unknown> = { type: 'TextualBody', value: 'leaf' };
+      for (let i = 0; i < 200; i++) deep = { type: 'Composite', items: [deep] };
+      let cur: { items?: Array<Record<string, unknown>> } | undefined = v3(deep);
+      let levels = 0;
+      while (cur?.items?.length) {
+        levels++;
+        cur = cur.items[0] as typeof cur;
+      }
+      expect(levels).toBeLessThanOrEqual(5);
+    });
+
+    it('bounds the number of items', () => {
+      const items = Array.from({ length: 5000 }, () => ({ type: 'TextualBody', value: 'x' }));
+      expect(v3({ type: 'List', items }).items.length).toBeLessThanOrEqual(500);
+    });
+
+    it('a __proto__ key is not copied and a non-string purpose is dropped', () => {
+      const b = v3(JSON.parse('{"type":"Composite","__proto__":{"polluted":1},"purpose":{"x":1},"items":[]}'));
+      expect(b.purpose).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(b, '__proto__')).toBe(false);
+      expect(Object.getPrototypeOf(b)).toBe(Object.prototype);
+      expect(b.polluted).toBeUndefined();
+    });
+  });
+
+  describe('construct label and extra properties', () => {
+    it('keeps a plain-string label (v2 and v3)', () => {
+      expect(v2({ '@type': 'oa:Composite', label: 'Lead white', item: [] }).label).toEqual({ none: ['Lead white'] });
+      expect(v3({ type: 'Composite', label: 'Lead', items: [] }).label).toEqual({ none: ['Lead'] });
+    });
+
+    it('keeps a language map label and drops an empty one', () => {
+      expect(v3({ type: 'List', label: { en: ['A'] }, items: [] }).label).toEqual({ en: ['A'] });
+      expect(v3({ type: 'List', label: '', items: [] }).label).toBeUndefined();
+    });
+
+    it('keeps other v3 properties of the construct', () => {
+      const b = v3({ type: 'Composite', creator: 'x', rights: 'r', items: [] });
+      expect(b).toMatchObject({ type: 'Composite', creator: 'x', rights: 'r', items: [] });
+    });
+  });
+});

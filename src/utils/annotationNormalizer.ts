@@ -287,11 +287,64 @@ function mapSpecificResourceBody(
   } as AnnotationBody;
 }
 
+/** WADM multiplicity constructs (non-normative, rare in IIIF) read tolerantly as `{ type, items }`. */
+const MULTI_TYPES = new Set(['Composite', 'List', 'Independents']);
+
+/** Construct keys mapped explicitly; every other own key is carried over as-is. */
+const MULTI_HANDLED_KEYS = new Set([
+  '@id', '@type', 'type', 'id', 'label', 'items', 'item', 'oa:item', 'purpose', 'oa:hasPurpose', 'hasPurpose',
+]);
+
+/** Items kept per construct (caps what reaches the renderers). */
+const MAX_MULTI_ITEMS = 500;
+
+/** `items` / `item` (also `oa:item`) as one value, an array or a JSON-LD `{ @list }`; anything else is empty. */
+function multiItems(raw: Record<string, unknown>): unknown[] {
+  const value = raw.items ?? raw.item ?? raw['oa:item'];
+  const list = isObject(value) && Array.isArray(value['@list']) ? value['@list'] : toArray(value);
+  return list.slice(0, MAX_MULTI_ITEMS);
+}
+
+/** Construct name (`Composite`, `List`, `Independents`) a wire object declares, if any. */
+function multiTypeOf(raw: Record<string, unknown>): string | undefined {
+  const declared = raw['@type'] ?? raw.type;
+  const type = typeof declared === 'string' ? stripPrefix(declared) : undefined;
+  return type && MULTI_TYPES.has(type) ? type : undefined;
+}
+
+/**
+ * oa:/WADM Composite, List or Independents → `{ type, items }`, each item normalized like any
+ * body (so it keeps its own `purpose`). Order is preserved; items nested too deep are dropped.
+ */
+function mapMultiBody(raw: Record<string, unknown>, type: string, depth: number): AnnotationBody | undefined {
+  if (depth >= MAX_CHOICE_DEPTH) return undefined;
+  const id = refId(raw);
+  const label = toLocalizedMap(raw.label);
+  const purpose = mapPurpose(raw);
+  const rest = Object.fromEntries(
+    Object.entries(raw).filter(([k]) => !MULTI_HANDLED_KEYS.has(k) && k !== '__proto__')
+  );
+  const items = multiItems(raw)
+    .filter((i) => isObject(i) && !Array.isArray(i))
+    .flatMap((i) => mapBody(i, depth + 1) ?? []);
+  return {
+    ...rest,
+    type,
+    items,
+    ...(id ? { id } : {}),
+    ...(label && Object.values(label).some((v) => v.some(Boolean)) ? { label } : {}),
+    ...(purpose ? { purpose } : {}),
+  } as AnnotationBody;
+}
+
 /** v2 `resource` object (or already-v3 body) → normalized AnnotationBody. Never throws; undefined = drop. */
 function mapBody(raw: unknown, depth = 0): AnnotationBody | undefined {
   if (!isObject(raw)) {
     return { type: 'TextualBody', value: typeof raw === 'string' ? raw : '' };
   }
+
+  const multiType = multiTypeOf(raw);
+  if (multiType) return mapMultiBody(raw, multiType, depth);
 
   // Already a v3 body (bare `type`, no v2 `@type`): pass through unchanged.
   if (typeof raw.type === 'string' && raw['@type'] === undefined) {

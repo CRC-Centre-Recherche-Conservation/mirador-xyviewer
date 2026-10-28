@@ -117,13 +117,34 @@ export interface ChoiceBody extends BaseBody {
   items: AnnotationBody[];
 }
 
+/**
+ * Case 6: Composite / List / Independents (WADM multiplicity constructs, non-normative and rare
+ * in IIIF) - read tolerantly. `items` are normalized bodies, each keeping its own `purpose`.
+ * Composite: parts of one whole; List: ordered; Independents: unrelated bodies.
+ */
+interface MultiBody extends BaseBody {
+  items: AnnotationBody[];
+}
+export interface CompositeBody extends MultiBody {
+  type: 'Composite';
+}
+export interface ListBody extends MultiBody {
+  type: 'List';
+}
+export interface IndependentsBody extends MultiBody {
+  type: 'Independents';
+}
+
 /** Union of all supported body types (normalized model == v3). */
 export type AnnotationBodyV3 =
   | ManifestBody
   | DatasetBody
   | TextualBody
   | SpecificResourceBody
-  | ChoiceBody;
+  | ChoiceBody
+  | CompositeBody
+  | ListBody
+  | IndependentsBody;
 export type AnnotationBody = AnnotationBodyV3;
 
 /** Raw v2 annotation body (the `resource` field; arrays handled by the mapper). */
@@ -259,6 +280,18 @@ export function isSpecificResourceBody(body: AnnotationBody): body is SpecificRe
 
 export function isChoiceBody(body: AnnotationBody): body is ChoiceBody {
   return body.type === 'Choice' && Array.isArray((body as ChoiceBody).items);
+}
+
+export function isCompositeBody(body: AnnotationBody): body is CompositeBody {
+  return body.type === 'Composite' && Array.isArray((body as CompositeBody).items);
+}
+
+export function isListBody(body: AnnotationBody): body is ListBody {
+  return body.type === 'List' && Array.isArray((body as ListBody).items);
+}
+
+export function isIndependentsBody(body: AnnotationBody): body is IndependentsBody {
+  return body.type === 'Independents' && Array.isArray((body as IndependentsBody).items);
 }
 
 /** Purposes of a body, keeping only strings (producer data is untrusted). */

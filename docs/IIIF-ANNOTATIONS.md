@@ -395,6 +395,23 @@ like any other body (nesting is bounded).
 }
 ```
 
+### Composite, List and Independents (tolerated)
+
+The Web Annotation model also defines `Composite` (parts of one whole), `List` (ordered) and `Independents` (unrelated bodies). They are not normative in IIIF and rarely used, so the normalizer only reads them tolerantly into `{ type, items }` (`isCompositeBody`, `isListBody`, `isIndependentsBody`). Each item is normalized like any other body and keeps its own `purpose`; `id`, `label` (a plain string becomes a language map) and `purpose` of the construct are kept, as are its other properties (`creator`, `rights`, extensions). Items may be an array, a single object or a JSON-LD `{ "@list": [...] }` (also `item` / `oa:item` in v2); non-object items are dropped, nesting is bounded (as for `Choice`) and at most 500 items are kept. The construct itself is not rendered yet.
+
+```json
+{
+  "body": {
+    "type": "Composite",
+    "label": { "en": ["Lead white"] },
+    "items": [
+      { "type": "SpecificResource", "purpose": "classifying", "source": "https://example.org/vocab/lead-white" },
+      { "type": "SpecificResource", "purpose": "assessing", "source": "https://example.org/vocab/highly-reliable" }
+    ]
+  }
+}
+```
+
 Body objects of an unknown `type` are ignored (nothing is rendered).
 
 ### Multiple Bodies

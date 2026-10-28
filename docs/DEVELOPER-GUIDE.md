@@ -72,6 +72,7 @@ This guide explains the plugin architecture and how to extend mirador-xyviewer.
 | `oa:SpecificResource` without an id | body dropped |
 | `oa:hasPurpose` / `hasPurpose` / `purpose` (string, `{@id\|id}`, array) | `purpose` without the `oa:` prefix |
 | `on` string `canvas#xywh=...` | `SpecificResource` target + `FragmentSelector` |
+| `oa:Composite` / `oa:List` / `oa:Independents` (or v3 `Composite` / `List` / `Independents`) | `{ type, items }`; items normalized as bodies (own `purpose` kept), `item` / `oa:item` / `{@list}` accepted, non-object items dropped, nesting bounded, max 500 items |
 | `on` object with `selector` (`oa:Choice`, arrays) | `selector` = `[default, ...item]` flattened; one selector stays an object, several become an array |
 | `FragmentSelector` / `SvgSelector` without a string `value` | selector dropped (Mirador calls `value.match` unguarded) |
 | `seeAlso`, `metadata`, `label` (`@value` / `@language`) | v3 equivalents (`LocalizedString` maps) |
