@@ -47,6 +47,16 @@ Exported components used outside Mirador fall back to the browser language and a
 a `LanguageProvider` to override it. Fallback UI strings such as the `seeAlso` link
 label are English and overridable via props (`fallbackLinkLabel`, `seeAlsoHeading`).
 
+## Plugin options
+
+UI strings of the annotation cards (evidence button, purpose captions) are English and
+overridable through the Mirador config key `scientificAnnotations.labels`; see
+[docs/MIRADOR-CONFIGURATION.md](docs/MIRADOR-CONFIGURATION.md#annotation-labels).
+
+```js
+Mirador.viewer({ id: 'mirador', scientificAnnotations: { labels: { evidence: 'Proof' } } }, plugins);
+```
+
 ## IIIF API compatibility
 
 The plugin reads its data from Mirador's store and only post-processes annotation

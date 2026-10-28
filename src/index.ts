@@ -100,6 +100,7 @@ export type {
   MiradorPlugin,
   MiradorWindowConfig,
   MiradorInstance,
+  ScientificAnnotationsConfig,
 } from './types';
 
 // Type guards

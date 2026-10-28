@@ -56,9 +56,10 @@ const state = {
   },
 };
 
-function setup(ids: string[]) {
+function setup(ids: string[], config: Record<string, unknown> = {}) {
   const seen: Array<{ type: string; [k: string]: unknown }> = [];
-  const store = createStore((s: typeof state = state, a: { type: string }) => {
+  const initial = { ...state, config: { ...state.config, ...config } };
+  const store = createStore((s: typeof state = initial, a: { type: string }) => {
     seen.push(a);
     return s;
   });
@@ -103,6 +104,20 @@ describe('shouldUseCustomRendering', () => {
 });
 
 describe('connected plugin with Web Annotation bodies', () => {
+  it('applies config.scientificAnnotations.labels to the Evidence button and purpose captions', () => {
+    setup([A, B], {
+      scientificAnnotations: { labels: { evidence: 'Proof', purposes: { classifying: 'Pigment' } } },
+    });
+    expect(screen.getByRole('button', { name: /Proof/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Evidence/ })).toBeNull();
+    expect(screen.getByText('Pigment')).toBeInTheDocument();
+  });
+
+  it('falls back to the default Evidence label when the configured one is not a string', () => {
+    setup([A, B], { scientificAnnotations: { labels: { evidence: {} } } });
+    expect(screen.getByRole('button', { name: /Evidence/ })).toBeInTheDocument();
+  });
+
   it('renders chips and the Choice item instead of the default list', () => {
     setup([A, B]);
     expect(screen.queryByTestId('default')).toBeNull();

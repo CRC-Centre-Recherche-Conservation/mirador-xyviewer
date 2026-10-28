@@ -40,16 +40,9 @@ import { EvidenceLinkBody } from './EvidenceLinkBody';
 import { pickLanguageKey } from '../utils/localization';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import type { SpectrumData, DatasetRequestOptions } from '../types/dataset';
+import type { AnnotationBodyLabels } from '../types/mirador';
 
-/** User-facing strings, overridable by the host. */
-export interface AnnotationBodyLabels {
-  /** Linking button (default "Evidence"). */
-  evidence?: string;
-  /** Tooltip of a linking button whose target is not on the canvas. */
-  evidenceUnavailable?: string;
-  /** Caption per SpecificResource purpose (default: the purpose itself). */
-  purposes?: Record<string, string>;
-}
+export type { AnnotationBodyLabels };
 
 /** Selection wiring for linking bodies. */
 interface LinkingProps {

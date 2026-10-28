@@ -60,10 +60,28 @@ export interface MiradorManifest {
   [key: string]: unknown;
 }
 
+/** User-facing strings, overridable by the host. */
+export interface AnnotationBodyLabels {
+  /** Linking button (default "Evidence"). */
+  evidence?: string;
+  /** Tooltip of a linking button whose target is not on the canvas. */
+  evidenceUnavailable?: string;
+  /** Caption per SpecificResource purpose (default: the purpose itself). */
+  purposes?: Record<string, string>;
+}
+
+/** Host options for the scientific annotation plugin, read from the Mirador config key `scientificAnnotations`. */
+export interface ScientificAnnotationsConfig {
+  /** Overrides for the plugin's UI strings (evidence button, purpose captions). */
+  labels?: AnnotationBodyLabels;
+}
+
 /** Mirador config */
 export interface MiradorConfig {
   /** Mirador UI language (defaults to 'en'); also the reader's language for IIIF language maps. */
   language?: string;
+  /** Options of mirador-xyviewer's annotation plugin. */
+  scientificAnnotations?: ScientificAnnotationsConfig;
   annotations?: {
     htmlSanitizationRuleSet?: string;
     [key: string]: unknown;

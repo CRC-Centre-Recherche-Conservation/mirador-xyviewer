@@ -364,7 +364,7 @@ In IIIF Presentation 2, an `oa:SpecificResource` resource with a `full` source a
 `oa:hasPurpose` is normalized to the same model.
 
 **Evidence (linking).** A `SpecificResource` with `"purpose": "linking"` is shown as an
-"Evidence" button (label overridable through the `labels` prop of `AnnotationBodyRenderer`).
+"Evidence" button (label overridable through `scientificAnnotations.labels.evidence` in the Mirador config, see [MIRADOR-CONFIGURATION.md](MIRADOR-CONFIGURATION.md#annotation-labels)).
 It selects the linked annotation, matched by id (or by its `#target-N` form when a multi-target
 annotation was expanded), when that annotation is on the current canvas. Otherwise the button
 is disabled with an explanatory tooltip.

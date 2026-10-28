@@ -88,6 +88,28 @@ describe('plugin export', () => {
     expect(mapStateToProps(state, { targetProps: { windowId: 'window-1' } }).language).toBe('fr');
   });
 
+  it('passes config.scientificAnnotations.labels through', () => {
+    const labels = { evidence: 'Proof', purposes: { classifying: 'Class' } };
+    const state = { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { labels } } };
+    const props = { targetProps: { windowId: 'window-1' } };
+    const out = mapStateToProps(state, props).labels;
+    expect(out).toEqual(labels);
+    expect(mapStateToProps(state, props).labels).toBe(out);
+  });
+
+  it('drops malformed labels from an imported config', () => {
+    const labels = { evidence: {}, evidenceUnavailable: [{ a: 1 }], purposes: ['x'] };
+    const state = { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { labels } } } as unknown as typeof miradorState;
+    const out = mapStateToProps(state, { targetProps: { windowId: 'window-1' } }).labels;
+    expect(out).toEqual({ evidence: undefined, evidenceUnavailable: undefined, purposes: undefined });
+    const bad = { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { labels: 'x' } } } as unknown as typeof miradorState;
+    expect(mapStateToProps(bad, { targetProps: { windowId: 'window-1' } }).labels).toBeUndefined();
+  });
+
+  it('leaves labels undefined without the config key', () => {
+    expect(mapStateToProps(miradorState, { targetProps: { windowId: 'window-1' } }).labels).toBeUndefined();
+  });
+
   it('targets CanvasAnnotations in wrap mode with mapStateToProps wired', () => {
     expect(scientificAnnotationPlugin.target).toBe('CanvasAnnotations');
     expect(scientificAnnotationPlugin.mode).toBe('wrap');

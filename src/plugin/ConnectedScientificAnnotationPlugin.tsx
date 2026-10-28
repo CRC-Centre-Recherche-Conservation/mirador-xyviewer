@@ -30,7 +30,7 @@ import type {
 } from '../types/iiif';
 import { isSpecificResourceBody, isChoiceBody } from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
-import type { MiradorState, MiradorPlugin } from '../types/mirador';
+import type { MiradorState, MiradorPlugin, AnnotationBodyLabels } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
 import { containPlugin } from './containPlugin';
 
@@ -164,6 +164,8 @@ interface PluginWrapperProps {
   annotationResources: Record<string, IIIFAnnotation>;
   /** Mirador config language (reader's language for IIIF language maps). */
   language?: string;
+  /** UI string overrides from `config.scientificAnnotations.labels`. */
+  labels?: AnnotationBodyLabels;
   /** First annotation page of this canvas for which a sign-in can be offered. */
   signInPage?: AnnotationPageRef;
 }
@@ -178,6 +180,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   addWindow,
   annotationResources,
   language,
+  labels,
   signInPage,
 }) => {
   const {
@@ -421,6 +424,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                           windowId={windowId}
                           selectAnnotation={selectAnnotation}
                           canvasAnnotationIds={canvasAnnotationIds}
+                          labels={labels}
                         />
                       )}
 
@@ -459,6 +463,23 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
  * Map state to props - extract annotation resources from Mirador state
  * @internal Exposed for tests; not part of the public API.
  */
+const labelsCache = new WeakMap<object, AnnotationBodyLabels>();
+
+/** Drops malformed values (e.g. from an imported workspace); cached per config object to stay referentially stable. */
+function sanitizeLabels(raw: unknown): AnnotationBodyLabels | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const cached = labelsCache.get(raw);
+  if (cached) return cached;
+  const r = raw as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+  const purposes = r.purposes && typeof r.purposes === 'object' && !Array.isArray(r.purposes)
+    ? (r.purposes as Record<string, string>)
+    : undefined;
+  const clean = { evidence: str(r.evidence), evidenceUnavailable: str(r.evidenceUnavailable), purposes };
+  labelsCache.set(raw, clean);
+  return clean;
+}
+
 export function mapStateToProps(
   state: MiradorState,
   { targetProps }: { targetProps: { windowId: string; canvasId?: string } },
@@ -477,6 +498,7 @@ export function mapStateToProps(
   return {
     annotationResources,
     language: state.config?.language,
+    labels: sanitizeLabels(state.config?.scientificAnnotations?.labels),
     signInPage: findSignInPage(canvasId ? state.annotations?.[canvasId] : undefined),
   };
 }

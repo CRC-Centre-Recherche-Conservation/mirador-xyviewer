@@ -195,6 +195,28 @@ const viewer = Mirador.viewer({
 }, [scientificAnnotationPlugin]);
 ```
 
+### Annotation Labels
+
+The connected `scientificAnnotationPlugin` reads its options from the `scientificAnnotations` key of the Mirador config (the basic plugin does not; pass `labels` to `AnnotationBodyRenderer` directly there).
+All strings are English by default.
+
+```javascript
+const viewer = Mirador.viewer({
+  id: 'mirador-container',
+  scientificAnnotations: {
+    labels: {
+      evidence: 'Proof',                           // button of a `linking` SpecificResource
+      evidenceUnavailable: 'Not on this canvas',   // its tooltip when the target is absent
+      purposes: { classifying: 'Pigment' },        // caption per SpecificResource purpose
+    },
+  },
+}, [scientificAnnotationPlugin]);
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `labels` | `AnnotationBodyLabels` | UI string overrides (`evidence`, `evidenceUnavailable`, `purposes`). |
+
 ### Theme Customization
 
 ```javascript
