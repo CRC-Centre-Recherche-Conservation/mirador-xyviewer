@@ -8,7 +8,6 @@ import { Box, Typography, FormControl, InputLabel, Select, MenuItem, IconButton,
 import type { SelectChangeEvent } from '@mui/material/Select';
 import CloseIcon from '@mui/icons-material/Close';
 import CompareIcon from '@mui/icons-material/Compare';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import OpenSeadragon from 'openseadragon';
 
 /** Canvas info extracted from manifest */
@@ -100,7 +99,7 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
       const zoom = source.viewport.getZoom();
       target.viewport.zoomTo(zoom, undefined, true);
       target.viewport.panTo(center, true);
-    } catch (e) {
+    } catch {
       // Ignore sync errors
     }
 
@@ -119,11 +118,11 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
 
     // Destroy existing viewers
     if (leftOsdRef.current) {
-      try { leftOsdRef.current.destroy(); } catch (e) { /* ignore */ }
+      try { leftOsdRef.current.destroy(); } catch { /* ignore */ }
       leftOsdRef.current = null;
     }
     if (rightOsdRef.current) {
-      try { rightOsdRef.current.destroy(); } catch (e) { /* ignore */ }
+      try { rightOsdRef.current.destroy(); } catch { /* ignore */ }
       rightOsdRef.current = null;
     }
 
@@ -202,11 +201,11 @@ export const ImageComparisonSlider: React.FC<ImageComparisonSliderProps> = ({
 
     return () => {
       if (leftOsdRef.current) {
-        try { leftOsdRef.current.destroy(); } catch (e) { /* ignore */ }
+        try { leftOsdRef.current.destroy(); } catch { /* ignore */ }
         leftOsdRef.current = null;
       }
       if (rightOsdRef.current) {
-        try { rightOsdRef.current.destroy(); } catch (e) { /* ignore */ }
+        try { rightOsdRef.current.destroy(); } catch { /* ignore */ }
         rightOsdRef.current = null;
       }
     };
