@@ -383,6 +383,15 @@ describe('normalizeAnnotationResources', () => {
     expect(normalizeAnnotationResources({})).toEqual({});
   });
 
+  it('indexes an annotation whose id is __proto__ as a plain entry', () => {
+    const map = normalizeAnnotationResources({
+      c1: { json: { type: 'AnnotationPage', items: [{ id: '__proto__', type: 'Annotation', target: 'c' }] } },
+    });
+    expect(Object.keys(map)).toEqual(['__proto__']);
+    expect(Object.getPrototypeOf(map)).toBeNull();
+    expect((map as Record<string, unknown>).toString).toBeUndefined();
+  });
+
   it('skips canvases with missing json without throwing', () => {
     expect(normalizeAnnotationResources({ c1: {}, c2: { json: null } })).toEqual({});
   });
