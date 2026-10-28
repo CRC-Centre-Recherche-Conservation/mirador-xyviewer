@@ -167,6 +167,17 @@ External AnnotationPage file (`canvas1.json`):
 }
 ```
 
+### Page label and panel sections
+
+When a canvas references several annotation pages and every one of them has a `label`
+(a language map in v3; a string or `@value` list on a v2 `sc:AnnotationList`), the Annotations
+panel groups its cards under one collapsible header per page: the label in the reader's
+language and the number of cards listed. Sections follow the order of the pages in the manifest
+(`annotations` of the canvas). A page whose annotations are all hidden by a metadata filter
+is not shown. With a single page, or when a page with annotations has no label, the panel
+stays a flat list. Selecting an annotation (on the canvas or through a link) reopens its
+section and scrolls to its card.
+
 ## Annotation Structure
 
 ### Required Fields

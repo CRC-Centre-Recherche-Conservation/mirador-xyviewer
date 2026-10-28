@@ -130,7 +130,7 @@ export interface AnnotationBodyLabels {
   appliesTo?: string;
   appliesToOne?: string;
   plusLinked?: string;
-  /** Accessible names of a filter group's buttons (defaults "Expand {name}", "Collapse {name}", "Select all: {name}", "Deselect all: {name}"). */
+  /** Accessible names of the toggles of filter groups (defaults "Expand {name}", "Collapse {name}", "Select all: {name}", "Deselect all: {name}"). */
   expandGroup?: string;
   collapseGroup?: string;
   selectAllIn?: string;

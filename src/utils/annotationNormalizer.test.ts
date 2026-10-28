@@ -11,6 +11,7 @@ import {
   v2ValueToLocalized,
   normalizeAnnotationList,
   normalizeAnnotationResources,
+  normalizeAnnotationPages,
   expandAnnotations,
   adapterFor,
   registerAnnotationAdapter,
@@ -26,6 +27,8 @@ import {
   plainAnnotationPage,
 } from '../test/fixtures/contentSearch';
 import { getLocalizedString } from './localization';
+import characterizations from '../test/fixtures/annotations/manuspectrum-characterizations-page.json';
+import analyses from '../test/fixtures/annotations/manuspectrum-analyses-page.json';
 import type { AnnotationBody, AnnotationTarget } from '../types/iiif';
 
 const firstBody = (body: AnnotationBody | AnnotationBody[]): AnnotationBody =>
@@ -758,5 +761,56 @@ describe('normalizeAnnotationList — Composite / List / Independents (non-norma
       const b = v3({ type: 'Composite', creator: 'x', rights: 'r', items: [] });
       expect(b).toMatchObject({ type: 'Composite', creator: 'x', rights: 'r', items: [] });
     });
+  });
+});
+
+describe('normalizeAnnotationPages', () => {
+  it('lists pages in order with label and annotation ids, for v3 and v2', () => {
+    const v2 = {
+      '@context': 'http://iiif.io/api/presentation/2/context.json',
+      '@id': 'list-1',
+      '@type': 'sc:AnnotationList',
+      label: 'Plain list',
+      resources: [{ '@id': 'a1', '@type': 'oa:Annotation', resource: { '@type': 'cnt:ContentAsText', chars: 'x' }, on: 'https://example.org/canvas/1' }],
+    };
+    const pages = normalizeAnnotationPages({ p3: { json: characterizations }, p2: { json: v2 }, none: {} });
+    expect(pages.map((p) => p.id)).toEqual(['p3', 'p2']);
+    expect(pages[0].annotationIds).toHaveLength(2);
+    expect(pages[1]).toMatchObject({ label: { none: ['Plain list'] }, annotationIds: ['a1'] });
+    expect(normalizeAnnotationPages(undefined)).toEqual([]);
+  });
+
+  it('ignores non-string label members instead of throwing', () => {
+    const pageOf = (label: unknown) =>
+      normalizeAnnotationPages({ p: { json: { ...analyses, label } } })[0];
+    expect(pageOf({ en: [null, 5] }).label).toBeUndefined();
+    expect(pageOf({ en: [5, 'A'] }).label).toEqual({ en: [5, 'A'] });
+  });
+
+  it('keeps every expanded target of an id repeated on two pages on the first page', () => {
+    const ann = (target: string) => ({
+      id: 'd',
+      type: 'Annotation',
+      motivation: 'commenting',
+      body: { type: 'TextualBody', value: 'x' },
+      target,
+    });
+    const page = (id: string, label: string, items: unknown[]) => ({
+      id,
+      type: 'AnnotationPage',
+      label: { en: [label] },
+      items,
+    });
+    const T = 'https://example.org/canvas/1#xywh=';
+    const pages = normalizeAnnotationPages({
+      p1: { json: page('p1', 'One', [ann(T + '1,1,5,5'), { ...ann(T + '1,1,5,5'), id: 'a' }]) },
+      p2: { json: page('p2', 'Two', [ann(T + '9,9,5,5'), { ...ann(T + '1,1,5,5'), id: 'b' }]) },
+    });
+    expect(pages.map((p) => p.annotationIds)).toEqual([['d#target-0', 'd#target-1', 'a'], ['b']]);
+  });
+
+  it('drops a blank label', () => {
+    const [page] = normalizeAnnotationPages({ p: { json: { ...analyses, label: { en: [' '] } } } });
+    expect(page.label).toBeUndefined();
   });
 });

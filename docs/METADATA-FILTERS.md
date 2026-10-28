@@ -428,6 +428,7 @@ The filter state is managed per window+canvas combination using `filtersStore`:
 - Each canvas maintains its own filter state (inheritance never crosses canvases)
 - State is reset when the window is closed
 - When more annotations load for a canvas (for example a second annotation page), the groups are rebuilt and the current selection is kept
+- With page sections, the header counts show the annotations the filters leave visible, and a section whose annotations are all hidden is not shown (an annotation shown only because it is selected still counts in its section)
 - The panel and the term chip menu act through the same `filtersStore.toggleFacet`, so a chip shows a filter icon when its term is being filtered
 
 ### Upgrading

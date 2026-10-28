@@ -37,7 +37,9 @@ import { LinkContext } from '../components/LinkContext';
 import { EMPTY_LINK_INDEX, baseAnnotationId, getLinkIndex, type LinkIndex } from '../utils/linkIndex';
 import { fillTemplate } from '../utils/annotationLabels';
 import { cancelPendingNavigation, useLinkController } from './useLinkController';
-import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
+import { normalizeAnnotationResources, normalizeAnnotationPages } from '../utils/annotationNormalizer';
+import type { AnnotationPageGroup } from '../utils/annotationNormalizer';
+import { AnnotationPageSection } from '../components/AnnotationPageSection';
 import type {
   AnnotationBody,
   IIIFAnnotation,
@@ -205,6 +207,8 @@ interface PluginWrapperProps {
   windowCanvasId?: string;
   /** Canvases the window shows (two in book view). */
   visibleCanvasIds?: string[];
+  /** The canvas's annotation pages in manifest order, with their labels. */
+  pageGroups?: AnnotationPageGroup[];
   /** Rest of Mirador's wrap chain, when other plugins wrap the same target. */
   children?: React.ReactNode;
 }
@@ -226,6 +230,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   linkSubtitleMetadataLabel,
   windowCanvasId,
   visibleCanvasIds,
+  pageGroups = EMPTY_PAGE_GROUPS,
   children,
 }) => {
   const {
@@ -414,6 +419,31 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     [annotations, hiddenAnnotationIds, selectedAnnotationId],
   );
 
+  // Sections per labeled AnnotationPage; none for a single page or when a page has no label.
+  const sections = useMemo(
+    () => groupByPage(visibleAnnotations, pageGroups, prefs),
+    [visibleAnnotations, pageGroups, prefs],
+  );
+  const [collapsedPages, setCollapsedPages] = useState<Set<string>>(new Set());
+  const togglePage = useCallback((pageId: string) => {
+    setCollapsedPages((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(pageId)) next.add(pageId);
+      return next;
+    });
+  }, []);
+  // A newly selected annotation opens its section (adjusting state during render, before the scroll effect).
+  const [openedFor, setOpenedFor] = useState(selectedAnnotationId);
+  if (openedFor !== selectedAnnotationId) {
+    setOpenedFor(selectedAnnotationId);
+    const owner = sections?.find((sec) => sec.annotations.some((a) => a.id === selectedAnnotationId));
+    if (owner && collapsedPages.has(owner.id)) {
+      const next = new Set(collapsedPages);
+      next.delete(owner.id);
+      setCollapsedPages(next);
+    }
+  }
+
   const labelText = resolveLabels(labels);
   const backOrigin = nav.stack[nav.stack.length - 1];
 
@@ -436,6 +466,266 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     );
   }
 
+  const renderCard = (annotation: (typeof visibleAnnotations)[number]): React.ReactNode => {
+    const resource = annotationResources[annotation.id];
+    const isScientific = customRenderingIds.has(annotation.id);
+    const isSelected = selectedAnnotationId === annotation.id;
+    const isHovered = hoveredAnnotationIds.includes(annotation.id);
+    const becauseIds = shownBecause?.get(annotation.id);
+    const becauseNote = becauseIds?.length ? (
+      <Typography variant="caption" role="note" sx={{ display: 'block', mb: 0.5, color: 'text.secondary' }}>
+        {fillTemplate(textLabels.shownBecauseLinked, {
+          title: [...new Set(becauseIds.map((id) => linkContext.titleOf(id)))].join(', '),
+        })}
+      </Typography>
+    ) : null;
+    const showFilterBadge = shownOnlyBecauseSelected(
+      annotation.id,
+      hiddenAnnotationIds,
+      selectedAnnotationId,
+    );
+
+    const backLink =
+      backOrigin && nav.current && baseAnnotationId(nav.current.annotationId) === baseAnnotationId(annotation.id) ? (
+        <Button
+          size="small"
+          startIcon={<ArrowBackIcon fontSize="inherit" />}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            back();
+          }}
+          sx={{ textTransform: 'none', mb: 0.5, maxWidth: '100%', justifyContent: 'flex-start' }}
+        >
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {fillTemplate(labelText.backTo, { title: linkContext.titleOf(backOrigin.annotationId) })}
+          </Box>
+        </Button>
+      ) : null;
+    const citedBy = <CitedBy annotationId={annotation.id} labels={labels} />;
+
+    if (!isScientific) {
+      // Render default annotation
+      return (
+        <MenuItem
+          key={annotation.id}
+          component="li"
+          ref={(el: HTMLLIElement | null) => {
+            if (el) annotationRefs.current.set(annotation.id, el);
+            else annotationRefs.current.delete(annotation.id);
+          }}
+          onClick={() => handleAnnotationClick(annotation.id)}
+          onMouseEnter={() => handleAnnotationHover(annotation.id)}
+          onMouseLeave={() => handleAnnotationHover(null)}
+          selected={isSelected}
+          sx={{
+            bgcolor: isHovered && !isSelected ? 'action.hover' : undefined,
+            // Keep a scrolled-to card clear of the sticky section header.
+            scrollMarginTop: sections ? 36 : undefined,
+          }}
+        >
+          {showFilterBadge && (
+            <Typography
+              variant="caption"
+              role="note"
+              sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
+            >
+              {FILTER_HIDDEN_BADGE}
+            </Typography>
+          )}
+          {becauseNote}
+          {backLink}
+          <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
+            <InsideBoundary>
+              {() => (
+                <ListItemText
+                  primary={
+                    <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
+                  }
+                  secondary={annotation.tags?.map((tag) => (
+                    <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
+                  ))}
+                  slotProps={{ primary: { variant: 'body2' } }}
+                />
+              )}
+            </InsideBoundary>
+          </ErrorBoundary>
+          {citedBy}
+        </MenuItem>
+      );
+    }
+
+    // Render scientific annotation
+    const body = resource?.body as AnnotationBody | AnnotationBody[] | undefined;
+    const label = resource?.label;
+    const metadata = resource?.metadata;
+    const annotationId = resource?.id;
+    const seeAlso = resource?.seeAlso;
+
+    return (
+      <Box
+        key={annotation.id}
+        component="li"
+        ref={(el: HTMLLIElement | null) => {
+          if (el) annotationRefs.current.set(annotation.id, el);
+          else annotationRefs.current.delete(annotation.id);
+        }}
+        onClick={(e: React.MouseEvent<HTMLElement>) => {
+          const target = e.target as Element;
+          // Ignore portaled content (expand dialog) bubbling through the React tree.
+          if (!e.currentTarget.contains(target)) return;
+          // Buttons inside the body (Retry, Sign in, ...) must not also select the annotation.
+          const control = target.closest?.('button, a, [role="button"]');
+          if (control && e.currentTarget.contains(control)) return;
+          handleAnnotationClick(annotation.id);
+        }}
+        role="group"
+        aria-label={
+          getLocalizedString(label, prefs) ||
+          (classificationKind(resource?.motivation) && resource
+            ? buildClassificationView(resource, prefs).title
+            : '') ||
+          undefined
+        }
+        aria-expanded={classificationKind(resource?.motivation) ? isSelected : undefined}
+        aria-current={isSelected || undefined}
+        tabIndex={0}
+        onFocus={() => handleAnnotationHover(annotation.id)}
+        onBlur={(e: React.FocusEvent<HTMLElement>) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) handleAnnotationHover(null);
+        }}
+        // Keep MenuList roving focus / typeahead away from the body and its dialog.
+        onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+          if (e.target !== e.currentTarget) {
+            e.stopPropagation();
+            return;
+          }
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleAnnotationClick(annotation.id);
+          }
+        }}
+        onMouseEnter={() => handleAnnotationHover(annotation.id)}
+        onMouseLeave={() => handleAnnotationHover(null)}
+        sx={{
+          position: 'relative',
+          scrollMarginTop: sections ? 36 : undefined,
+          p: 1.5,
+          cursor: 'pointer',
+          bgcolor: isHovered ? 'action.hover' : 'transparent',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          borderLeft: '3px solid',
+          borderLeftColor: isSelected ? 'primary.main' : isHovered ? 'action.hover' : 'transparent',
+          '&:hover': { bgcolor: 'action.hover' },
+          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
+        }}
+      >
+        {showFilterBadge && (
+          <Typography
+            variant="caption"
+            role="note"
+            sx={{ display: 'block', mb: 0.5, pr: 4.5, color: 'warning.main' }}
+          >
+            {FILTER_HIDDEN_BADGE}
+          </Typography>
+        )}
+        {becauseNote}
+        <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
+          <InsideBoundary>
+            {() =>
+              classificationKind(resource?.motivation) ? (
+                <ClassificationCard
+                  annotation={resource}
+                  isSelected={isSelected}
+                  labels={labels}
+                  ruleSet={ruleSet}
+                  showAnnotationId={showAnnotationId}
+                  windowId={windowId}
+                  selectAnnotation={selectAnnotation}
+                  canvasAnnotationIds={canvasAnnotationIds}
+                  beforeKicker={backLink}
+                  afterTitle={citedBy}
+                  renderOther={(rest) => (
+                    <AnnotationBodyRenderer
+                      body={rest}
+                      annotationLabel={label}
+                      dispatch={dispatch}
+                      addWindow={addWindow}
+                      isActive={isSelected}
+                      ruleSet={ruleSet}
+                      labels={labels}
+                    />
+                  )}
+                />
+              ) : (
+              <>
+                <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
+                  <AnnotationCardMenu
+                    annotationId={annotationId}
+                    hideJson={showAnnotationId === 'inline'}
+                    labels={resolveLabels(labels)}
+                  />
+                </Box>
+                {/* Metadata (right padding keeps the title clear of the menu button) */}
+                <Box sx={{ pr: 4.5 }}>
+                  {backLink}
+                  <AnnotationMetadata
+                    label={label}
+                    metadata={metadata}
+                    annotationId={showAnnotationId === 'inline' ? annotationId : undefined}
+                    seeAlso={seeAlso}
+                    body={body}
+                  />
+                  {citedBy}
+                </Box>
+
+                {/* Body renderer */}
+                {body && (
+                  <AnnotationBodyRenderer
+                    body={body}
+                    annotationLabel={label}
+                    dispatch={dispatch}
+                    addWindow={addWindow}
+                    isActive={isSelected}
+                    onDataLoaded={handleDataLoaded}
+                    onVisibilityChange={handleVisibilityChange}
+                    ruleSet={ruleSet}
+                    annotationId={annotationId}
+                    windowId={windowId}
+                    selectAnnotation={selectAnnotation}
+                    canvasAnnotationIds={canvasAnnotationIds}
+                    labels={labels}
+                  />
+                )}
+
+                {/* Tags */}
+                {annotation.tags.length > 0 && (
+                  <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {annotation.tags.map((tag, idx) => (
+                      <Typography
+                        key={idx}
+                        variant="caption"
+                        sx={{
+                          px: 0.75,
+                          py: 0.25,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1,
+                        }}
+                      >
+                        {tag}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+              </>
+              )
+            }
+          </InsideBoundary>
+        </ErrorBoundary>
+      </Box>
+    );
+  };
+
   // Render mixed annotations - scientific ones custom, others default
   return (
     <LanguageProvider language={language}>
@@ -443,262 +733,19 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
      <TermActionsContext.Provider value={termActions}>
       {signInPage && <AnnotationSignIn page={signInPage} />}
       <MenuList disablePadding>
-        {visibleAnnotations.map((annotation) => {
-          const resource = annotationResources[annotation.id];
-          const isScientific = customRenderingIds.has(annotation.id);
-          const isSelected = selectedAnnotationId === annotation.id;
-          const isHovered = hoveredAnnotationIds.includes(annotation.id);
-          const becauseIds = shownBecause?.get(annotation.id);
-          const becauseNote = becauseIds?.length ? (
-            <Typography variant="caption" role="note" sx={{ display: 'block', mb: 0.5, color: 'text.secondary' }}>
-              {fillTemplate(textLabels.shownBecauseLinked, {
-                title: [...new Set(becauseIds.map((id) => linkContext.titleOf(id)))].join(', '),
-              })}
-            </Typography>
-          ) : null;
-          const showFilterBadge = shownOnlyBecauseSelected(
-            annotation.id,
-            hiddenAnnotationIds,
-            selectedAnnotationId,
-          );
-
-          const backLink =
-            backOrigin && nav.current && baseAnnotationId(nav.current.annotationId) === baseAnnotationId(annotation.id) ? (
-              <Button
-                size="small"
-                startIcon={<ArrowBackIcon fontSize="inherit" />}
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  back();
-                }}
-                sx={{ textTransform: 'none', mb: 0.5, maxWidth: '100%', justifyContent: 'flex-start' }}
+        {sections
+          ? sections.map((section) => (
+              <AnnotationPageSection
+                key={section.id}
+                title={section.title}
+                count={section.annotations.length}
+                collapsed={collapsedPages.has(section.id)}
+                onToggle={() => togglePage(section.id)}
               >
-                <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {fillTemplate(labelText.backTo, { title: linkContext.titleOf(backOrigin.annotationId) })}
-                </Box>
-              </Button>
-            ) : null;
-          const citedBy = <CitedBy annotationId={annotation.id} labels={labels} />;
-
-          if (!isScientific) {
-            // Render default annotation
-            return (
-              <MenuItem
-                key={annotation.id}
-                component="li"
-                ref={(el: HTMLLIElement | null) => {
-                  if (el) annotationRefs.current.set(annotation.id, el);
-                  else annotationRefs.current.delete(annotation.id);
-                }}
-                onClick={() => handleAnnotationClick(annotation.id)}
-                onMouseEnter={() => handleAnnotationHover(annotation.id)}
-                onMouseLeave={() => handleAnnotationHover(null)}
-                selected={isSelected}
-                sx={{
-                  bgcolor: isHovered && !isSelected ? 'action.hover' : undefined,
-                }}
-              >
-                {showFilterBadge && (
-                  <Typography
-                    variant="caption"
-                    role="note"
-                    sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
-                  >
-                    {FILTER_HIDDEN_BADGE}
-                  </Typography>
-                )}
-                {becauseNote}
-                {backLink}
-                <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
-                  <InsideBoundary>
-                    {() => (
-                      <ListItemText
-                        primary={
-                          <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
-                        }
-                        secondary={annotation.tags?.map((tag) => (
-                          <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
-                        ))}
-                        slotProps={{ primary: { variant: 'body2' } }}
-                      />
-                    )}
-                  </InsideBoundary>
-                </ErrorBoundary>
-                {citedBy}
-              </MenuItem>
-            );
-          }
-
-          // Render scientific annotation
-          const body = resource?.body as AnnotationBody | AnnotationBody[] | undefined;
-          const label = resource?.label;
-          const metadata = resource?.metadata;
-          const annotationId = resource?.id;
-          const seeAlso = resource?.seeAlso;
-
-          return (
-            <Box
-              key={annotation.id}
-              component="li"
-              ref={(el: HTMLLIElement | null) => {
-                if (el) annotationRefs.current.set(annotation.id, el);
-                else annotationRefs.current.delete(annotation.id);
-              }}
-              onClick={(e: React.MouseEvent<HTMLElement>) => {
-                const target = e.target as Element;
-                // Ignore portaled content (expand dialog) bubbling through the React tree.
-                if (!e.currentTarget.contains(target)) return;
-                // Buttons inside the body (Retry, Sign in, ...) must not also select the annotation.
-                const control = target.closest?.('button, a, [role="button"]');
-                if (control && e.currentTarget.contains(control)) return;
-                handleAnnotationClick(annotation.id);
-              }}
-              role="group"
-              aria-label={
-                getLocalizedString(label, prefs) ||
-                (classificationKind(resource?.motivation) && resource
-                  ? buildClassificationView(resource, prefs).title
-                  : '') ||
-                undefined
-              }
-              aria-expanded={classificationKind(resource?.motivation) ? isSelected : undefined}
-              aria-current={isSelected || undefined}
-              tabIndex={0}
-              onFocus={() => handleAnnotationHover(annotation.id)}
-              onBlur={(e: React.FocusEvent<HTMLElement>) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) handleAnnotationHover(null);
-              }}
-              // Keep MenuList roving focus / typeahead away from the body and its dialog.
-              onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
-                if (e.target !== e.currentTarget) {
-                  e.stopPropagation();
-                  return;
-                }
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleAnnotationClick(annotation.id);
-                }
-              }}
-              onMouseEnter={() => handleAnnotationHover(annotation.id)}
-              onMouseLeave={() => handleAnnotationHover(null)}
-              sx={{
-                position: 'relative',
-                p: 1.5,
-                cursor: 'pointer',
-                bgcolor: isHovered ? 'action.hover' : 'transparent',
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                borderLeft: '3px solid',
-                borderLeftColor: isSelected ? 'primary.main' : isHovered ? 'action.hover' : 'transparent',
-                '&:hover': { bgcolor: 'action.hover' },
-                '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
-              }}
-            >
-              {showFilterBadge && (
-                <Typography
-                  variant="caption"
-                  role="note"
-                  sx={{ display: 'block', mb: 0.5, pr: 4.5, color: 'warning.main' }}
-                >
-                  {FILTER_HIDDEN_BADGE}
-                </Typography>
-              )}
-              {becauseNote}
-              <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
-                <InsideBoundary>
-                  {() =>
-                    classificationKind(resource?.motivation) ? (
-                      <ClassificationCard
-                        annotation={resource}
-                        isSelected={isSelected}
-                        labels={labels}
-                        ruleSet={ruleSet}
-                        showAnnotationId={showAnnotationId}
-                        windowId={windowId}
-                        selectAnnotation={selectAnnotation}
-                        canvasAnnotationIds={canvasAnnotationIds}
-                        beforeKicker={backLink}
-                        afterTitle={citedBy}
-                        renderOther={(rest) => (
-                          <AnnotationBodyRenderer
-                            body={rest}
-                            annotationLabel={label}
-                            dispatch={dispatch}
-                            addWindow={addWindow}
-                            isActive={isSelected}
-                            ruleSet={ruleSet}
-                            labels={labels}
-                          />
-                        )}
-                      />
-                    ) : (
-                    <>
-                      <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
-                        <AnnotationCardMenu
-                          annotationId={annotationId}
-                          hideJson={showAnnotationId === 'inline'}
-                          labels={resolveLabels(labels)}
-                        />
-                      </Box>
-                      {/* Metadata (right padding keeps the title clear of the menu button) */}
-                      <Box sx={{ pr: 4.5 }}>
-                        {backLink}
-                        <AnnotationMetadata
-                          label={label}
-                          metadata={metadata}
-                          annotationId={showAnnotationId === 'inline' ? annotationId : undefined}
-                          seeAlso={seeAlso}
-                          body={body}
-                        />
-                        {citedBy}
-                      </Box>
-
-                      {/* Body renderer */}
-                      {body && (
-                        <AnnotationBodyRenderer
-                          body={body}
-                          annotationLabel={label}
-                          dispatch={dispatch}
-                          addWindow={addWindow}
-                          isActive={isSelected}
-                          onDataLoaded={handleDataLoaded}
-                          onVisibilityChange={handleVisibilityChange}
-                          ruleSet={ruleSet}
-                          annotationId={annotationId}
-                          windowId={windowId}
-                          selectAnnotation={selectAnnotation}
-                          canvasAnnotationIds={canvasAnnotationIds}
-                          labels={labels}
-                        />
-                      )}
-
-                      {/* Tags */}
-                      {annotation.tags.length > 0 && (
-                        <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                          {annotation.tags.map((tag, idx) => (
-                            <Typography
-                              key={idx}
-                              variant="caption"
-                              sx={{
-                                px: 0.75,
-                                py: 0.25,
-                                bgcolor: 'action.hover',
-                                borderRadius: 1,
-                              }}
-                            >
-                              {tag}
-                            </Typography>
-                          ))}
-                        </Box>
-                      )}
-                    </>
-                    )
-                  }
-                </InsideBoundary>
-              </ErrorBoundary>
-            </Box>
-          );
-        })}
+                {section.annotations.map(renderCard)}
+              </AnnotationPageSection>
+            ))
+          : visibleAnnotations.map(renderCard)}
       </MenuList>
       {failureNotice}
      </TermActionsContext.Provider>
@@ -706,6 +753,33 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     </LanguageProvider>
   );
 };
+
+const EMPTY_PAGE_GROUPS: AnnotationPageGroup[] = [];
+
+/**
+ * Visible annotations grouped by AnnotationPage, in page order, or `undefined` when the
+ * panel stays flat (one page, or a page with annotations but no label).
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function groupByPage<T extends { id: string }>(
+  annotations: T[],
+  pages: AnnotationPageGroup[],
+  prefs: string[],
+): Array<{ id: string; title: string; annotations: T[] }> | undefined {
+  if (pages.length < 2) return undefined;
+  const titles = pages.map((page) => getLocalizedString(page.label, prefs).trim());
+  if (titles.some((t) => !t)) return undefined;
+  const pageOf = new Map<string, number>();
+  pages.forEach((page, i) => page.annotationIds.forEach((id) => pageOf.set(id, i)));
+  const groups = pages.map((page, i) => ({ id: page.id, title: titles[i], annotations: [] as T[] }));
+  for (const ann of annotations) {
+    const i = pageOf.get(ann.id);
+    // An annotation of no known page would be lost in a section: stay flat.
+    if (i === undefined) return undefined;
+    groups[i].annotations.push(ann);
+  }
+  return groups.filter((g) => g.annotations.length > 0);
+}
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined);
 
@@ -752,7 +826,17 @@ export function mapStateToProps(
     linkSubtitleMetadataLabel: str(state.config?.scientificAnnotations?.linkSubtitleMetadataLabel),
     windowCanvasId: window?.canvasId,
     visibleCanvasIds: visibleIds(window),
+    pageGroups: canvasId ? safePageGroups(state.annotations?.[canvasId]) : EMPTY_PAGE_GROUPS,
   };
+}
+
+// A malformed page must fall back to the flat list, never break the window.
+function safePageGroups(canvasAnnotations: Parameters<typeof normalizeAnnotationPages>[0]) {
+  try {
+    return normalizeAnnotationPages(canvasAnnotations);
+  } catch {
+    return EMPTY_PAGE_GROUPS;
+  }
 }
 
 // Stable reference per Redux page object, so connect() doesn't re-render on unrelated ticks.
