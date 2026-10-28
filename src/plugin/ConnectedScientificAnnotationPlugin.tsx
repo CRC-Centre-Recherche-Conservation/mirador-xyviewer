@@ -15,6 +15,7 @@ import { addWindow as miradorAddWindow, SanitizedHtml } from 'mirador';
 import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/material';
 import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
 import { MetadataDisplay } from '../components/MetadataDisplay';
+import { LanguageProvider } from '../utils/LanguageContext';
 import { filtersStore } from '../state/filtersStore';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type {
@@ -122,6 +123,8 @@ interface PluginWrapperProps {
   dispatch: (action: unknown) => void;
   addWindow: (config: { manifestId: string }) => unknown;
   annotationResources: Record<string, IIIFAnnotation>;
+  /** Mirador config language (reader's language for IIIF language maps). */
+  language?: string;
 }
 
 /**
@@ -133,6 +136,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   dispatch,
   addWindow,
   annotationResources,
+  language,
 }) => {
   const {
     annotations = [],
@@ -232,34 +236,102 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 
   // Render mixed annotations - scientific ones custom, others default
   return (
-    <MenuList disablePadding>
-      {visibleAnnotations.map((annotation) => {
-        const resource = annotationResources[annotation.id];
-        const isScientific = customRenderingIds.has(annotation.id);
-        const isSelected = selectedAnnotationId === annotation.id;
-        const isHovered = hoveredAnnotationIds.includes(annotation.id);
-        const showFilterBadge = shownOnlyBecauseSelected(
-          annotation.id,
-          hiddenAnnotationIds,
-          selectedAnnotationId,
-        );
+    <LanguageProvider language={language}>
+      <MenuList disablePadding>
+        {visibleAnnotations.map((annotation) => {
+          const resource = annotationResources[annotation.id];
+          const isScientific = customRenderingIds.has(annotation.id);
+          const isSelected = selectedAnnotationId === annotation.id;
+          const isHovered = hoveredAnnotationIds.includes(annotation.id);
+          const showFilterBadge = shownOnlyBecauseSelected(
+            annotation.id,
+            hiddenAnnotationIds,
+            selectedAnnotationId,
+          );
 
-        if (!isScientific) {
-          // Render default annotation
+          if (!isScientific) {
+            // Render default annotation
+            return (
+              <MenuItem
+                key={annotation.id}
+                component="li"
+                ref={(el: HTMLLIElement | null) => {
+                  if (el) annotationRefs.current.set(annotation.id, el);
+                  else annotationRefs.current.delete(annotation.id);
+                }}
+                onClick={() => handleAnnotationClick(annotation.id)}
+                onMouseEnter={() => handleAnnotationHover(annotation.id)}
+                onMouseLeave={() => handleAnnotationHover(null)}
+                selected={isSelected}
+                sx={{
+                  bgcolor: isHovered && !isSelected ? 'action.hover' : undefined,
+                }}
+              >
+                {showFilterBadge && (
+                  <Typography
+                    variant="caption"
+                    role="note"
+                    sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
+                  >
+                    {FILTER_HIDDEN_BADGE}
+                  </Typography>
+                )}
+                <ListItemText
+                  primary={
+                    <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
+                  }
+                  secondary={annotation.tags?.map((tag) => (
+                    <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
+                  ))}
+                  slotProps={{ primary: { variant: 'body2' } }}
+                />
+              </MenuItem>
+            );
+          }
+
+          // Render scientific annotation
+          const body = resource?.body as AnnotationBody | AnnotationBody[] | undefined;
+          const label = resource?.label;
+          const metadata = resource?.metadata;
+          const annotationId = resource?.id;
+          const seeAlso = resource?.seeAlso;
+
           return (
-            <MenuItem
+            <Box
               key={annotation.id}
               component="li"
               ref={(el: HTMLLIElement | null) => {
                 if (el) annotationRefs.current.set(annotation.id, el);
                 else annotationRefs.current.delete(annotation.id);
               }}
-              onClick={() => handleAnnotationClick(annotation.id)}
+              onClick={(e: React.MouseEvent<HTMLElement>) => {
+                const target = e.target as Element;
+                // Ignore portaled content (expand dialog) bubbling through the React tree.
+                if (!e.currentTarget.contains(target)) return;
+                // Buttons inside the body (Retry, Sign in, ...) must not also select the annotation.
+                const control = target.closest?.('button, a, [role="button"]');
+                if (control && e.currentTarget.contains(control)) return;
+                handleAnnotationClick(annotation.id);
+              }}
+              // Keep MenuList roving focus / typeahead away from the body and its dialog.
+              onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+                if (e.target !== e.currentTarget) e.stopPropagation();
+              }}
               onMouseEnter={() => handleAnnotationHover(annotation.id)}
               onMouseLeave={() => handleAnnotationHover(null)}
-              selected={isSelected}
               sx={{
-                bgcolor: isHovered && !isSelected ? 'action.hover' : undefined,
+                p: 1.5,
+                cursor: 'pointer',
+                bgcolor: isSelected
+                  ? 'action.selected'
+                  : isHovered
+                    ? 'action.hover'
+                    : 'transparent',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  bgcolor: isSelected ? 'action.selected' : 'action.hover',
+                },
               }}
             >
               {showFilterBadge && (
@@ -271,113 +343,47 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                   {FILTER_HIDDEN_BADGE}
                 </Typography>
               )}
-              <ListItemText
-                primary={
-                  <SanitizedHtml ruleSet={ruleSet} htmlString={annotation.content ?? ''} />
-                }
-                secondary={annotation.tags?.map((tag) => (
-                  <Chip component="span" size="small" variant="outlined" label={tag} key={tag} />
-                ))}
-                slotProps={{ primary: { variant: 'body2' } }}
-              />
-            </MenuItem>
+              {/* Metadata */}
+              <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
+
+              {/* Body renderer */}
+              {body && (
+                <AnnotationBodyRenderer
+                  body={body}
+                  annotationLabel={label}
+                  dispatch={dispatch}
+                  addWindow={addWindow}
+                  isActive={isSelected}
+                  onDataLoaded={handleDataLoaded}
+                  onVisibilityChange={handleVisibilityChange}
+                  ruleSet={ruleSet}
+                />
+              )}
+
+              {/* Tags */}
+              {annotation.tags.length > 0 && (
+                <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  {annotation.tags.map((tag, idx) => (
+                    <Typography
+                      key={idx}
+                      variant="caption"
+                      sx={{
+                        px: 0.75,
+                        py: 0.25,
+                        bgcolor: 'action.hover',
+                        borderRadius: 1,
+                      }}
+                    >
+                      {tag}
+                    </Typography>
+                  ))}
+                </Box>
+              )}
+            </Box>
           );
-        }
-
-        // Render scientific annotation
-        const body = resource?.body as AnnotationBody | AnnotationBody[] | undefined;
-        const label = resource?.label;
-        const metadata = resource?.metadata;
-        const annotationId = resource?.id;
-        const seeAlso = resource?.seeAlso;
-
-        return (
-          <Box
-            key={annotation.id}
-            component="li"
-            ref={(el: HTMLLIElement | null) => {
-              if (el) annotationRefs.current.set(annotation.id, el);
-              else annotationRefs.current.delete(annotation.id);
-            }}
-            onClick={(e: React.MouseEvent<HTMLElement>) => {
-              const target = e.target as Element;
-              // Ignore portaled content (expand dialog) bubbling through the React tree.
-              if (!e.currentTarget.contains(target)) return;
-              // Buttons inside the body (Retry, Sign in, ...) must not also select the annotation.
-              const control = target.closest?.('button, a, [role="button"]');
-              if (control && e.currentTarget.contains(control)) return;
-              handleAnnotationClick(annotation.id);
-            }}
-            // Keep MenuList roving focus / typeahead away from the body and its dialog.
-            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
-              if (e.target !== e.currentTarget) e.stopPropagation();
-            }}
-            onMouseEnter={() => handleAnnotationHover(annotation.id)}
-            onMouseLeave={() => handleAnnotationHover(null)}
-            sx={{
-              p: 1.5,
-              cursor: 'pointer',
-              bgcolor: isSelected
-                ? 'action.selected'
-                : isHovered
-                  ? 'action.hover'
-                  : 'transparent',
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              '&:hover': {
-                bgcolor: isSelected ? 'action.selected' : 'action.hover',
-              },
-            }}
-          >
-            {showFilterBadge && (
-              <Typography
-                variant="caption"
-                role="note"
-                sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
-              >
-                {FILTER_HIDDEN_BADGE}
-              </Typography>
-            )}
-            {/* Metadata */}
-            <MetadataDisplay label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} compact />
-
-            {/* Body renderer */}
-            {body && (
-              <AnnotationBodyRenderer
-                body={body}
-                annotationLabel={label}
-                dispatch={dispatch}
-                addWindow={addWindow}
-                isActive={isSelected}
-                onDataLoaded={handleDataLoaded}
-                onVisibilityChange={handleVisibilityChange}
-                ruleSet={ruleSet}
-              />
-            )}
-
-            {/* Tags */}
-            {annotation.tags.length > 0 && (
-              <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                {annotation.tags.map((tag, idx) => (
-                  <Typography
-                    key={idx}
-                    variant="caption"
-                    sx={{
-                      px: 0.75,
-                      py: 0.25,
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                    }}
-                  >
-                    {tag}
-                  </Typography>
-                ))}
-              </Box>
-            )}
-          </Box>
-        );
-      })}
-    </MenuList>
+        })}
+      </MenuList>
+    </LanguageProvider>
   );
 };
 
@@ -399,6 +405,7 @@ export function mapStateToProps(state: MiradorState, { targetProps }: { targetPr
 
   return {
     annotationResources,
+    language: state.config?.language,
   };
 }
 

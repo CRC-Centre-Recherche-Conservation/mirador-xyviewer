@@ -17,6 +17,12 @@ import { parseValueWithUrl, normalizeKey, createKey } from './filtersStore';
 
 describe('filtersStore utility functions', () => {
   describe('parseValueWithUrl', () => {
+    it('stays fast on long whitespace runs', () => {
+      const t = Date.now();
+      expect(parseValueWithUrl(' '.repeat(100000) + 'x').url).toBeUndefined();
+      expect(Date.now() - t).toBeLessThan(500);
+    });
+
     it('should extract display text and URL from combined string', () => {
       const result = parseValueWithUrl('XRF Analysis (https://example.org/technique/xrf)');
 
@@ -668,5 +674,57 @@ describe('filtersStore', () => {
       groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.expanded).toBe(true);
     });
+  });
+});
+
+describe('filtersStore reader language', () => {
+  const annotations = [
+    {
+      id: 'a1',
+      metadata: [{ label: { en: ['Technique'], fr: ['Technique d\u2019analyse'] }, value: { en: ['Painting'], fr: ['Peinture'] } }],
+    },
+    {
+      id: 'a2',
+      metadata: [{ label: { en: ['Technique'], fr: ['Technique d\u2019analyse'] }, value: { en: ['Drawing'], fr: ['Dessin'] } }],
+    },
+  ];
+  const w = 'lang-window';
+  const c = 'lang-canvas';
+
+  beforeEach(async () => {
+    const { filtersStore } = await import('./filtersStore');
+    filtersStore.clearFilters(w, c);
+  });
+
+  it('builds French labels and keys with fr prefs, exposing the value key', async () => {
+    const { filtersStore } = await import('./filtersStore');
+    filtersStore.initializeFromAnnotations(w, c, annotations, false, ['fr', 'none']);
+    const [group] = filtersStore.getGroups(w, c);
+    expect(group.label).toBe('Technique d\u2019analyse');
+    expect([...group.values.keys()].sort()).toEqual(['dessin', 'peinture']);
+    expect(group.values.get('dessin')!.key).toBe('dessin');
+  });
+
+  it('hides annotations using the French keys', async () => {
+    const { filtersStore } = await import('./filtersStore');
+    filtersStore.initializeFromAnnotations(w, c, annotations, false, ['fr']);
+    const [group] = filtersStore.getGroups(w, c);
+    filtersStore.toggleValue(w, c, group.key, 'dessin');
+    expect([...filtersStore.updateHiddenAnnotations(w, c, annotations)]).toEqual(['a2']);
+  });
+
+  it('rebuilds (and resets the selection) when the prefs change, not otherwise', async () => {
+    const { filtersStore } = await import('./filtersStore');
+    filtersStore.initializeFromAnnotations(w, c, annotations, false, ['en']);
+    const [en] = filtersStore.getGroups(w, c);
+    filtersStore.toggleValue(w, c, en.key, 'drawing');
+    expect(filtersStore.hasActiveFilters(w, c)).toBe(true);
+
+    filtersStore.initializeFromAnnotations(w, c, annotations, false, ['en']);
+    expect(filtersStore.hasActiveFilters(w, c)).toBe(true); // same prefs: untouched
+
+    filtersStore.initializeFromAnnotations(w, c, annotations, false, ['fr']);
+    expect(filtersStore.hasActiveFilters(w, c)).toBe(false);
+    expect(filtersStore.getGroups(w, c)[0].label).toBe('Technique d\u2019analyse');
   });
 });

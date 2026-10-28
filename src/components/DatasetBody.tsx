@@ -38,6 +38,7 @@ import type { DatasetAuthHandler } from '../services/datasetAuth';
 import { datasetCache } from '../services/datasetCache';
 import { isValidUrl } from '../utils/security';
 import { getLocalizedString } from '../utils/localization';
+import { useLanguagePreferences } from '../utils/LanguageContext';
 import { SpectrumPlot } from './SpectrumPlot';
 
 // The global sign-in handler registry lives in a lightweight, React-free module
@@ -251,8 +252,9 @@ export const DatasetBody: React.FC<DatasetBodyProps> = ({
   const host = useMemo(() => safeHost(body.id), [body.id]);
 
   // Get display label
-  const displayLabel = getLocalizedString(body.label) ||
-    getLocalizedString(annotationLabel) ||
+  const langPrefs = useLanguagePreferences();
+  const displayLabel = getLocalizedString(body.label, langPrefs) ||
+    getLocalizedString(annotationLabel, langPrefs) ||
     'Spectrum Data';
 
   // Validate URL on mount

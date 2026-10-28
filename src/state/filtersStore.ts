@@ -8,10 +8,12 @@
  */
 
 import type { LocalizedString } from '../types/iiif';
-import { getLocalizedString } from '../utils/localization';
+import { getLocalizedString, resolvePreferredLanguages } from '../utils/localization';
 
 /** Filter value entry */
 export interface FilterValue {
+  /** Normalized key of this value inside its group (what `toggleValue` expects). */
+  key: string;
   /** Raw value string */
   raw: string;
   /** Display text (without URL) */
@@ -44,6 +46,8 @@ interface FilterState {
   groups: Map<string, FilterGroup>;
   /** Set of hidden annotation IDs based on current filters */
   hiddenAnnotationIds: Set<string>;
+  /** Language preferences the groups were built with. */
+  prefs: string[];
 }
 
 /** Event types for subscribers */
@@ -64,12 +68,12 @@ type FiltersStoreListener = (event: FiltersStoreEvent) => void;
  * @internal Exposed for tests; not part of the public API.
  */
 export function parseValueWithUrl(value: string): { displayText: string; url?: string } {
-  const urlMatch = value.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
-  if (urlMatch) {
-    return {
-      displayText: urlMatch[1].trim(),
-      url: urlMatch[2],
-    };
+  // Linear scan (no backtracking regex on the free-text head).
+  const start = value.endsWith(')') ? value.lastIndexOf('(http') : -1;
+  if (start > 0) {
+    const tail = /^\((https?:\/\/[^)]+)\)$/.exec(value.slice(start));
+    const head = value.slice(0, start).trim();
+    if (tail && head) return { displayText: head, url: tail[1] };
   }
   return { displayText: value };
 }
@@ -80,6 +84,23 @@ export function parseValueWithUrl(value: string): { displayText: string; url?: s
  */
 export function normalizeKey(text: string): string {
   return text.toLowerCase().trim().replace(/\s+/g, '_');
+}
+
+/** Key of the synthetic "None" value (annotations lacking a label). */
+export const NONE_KEY = '__none__';
+
+/**
+ * Single place that turns a metadata entry into its label/value texts and keys,
+ * in the reader's language. Keys therefore depend on the language preferences.
+ * @internal Exposed for tests; not part of the public API.
+ */
+export function entryKeys(
+  entry: { label: LocalizedString; value: LocalizedString },
+  prefs: string[]
+): { labelText: string; labelKey: string; valueText: string; valueKey: string } {
+  const labelText = getLocalizedString(entry.label, prefs) || 'Unknown';
+  const valueText = getLocalizedString(entry.value, prefs) || '';
+  return { labelText, labelKey: normalizeKey(labelText), valueText, valueKey: normalizeKey(valueText) };
 }
 
 /**
@@ -120,6 +141,7 @@ class FiltersStore {
       this.states.set(key, {
         groups: new Map(),
         hiddenAnnotationIds: new Set(),
+        prefs: resolvePreferredLanguages(),
       });
     }
     return this.states.get(key)!;
@@ -135,7 +157,11 @@ class FiltersStore {
   }
 
   /**
-   * Initialize filters from annotations (only if not already initialized)
+   * Initialize filters from annotations (only if not already initialized).
+   *
+   * Labels and values are keyed in the reader's language (`prefs`, default: the
+   * browser language). Calling again with different prefs rebuilds the groups, so
+   * the current selection is reset (keys differ per language).
    */
   initializeFromAnnotations(
     windowId: string,
@@ -147,16 +173,19 @@ class FiltersStore {
         value: LocalizedString;
       }>;
     }>,
-    force: boolean = false
+    force: boolean = false,
+    prefs: string[] = resolvePreferredLanguages()
   ): void {
     const key = createKey(windowId, canvasId);
+    const samePrefs = (this.states.get(key)?.prefs ?? []).join('|') === prefs.join('|');
 
-    // Skip if already initialized (unless forced)
-    if (!force && this.hasFiltersInitialized(windowId, canvasId)) {
+    // Skip if already initialized (unless forced or the language changed)
+    if (!force && samePrefs && this.hasFiltersInitialized(windowId, canvasId)) {
       return;
     }
 
     const state = this.getState(key);
+    state.prefs = prefs;
     state.groups.clear();
     state.hiddenAnnotationIds.clear();
 
@@ -165,9 +194,7 @@ class FiltersStore {
       if (!annotation.metadata) continue;
 
       for (const entry of annotation.metadata) {
-        const labelText = getLocalizedString(entry.label) || 'Unknown';
-        const labelKey = normalizeKey(labelText);
-        const valueText = getLocalizedString(entry.value) || '';
+        const { labelText, labelKey, valueText, valueKey } = entryKeys(entry, prefs);
 
         if (!valueText) continue;
 
@@ -182,12 +209,12 @@ class FiltersStore {
         }
 
         const group = state.groups.get(labelKey)!;
-        const valueKey = normalizeKey(valueText);
 
         // Get or create value
         if (!group.values.has(valueKey)) {
           const parsed = parseValueWithUrl(valueText);
           group.values.set(valueKey, {
+            key: valueKey,
             raw: valueText,
             displayText: parsed.displayText,
             url: parsed.url,
@@ -212,9 +239,7 @@ class FiltersStore {
       const annotationLabelKeys = new Set<string>();
       if (annotation.metadata) {
         for (const entry of annotation.metadata) {
-          const labelText = getLocalizedString(entry.label) || 'Unknown';
-          const labelKey = normalizeKey(labelText);
-          const valueText = getLocalizedString(entry.value) || '';
+          const { labelKey, valueText } = entryKeys(entry, prefs);
           if (valueText) {
             annotationLabelKeys.add(labelKey);
           }
@@ -227,9 +252,10 @@ class FiltersStore {
           const group = state.groups.get(labelKey)!;
 
           // Create "None" value if it doesn't exist
-          if (!group.values.has('__none__')) {
-            group.values.set('__none__', {
-              raw: '__none__',
+          if (!group.values.has(NONE_KEY)) {
+            group.values.set(NONE_KEY, {
+              key: NONE_KEY,
+              raw: NONE_KEY,
               displayText: 'None',
               count: 0,
               visibleCount: 0,
@@ -238,7 +264,7 @@ class FiltersStore {
           }
 
           // Increment count for "None"
-          const noneValue = group.values.get('__none__')!;
+          const noneValue = group.values.get(NONE_KEY)!;
           noneValue.count++;
           noneValue.visibleCount++;
         }
@@ -353,6 +379,7 @@ class FiltersStore {
     const state = this.states.get(key);
     if (!state) return new Set();
 
+    const prefs = state.prefs;
     const hiddenIds = new Set<string>();
     const allGroupKeys = Array.from(state.groups.keys());
 
@@ -370,9 +397,7 @@ class FiltersStore {
       const annotationLabelKeys = new Set<string>();
       if (annotation.metadata) {
         for (const entry of annotation.metadata) {
-          const labelText = getLocalizedString(entry.label) || 'Unknown';
-          const labelKey = normalizeKey(labelText);
-          const valueText = getLocalizedString(entry.value) || '';
+          const { labelKey, valueText } = entryKeys(entry, prefs);
           if (valueText) {
             annotationLabelKeys.add(labelKey);
           }
@@ -382,10 +407,7 @@ class FiltersStore {
       // Check if annotation matches any deselected filter
       if (annotation.metadata) {
         for (const entry of annotation.metadata) {
-          const labelText = getLocalizedString(entry.label) || 'Unknown';
-          const labelKey = normalizeKey(labelText);
-          const valueText = getLocalizedString(entry.value) || '';
-          const valueKey = normalizeKey(valueText);
+          const { labelKey, valueKey } = entryKeys(entry, prefs);
 
           const group = state.groups.get(labelKey);
           if (!group) continue;
@@ -403,7 +425,7 @@ class FiltersStore {
         for (const labelKey of allGroupKeys) {
           if (!annotationLabelKeys.has(labelKey)) {
             const group = state.groups.get(labelKey)!;
-            const noneValue = group.values.get('__none__');
+            const noneValue = group.values.get(NONE_KEY);
             if (noneValue && !noneValue.selected) {
               shouldHide = true;
               break;
@@ -418,10 +440,7 @@ class FiltersStore {
         // Annotation is visible - increment visible counts for all its metadata values
         if (annotation.metadata) {
           for (const entry of annotation.metadata) {
-            const labelText = getLocalizedString(entry.label) || 'Unknown';
-            const labelKey = normalizeKey(labelText);
-            const valueText = getLocalizedString(entry.value) || '';
-            const valueKey = normalizeKey(valueText);
+            const { labelKey, valueKey } = entryKeys(entry, prefs);
 
             const group = state.groups.get(labelKey);
             if (!group) continue;
@@ -437,7 +456,7 @@ class FiltersStore {
         for (const labelKey of allGroupKeys) {
           if (!annotationLabelKeys.has(labelKey)) {
             const group = state.groups.get(labelKey)!;
-            const noneValue = group.values.get('__none__');
+            const noneValue = group.values.get(NONE_KEY);
             if (noneValue) {
               noneValue.visibleCount++;
             }

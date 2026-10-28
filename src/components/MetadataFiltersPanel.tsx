@@ -22,7 +22,7 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import { filtersStore, type FilterGroup, type FilterValue } from '../state/filtersStore';
+import { filtersStore, NONE_KEY, type FilterGroup, type FilterValue } from '../state/filtersStore';
 
 interface MetadataFiltersPanelProps {
   /** Window ID */
@@ -56,9 +56,9 @@ const FilterValueItem: React.FC<{
   onChange: () => void;
 }> = ({ value, labelKey, windowId, canvasId, onChange }) => {
   const handleChange = useCallback(() => {
-    filtersStore.toggleValue(windowId, canvasId, labelKey, value.raw.toLowerCase().trim().replace(/\s+/g, '_'));
+    filtersStore.toggleValue(windowId, canvasId, labelKey, value.key);
     onChange();
-  }, [windowId, canvasId, labelKey, value.raw, onChange]);
+  }, [windowId, canvasId, labelKey, value.key, onChange]);
 
   return (
     <Box
@@ -211,8 +211,8 @@ const FilterGroupItem: React.FC<{
           {values
             .sort((a, b) => {
               // "None" always at the end
-              if (a.raw === '__none__') return 1;
-              if (b.raw === '__none__') return -1;
+              if (a.key === NONE_KEY) return 1;
+              if (b.key === NONE_KEY) return -1;
               // Sort by count descending
               return b.count - a.count;
             })

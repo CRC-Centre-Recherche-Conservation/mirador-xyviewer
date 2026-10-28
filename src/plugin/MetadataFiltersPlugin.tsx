@@ -13,6 +13,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MetadataFiltersPanel } from '../components/MetadataFiltersPanel';
 import { filtersStore } from '../state/filtersStore';
+import { resolvePreferredLanguages } from '../utils/localization';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { IIIFAnnotation, LocalizedString } from '../types/iiif';
@@ -29,6 +30,8 @@ interface MetadataFiltersPluginProps {
   filtersEnabled?: boolean;
   /** Annotation resources */
   annotationResources: Record<string, IIIFAnnotation>;
+  /** Mirador config language (reader's language for IIIF language maps) */
+  language?: string;
 }
 
 /** Default window size */
@@ -58,13 +61,14 @@ export function extractAnnotationsWithMetadata(
  * Metadata Filters Plugin Component
  * Adds a filter button and draggable/resizable panel to the viewer
  */
-const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, MetadataFiltersPluginProps>(
+export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, MetadataFiltersPluginProps>(
   function MetadataFiltersPluginComponent(
     {
       windowId,
       canvasId,
       filtersEnabled = true,
       annotationResources,
+      language,
     },
     ref
   ) {
@@ -86,16 +90,18 @@ const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, MetadataFilter
       [annotationsWithMetadata]
     );
 
-    // Initialize filters when we have metadata (handles lazy loading)
+    // Reader's language preferences; filter keys depend on them
+    const prefs = useMemo(() => resolvePreferredLanguages(language), [language]);
+
+    // Initialize filters when we have metadata (handles lazy loading). The store skips
+    // work when already initialized with the same prefs, and rebuilds (resetting the
+    // selection) when the language changed.
     useEffect(() => {
       if (windowId && canvasId && hasMetadata) {
-        // Initialize only if not already done for this window+canvas
-        if (!filtersStore.hasFiltersInitialized(windowId, canvasId)) {
-          filtersStore.initializeFromAnnotations(windowId, canvasId, annotationsWithMetadata, false);
-        }
+        filtersStore.initializeFromAnnotations(windowId, canvasId, annotationsWithMetadata, false, prefs);
         setHiddenCount(filtersStore.getHiddenAnnotationIds(windowId, canvasId).size);
       }
-    }, [windowId, canvasId, hasMetadata, annotationsWithMetadata]);
+    }, [windowId, canvasId, hasMetadata, annotationsWithMetadata, prefs]);
 
     // Re-initialize when canvas changes
     const prevCanvasIdRef = useRef<string | undefined>(undefined);
@@ -384,6 +390,7 @@ export function mapStateToProps(
     canvasId,
     filtersEnabled,
     annotationResources,
+    language: state.config?.language,
   };
 }
 

@@ -6,8 +6,10 @@
 import React from 'react';
 import { Box, Typography, Link } from '@mui/material';
 import type { MetadataEntry, LocalizedString, SeeAlsoEntry } from '../types/iiif';
-import { getLocalizedString } from '../utils/localization';
+import { getLocalizedString, getLocalizedStrings } from '../utils/localization';
+import { useLanguagePreferences } from '../utils/LanguageContext';
 import { isValidUrl } from '../utils/security';
+import { parseValueWithUrl } from '../state/filtersStore';
 
 export interface MetadataDisplayProps {
   /** Label of the annotation */
@@ -20,7 +22,14 @@ export interface MetadataDisplayProps {
   seeAlso?: SeeAlsoEntry | SeeAlsoEntry[];
   /** Compact mode - shows metadata inline */
   compact?: boolean;
+  /** Link text when a seeAlso entry has no label or type (default 'Linked resource'). */
+  fallbackLinkLabel?: string;
+  /** Heading above the seeAlso list (default 'Linked resources'). */
+  seeAlsoHeading?: string;
 }
+
+/** Upper bound on rendered values per entry (hostile or huge arrays). */
+const MAX_METADATA_VALUES = 50;
 
 /**
  * Extract URL from a value string that may contain text and URL
@@ -28,10 +37,8 @@ export interface MetadataDisplayProps {
  */
 function extractUrlFromValue(value: string): { text: string; url: string | null } {
   // Check if value contains a URL in parentheses: "Label (http://...)"
-  const urlInParensMatch = value.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
-  if (urlInParensMatch) {
-    return { text: urlInParensMatch[1].trim(), url: urlInParensMatch[2] };
-  }
+  const parsed = parseValueWithUrl(value);
+  if (parsed.url) return { text: parsed.displayText, url: parsed.url };
 
   // Check if the entire value is a URL
   const urlMatch = value.match(/^(https?:\/\/\S+)$/);
@@ -48,9 +55,12 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   annotationId,
   seeAlso,
   compact: _compact = false,
+  fallbackLinkLabel = 'Linked resource',
+  seeAlsoHeading = 'Linked resources',
 }) => {
   // _compact is kept for API compatibility but the layout is now unified
-  const labelText = getLocalizedString(label);
+  const prefs = useLanguagePreferences();
+  const labelText = getLocalizedString(label, prefs);
 
   // Normalize seeAlso to array
   const seeAlsoList = seeAlso ? (Array.isArray(seeAlso) ? seeAlso : [seeAlso]) : [];
@@ -135,8 +145,9 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
       {metadata && metadata.length > 0 && (
         <Box component="dl" sx={{ m: 0 }}>
           {metadata.map((entry, index) => {
-            const entryLabel = getLocalizedString(entry.label);
-            const entryValue = getLocalizedString(entry.value);
+            const entryLabel = getLocalizedString(entry.label, prefs);
+            // IIIF §4.4: show every value of the chosen language.
+            const entryValues = getLocalizedStrings(entry.value, prefs).slice(0, MAX_METADATA_VALUES);
             return (
               <Box key={`${entryLabel}-${index}`} sx={{ mb: 0.5 }}>
                 <Typography
@@ -152,7 +163,12 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                   variant="body2"
                   sx={{ display: 'inline', m: 0 }}
                 >
-                  {renderValue(entryValue)}
+                  {entryValues.map((v, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && ', '}
+                      {renderValue(v)}
+                    </React.Fragment>
+                  ))}
                 </Typography>
               </Box>
             );
@@ -168,28 +184,28 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
             color="text.secondary"
             sx={{ fontStyle: 'italic', display: 'block', mb: 0.5 }}
           >
-            Linked resources :
+            {seeAlsoHeading} :
           </Typography>
           {seeAlsoList.map((item, index) => {
-            // 1. Extraction de l'URL
+            // 1. Extract the URL
             let url = '';
             if (typeof item.id === 'string') {
-              url = item.id; // Cas 1: id est une URL directe
+              url = item.id; // id is a plain URL
             } else if (typeof item.id === 'object' && item.id.url) {
-              url = item.id.url; // Cas 2: id est un objet avec une propriété url
+              url = item.id.url; // id is an object with a url property
             }
 
-            // 2. Extraction du libellé à afficher
+            // 2. Pick the link text
             let displayLabel = '';
             if (typeof item.id === 'object' && item.id.url_label) {
-              displayLabel = item.id.url_label; // Priorité à url_label si disponible
+              displayLabel = item.id.url_label; // url_label wins when present
             } else {
-              displayLabel = getLocalizedString(item.label) || item.type || 'Ressource liée'; // Fallback
+              displayLabel = getLocalizedString(item.label, prefs) || item.type || fallbackLinkLabel;
             }
 
-            // 3. Affichage conditionnel
+            // 3. Skip entries without a valid URL
             if (!url || !isValidUrl(url)) {
-              console.warn(`L'élément seeAlso à l'index ${index} n'a pas d'URL valide.`, item);
+              console.warn(`seeAlso entry at index ${index} has no valid URL.`, item);
               return null;
             }
 
