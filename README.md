@@ -57,6 +57,11 @@ overridable through the Mirador config key `scientificAnnotations.labels`; see
 Mirador.viewer({ id: 'mirador', scientificAnnotations: { labels: { evidence: 'Proof' } } }, plugins);
 ```
 
+Annotations with a `classifying` or `identifying` motivation are shown as summary cards
+(title, text, terms grouped by role, linked annotations, report link). The annotation id
+is in each card's "⋮" menu; set `scientificAnnotations.showAnnotationId: 'inline'` to keep
+it visible on the card.
+
 ## IIIF API compatibility
 
 The plugin reads its data from Mirador's store and only post-processes annotation

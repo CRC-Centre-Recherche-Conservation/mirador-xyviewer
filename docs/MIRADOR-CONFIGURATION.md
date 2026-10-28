@@ -206,16 +206,21 @@ const viewer = Mirador.viewer({
   scientificAnnotations: {
     labels: {
       evidence: 'Proof',                           // button of a `linking` SpecificResource
+      linkedAnnotations: 'Evidence',               // caption above the `linking` buttons
       evidenceUnavailable: 'Not on this canvas',   // its tooltip when the target is absent
       purposes: { classifying: 'Pigment' },        // caption per SpecificResource purpose
     },
+    showAnnotationId: 'menu',                      // 'menu' (default) | 'inline'
   },
 }, [scientificAnnotationPlugin]);
 ```
 
 | Option | Type | Description |
 |---|---|---|
-| `labels` | `AnnotationBodyLabels` | UI string overrides (`evidence`, `evidenceUnavailable`, `purposes`). |
+| `labels` | `AnnotationBodyLabels` | UI string overrides, all English by default (see below). |
+| `showAnnotationId` | `'menu' \| 'inline'` | Where the annotation IIIF id is shown on every card. `'menu'` (default) puts "Copy annotation id" and "Open JSON" in the card's "⋮" menu; `'inline'` keeps the id as a link under the title. |
+
+Label keys: `evidence`, `evidenceUnavailable`, `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `untitled`.
 
 ### Theme Customization
 

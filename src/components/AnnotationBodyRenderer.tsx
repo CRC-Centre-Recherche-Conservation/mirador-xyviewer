@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Box, Divider } from '@mui/material';
+import { Box, Divider, Typography } from '@mui/material';
 import type {
   AnnotationBody,
   ChoiceBody,
@@ -38,6 +38,7 @@ import { TextualBody } from './TextualBody';
 import { SpecificResourceBody } from './SpecificResourceBody';
 import { EvidenceLinkBody } from './EvidenceLinkBody';
 import { pickLanguageKey } from '../utils/localization';
+import { resolveLabels } from '../utils/annotationLabels';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import type { SpectrumData, DatasetRequestOptions } from '../types/dataset';
 import type { AnnotationBodyLabels } from '../types/mirador';
@@ -232,15 +233,21 @@ const SegmentView: React.FC<SegmentViewProps> = ({ segment, depth = 0, ...props 
   }
 
   if (segment.kind === 'links') {
+    const caption = resolveLabels(props.labels).linkedAnnotations;
     return (
-      <EvidenceLinkBody
-        bodies={segment.bodies}
-        windowId={props.windowId}
-        selectAnnotation={props.selectAnnotation}
-        canvasAnnotationIds={props.canvasAnnotationIds}
-        label={props.labels?.evidence}
-        unavailableLabel={props.labels?.evidenceUnavailable}
-      />
+      <Box role="group" aria-label={caption}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+          {caption}
+        </Typography>
+        <EvidenceLinkBody
+          bodies={segment.bodies}
+          windowId={props.windowId}
+          selectAnnotation={props.selectAnnotation}
+          canvasAnnotationIds={props.canvasAnnotationIds}
+          label={props.labels?.evidence}
+          unavailableLabel={props.labels?.evidenceUnavailable}
+        />
+      </Box>
     );
   }
 

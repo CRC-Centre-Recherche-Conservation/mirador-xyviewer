@@ -68,12 +68,41 @@ export interface AnnotationBodyLabels {
   evidenceUnavailable?: string;
   /** Caption per SpecificResource purpose (default: the purpose itself). */
   purposes?: Record<string, string>;
+  /** Kicker of a card whose motivation is `classifying` (default "Classification"). */
+  classification?: string;
+  /** Kicker of a card whose motivation is `identifying` (default "Identification"). */
+  identification?: string;
+  /** Captions of the term groups of a classification card. */
+  classifiedAs?: string;
+  identifiedAs?: string;
+  assessment?: string;
+  /** Caption of assessments that cannot be tied to one class (default "Overall assessment (see text)"). */
+  overallAssessment?: string;
+  description?: string;
+  tags?: string;
+  otherTerms?: string;
+  /** Caption of the `linking` group (default "Linked annotations"). */
+  linkedAnnotations?: string;
+  /** Disclosure holding the prose when the terms are shown as a structure (default "Full statement"). */
+  fullStatement?: string;
+  /** Report button (default "Open report"). */
+  openReport?: string;
+  /** Term menu entry (default "Open in vocabulary"). */
+  openVocabulary?: string;
+  /** Card menu (default "Annotation actions") and its entries. */
+  cardMenu?: string;
+  copyAnnotationId?: string;
+  openJson?: string;
+  /** Title of a classification card without any label or text (default "Untitled annotation"). */
+  untitled?: string;
 }
 
 /** Host options for the scientific annotation plugin, read from the Mirador config key `scientificAnnotations`. */
 export interface ScientificAnnotationsConfig {
   /** Overrides for the plugin's UI strings (evidence button, purpose captions). */
   labels?: AnnotationBodyLabels;
+  /** Where the annotation IIIF id is shown: in each card's "⋮" menu (default) or inline. */
+  showAnnotationId?: 'menu' | 'inline';
 }
 
 /** Mirador config */

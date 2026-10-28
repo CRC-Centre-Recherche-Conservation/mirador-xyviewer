@@ -57,16 +57,22 @@ function stripTagsOnce(text: string): string {
  * (React already escapes text children).
  */
 export function sanitizeText(text: string): string {
-  // Strip tags until nothing changes, so removing one tag cannot assemble another
-  // (bounded passes; anything left is escaped below anyway).
+  // Escape remaining special characters
+  return escapeHtml(stripTags(text));
+}
+
+/**
+ * Strip HTML tags in linear time, without escaping (for text React renders as text).
+ * Repeats until stable, so removing one tag cannot assemble another (bounded passes).
+ */
+export function stripTags(text: string): string {
   let stripped = text;
   for (let pass = 0; pass < MAX_STRIP_PASSES; pass++) {
     const next = stripTagsOnce(stripped);
     if (next === stripped) break;
     stripped = next;
   }
-  // Escape remaining special characters
-  return escapeHtml(stripped);
+  return stripped;
 }
 
 /**

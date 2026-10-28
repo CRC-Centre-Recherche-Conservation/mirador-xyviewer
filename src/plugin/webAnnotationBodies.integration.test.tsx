@@ -24,7 +24,7 @@ const B = 'https://iiif.example.org/anno/b';
 const annotationA = {
   id: A,
   type: 'Annotation',
-  motivation: 'classifying',
+  motivation: 'supplementing',
   body: [
     { type: 'SpecificResource', purpose: 'classifying', source: 'https://t.example.org/c/1', label: { en: ['Lead white'] } },
     { type: 'SpecificResource', purpose: 'linking', source: { id: B, type: 'Annotation' } },

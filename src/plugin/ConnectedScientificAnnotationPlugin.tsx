@@ -16,9 +16,14 @@ import { Box, Typography, MenuList, MenuItem, ListItemText, Chip } from '@mui/ma
 import { AnnotationBodyRenderer, pickChoiceItem } from '../components/AnnotationBodyRenderer';
 import { rawSourceIds } from '../utils/xyReading';
 import { useLanguagePreferences } from '../utils/LanguageContext';
+import { getLocalizedString, resolvePreferredLanguages } from '../utils/localization';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { LanguageProvider } from '../utils/LanguageContext';
 import { ErrorBoundary, ErrorNotice } from '../components/ErrorBoundary';
+import { ClassificationCard } from '../components/ClassificationCard';
+import { AnnotationCardMenu } from '../components/AnnotationCardMenu';
+import { classificationKind, buildClassificationView } from '../utils/classificationModel';
+import { resolveLabels, ANNOTATION_LABEL_KEYS } from '../utils/annotationLabels';
 import { AnnotationSignIn } from '../components/AnnotationSignIn';
 import { getAnnotationAuth } from '../services/annotationAuth';
 import type { AnnotationPageRef } from '../services/annotationAuth';
@@ -28,7 +33,13 @@ import type {
   AnnotationBody,
   IIIFAnnotation,
 } from '../types/iiif';
-import { isSpecificResourceBody, isChoiceBody } from '../types/iiif';
+import {
+  isSpecificResourceBody,
+  isChoiceBody,
+  isCompositeBody,
+  isListBody,
+  isIndependentsBody,
+} from '../types/iiif';
 import type { SpectrumData } from '../types/dataset';
 import type { MiradorState, MiradorPlugin, AnnotationBodyLabels } from '../types/mirador';
 import type { Dispatch, AnyAction } from 'redux';
@@ -69,7 +80,13 @@ export function hasScientificBody(body: unknown): boolean {
 
 /** Web Annotation body types rendered by the plugin (chips, evidence links, Choice). */
 export function isWebAnnotationBody(body: AnnotationBody | null | undefined): boolean {
-  return !!body && typeof body === 'object' && (isSpecificResourceBody(body) || isChoiceBody(body));
+  return !!body && typeof body === 'object' && (
+    isSpecificResourceBody(body) ||
+    isChoiceBody(body) ||
+    isCompositeBody(body) ||
+    isListBody(body) ||
+    isIndependentsBody(body)
+  );
 }
 
 /**
@@ -98,6 +115,7 @@ export function hasMetadata(annotation: IIIFAnnotation | undefined): boolean {
 export function shouldUseCustomRendering(annotation: IIIFAnnotation | undefined): boolean {
   if (!annotation) return false;
   return (
+    !!classificationKind(annotation.motivation) ||
     hasScientificBody(annotation.body) ||
     hasWebAnnotationBody(annotation.body) ||
     hasMetadata(annotation)
@@ -166,6 +184,8 @@ interface PluginWrapperProps {
   language?: string;
   /** UI string overrides from `config.scientificAnnotations.labels`. */
   labels?: AnnotationBodyLabels;
+  /** `config.scientificAnnotations.showAnnotationId` (default 'menu'). */
+  showAnnotationId?: 'menu' | 'inline';
   /** First annotation page of this canvas for which a sign-in can be offered. */
   signInPage?: AnnotationPageRef;
 }
@@ -181,6 +201,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   annotationResources,
   language,
   labels,
+  showAnnotationId = 'menu',
   signInPage,
 }) => {
   const {
@@ -251,6 +272,8 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 
   // Ids on this canvas, for linking bodies to find their target annotation.
   const canvasAnnotationIds = useMemo(() => annotations.map((a) => a.id), [annotations]);
+
+  const prefs = useMemo(() => resolvePreferredLanguages(language), [language]);
 
   // Spectrum data callbacks
   const handleDataLoaded = useCallback((id: string, data: SpectrumData) => {
@@ -373,42 +396,100 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                 if (control && e.currentTarget.contains(control)) return;
                 handleAnnotationClick(annotation.id);
               }}
+              role="group"
+              aria-label={
+                getLocalizedString(label, prefs) ||
+                (classificationKind(resource?.motivation) && resource
+                  ? buildClassificationView(resource, prefs).title
+                  : '') ||
+                undefined
+              }
+              aria-expanded={classificationKind(resource?.motivation) ? isSelected : undefined}
+              aria-current={isSelected || undefined}
+              tabIndex={0}
+              onFocus={() => handleAnnotationHover(annotation.id)}
+              onBlur={(e: React.FocusEvent<HTMLElement>) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) handleAnnotationHover(null);
+              }}
               // Keep MenuList roving focus / typeahead away from the body and its dialog.
               onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
-                if (e.target !== e.currentTarget) e.stopPropagation();
+                if (e.target !== e.currentTarget) {
+                  e.stopPropagation();
+                  return;
+                }
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleAnnotationClick(annotation.id);
+                }
               }}
               onMouseEnter={() => handleAnnotationHover(annotation.id)}
               onMouseLeave={() => handleAnnotationHover(null)}
               sx={{
+                position: 'relative',
                 p: 1.5,
                 cursor: 'pointer',
-                bgcolor: isSelected
-                  ? 'action.selected'
-                  : isHovered
-                    ? 'action.hover'
-                    : 'transparent',
+                bgcolor: isHovered ? 'action.hover' : 'transparent',
                 borderBottom: '1px solid',
                 borderColor: 'divider',
-                '&:hover': {
-                  bgcolor: isSelected ? 'action.selected' : 'action.hover',
-                },
+                borderLeft: '3px solid',
+                borderLeftColor: isSelected ? 'primary.main' : isHovered ? 'action.hover' : 'transparent',
+                '&:hover': { bgcolor: 'action.hover' },
+                '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
               }}
             >
               {showFilterBadge && (
                 <Typography
                   variant="caption"
                   role="note"
-                  sx={{ display: 'block', mb: 0.5, color: 'warning.main' }}
+                  sx={{ display: 'block', mb: 0.5, pr: 4.5, color: 'warning.main' }}
                 >
                   {FILTER_HIDDEN_BADGE}
                 </Typography>
               )}
               <ErrorBoundary resetKey={resource} label="annotation" fallback={<ErrorNotice />}>
                 <InsideBoundary>
-                  {() => (
+                  {() =>
+                    classificationKind(resource?.motivation) ? (
+                      <ClassificationCard
+                        annotation={resource}
+                        isSelected={isSelected}
+                        labels={labels}
+                        ruleSet={ruleSet}
+                        showAnnotationId={showAnnotationId}
+                        windowId={windowId}
+                        selectAnnotation={selectAnnotation}
+                        canvasAnnotationIds={canvasAnnotationIds}
+                        renderOther={(rest) => (
+                          <AnnotationBodyRenderer
+                            body={rest}
+                            annotationLabel={label}
+                            dispatch={dispatch}
+                            addWindow={addWindow}
+                            isActive={isSelected}
+                            ruleSet={ruleSet}
+                            labels={labels}
+                          />
+                        )}
+                      />
+                    ) : (
                     <>
-                      {/* Metadata */}
-                      <AnnotationMetadata label={label} metadata={metadata} annotationId={annotationId} seeAlso={seeAlso} body={body} />
+                      <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
+                        <AnnotationCardMenu
+                          annotationId={annotationId}
+                          hideJson={showAnnotationId === 'inline'}
+                          labels={resolveLabels(labels)}
+                        />
+                      </Box>
+                      {/* Metadata (right padding keeps the title clear of the menu button) */}
+                      <Box sx={{ pr: 4.5 }}>
+                        <AnnotationMetadata
+                          label={label}
+                          metadata={metadata}
+                          annotationId={showAnnotationId === 'inline' ? annotationId : undefined}
+                          seeAlso={seeAlso}
+                          body={body}
+                        />
+                      </Box>
 
                       {/* Body renderer */}
                       {body && (
@@ -448,7 +529,8 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                         </Box>
                       )}
                     </>
-                  )}
+                    )
+                  }
                 </InsideBoundary>
               </ErrorBoundary>
             </Box>
@@ -475,7 +557,8 @@ function sanitizeLabels(raw: unknown): AnnotationBodyLabels | undefined {
   const purposes = r.purposes && typeof r.purposes === 'object' && !Array.isArray(r.purposes)
     ? (r.purposes as Record<string, string>)
     : undefined;
-  const clean = { evidence: str(r.evidence), evidenceUnavailable: str(r.evidenceUnavailable), purposes };
+  const clean: AnnotationBodyLabels = { purposes };
+  for (const key of ANNOTATION_LABEL_KEYS) clean[key] = str(r[key]);
   labelsCache.set(raw, clean);
   return clean;
 }
@@ -499,6 +582,8 @@ export function mapStateToProps(
     annotationResources,
     language: state.config?.language,
     labels: sanitizeLabels(state.config?.scientificAnnotations?.labels),
+    showAnnotationId:
+      state.config?.scientificAnnotations?.showAnnotationId === 'inline' ? ('inline' as const) : ('menu' as const),
     signInPage: findSignInPage(canvasId ? state.annotations?.[canvasId] : undefined),
   };
 }

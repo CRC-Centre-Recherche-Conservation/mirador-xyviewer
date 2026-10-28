@@ -363,7 +363,7 @@ falls back to the source id. `source` may be a string or an object. The chip is 
 In IIIF Presentation 2, an `oa:SpecificResource` resource with a `full` source and an
 `oa:hasPurpose` is normalized to the same model.
 
-**Evidence (linking).** A `SpecificResource` with `"purpose": "linking"` is shown as an
+**Linked annotations (linking).** A `SpecificResource` with `"purpose": "linking"` is shown, under the caption "Linked annotations" (`labels.linkedAnnotations`), as an
 "Evidence" button (label overridable through `scientificAnnotations.labels.evidence` in the Mirador config, see [MIRADOR-CONFIGURATION.md](MIRADOR-CONFIGURATION.md#annotation-labels)).
 It selects the linked annotation, matched by id (or by its `#target-N` form when a multi-target
 annotation was expanded), when that annotation is on the current canvas. Otherwise the button
@@ -376,6 +376,31 @@ is disabled with an explanatory tooltip.
   "source": { "id": "https://iiif.example.org/annotation/xrf-point-1", "type": "Annotation" }
 }
 ```
+
+#### Classification cards
+
+An annotation whose `motivation` contains `classifying` or `identifying` (the body purposes are not used for routing) is shown as a summary card. Collapsed: a kicker ("Classification" / "Identification"), the title (the annotation `label`, else the class labels, else the start of the text) and two lines of text. Selecting the card expands it:
+
+| Body | Shown as |
+|---|---|
+| `TextualBody` with purpose `describing`, `commenting` or none | The text, in the reader's language (`language` variants and `Choice` are resolved) |
+| `SpecificResource` `classifying` / `identifying` | "Classified as" / "Identified as" chips |
+| `SpecificResource` `assessing` | "Assessment" chips |
+| `SpecificResource` `describing` | "Description" chips |
+| `SpecificResource` `tagging` | "Tags" chips |
+| Any other purpose | "Other terms" |
+| `SpecificResource` `linking` | "Linked annotations" |
+| `TextualBody` with purpose `classifying`, `identifying`, `assessing` or `tagging` | A free-text chip of that group |
+
+A chip label is the body `label`, else the source `label`, else the last segment of the source URI. Clicking a chip opens a menu ("Open in vocabulary" when the source is an http(s) URL). The report button ("Open report") uses `homepage`, else the first `text/html` `seeAlso`; every other `seeAlso` entry goes to the card's "⋮" menu.
+
+**Assessments are never paired with classes by position**, since bodies may be deduplicated by their producer. They are paired with a class only when the data says so:
+
+- the annotation has a single class: its assessments qualify it (shown as one row, the text moves under "Full statement");
+- a `Composite` (non-normative in WADM, read tolerantly) holds one class and its assessments;
+- one annotation per class (each card then has a single class).
+
+Otherwise the assessments are captioned "Overall assessment (see text)" and the text carries the pairing. A `Composite` with a `label` and `describing` items, or a source with `inScheme.label`, makes a named "Description" row. Without a text, only the term groups are shown.
 
 ### 5. Choice (Alternatives)
 

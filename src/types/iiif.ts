@@ -218,6 +218,8 @@ export interface AnnotationV3 {
   label?: LocalizedString;
   metadata?: MetadataEntry[];
   seeAlso?: SeeAlsoEntry | SeeAlsoEntry[];
+  /** Human-readable page about the annotation (IIIF `homepage`); read defensively, producers vary. */
+  homepage?: SeeAlsoEntry | SeeAlsoEntry[];
 }
 export type IIIFAnnotation = AnnotationV3;
 
