@@ -94,6 +94,13 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
     // Reader's language preferences; filter keys depend on them
     const prefs = useMemo(() => resolvePreferredLanguages(language), [language]);
 
+    // Sync the badge from the store on canvas change; a canvas not yet initialized reads 0.
+    useEffect(() => {
+      setHiddenCount(
+        windowId && canvasId ? filtersStore.getHiddenAnnotationIds(windowId, canvasId).size : 0
+      );
+    }, [windowId, canvasId]);
+
     // Initialize filters when we have metadata (handles lazy loading). The store skips
     // work when already initialized with the same prefs, and rebuilds (resetting the
     // selection) when the language changed.
@@ -103,16 +110,6 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
         setHiddenCount(filtersStore.getHiddenAnnotationIds(windowId, canvasId).size);
       }
     }, [windowId, canvasId, hasMetadata, annotationsWithMetadata, prefs]);
-
-    // Re-initialize when canvas changes
-    const prevCanvasIdRef = useRef<string | undefined>(undefined);
-    useEffect(() => {
-      if (canvasId && prevCanvasIdRef.current && canvasId !== prevCanvasIdRef.current) {
-        // Canvas changed - reset hidden count, filters will be initialized when metadata loads
-        setHiddenCount(0);
-      }
-      prevCanvasIdRef.current = canvasId;
-    }, [canvasId]);
 
     // Subscribe to filter changes
     useEffect(() => {
@@ -211,7 +208,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
                   color: 'rgba(255,255,255,0.5)',
                 },
               }}
-              aria-label="Filter annotations"
+              aria-label={hasActiveFilters ? `Filter annotations (${hiddenCount} hidden)` : 'Filter annotations'}
               aria-expanded={isOpen}
             >
               <Badge
