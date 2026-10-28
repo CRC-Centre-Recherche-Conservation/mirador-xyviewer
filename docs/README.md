@@ -46,12 +46,6 @@ const viewer = Mirador.viewer({
     manifestId: 'https://example.org/manifest.json',
     highlightAllAnnotations: true,
   }],
-  annotations: {
-    filteredMotivations: [
-      'oa:commenting', 'oa:tagging', 'sc:painting',
-      'commenting', 'tagging', 'supplementing'
-    ],
-  },
   requests: {
     postprocessors: [annotationPostprocessor],
   },
@@ -93,7 +87,7 @@ energy_kev,counts
 
 | Issue | Solution |
 |-------|----------|
-| Annotations not visible | Add `supplementing` to `filteredMotivations` |
+| Annotations not visible | Leave `filteredMotivations` unset (Mirador 4.2+), or add the missing motivation (see [Mirador Configuration](MIRADOR-CONFIGURATION.md#annotations-not-showing)) |
 | Points not showing | Add `annotationPostprocessor` to `requests.postprocessors` |
 | CORS errors | Set `osdConfig.crossOriginPolicy: 'Anonymous'` |
 | Spectra not loading | Check MIME type and file size (<5MB) |

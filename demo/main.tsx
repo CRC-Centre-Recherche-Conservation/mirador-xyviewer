@@ -155,16 +155,6 @@ function initMirador() {
       // Annotation configuration
       annotations: {
         htmlSanitizationRuleSet: 'iiif',
-        // Include 'supplementing' motivation (used by scientific annotations)
-        // Default Mirador only shows: oa:commenting, oa:tagging, sc:painting, commenting, tagging
-        filteredMotivations: [
-          'oa:commenting',
-          'oa:tagging',
-          'sc:painting',
-          'commenting',
-          'tagging',
-          'supplementing',  // Required for IIIF v3 scientific annotations
-        ],
       },
       // OpenSeadragon configuration for CORS
       osdConfig: {

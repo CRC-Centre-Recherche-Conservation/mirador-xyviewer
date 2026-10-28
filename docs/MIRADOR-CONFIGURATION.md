@@ -67,27 +67,21 @@ const viewer = Mirador.viewer(
 
 ### Annotation Motivation Filter
 
-**This is critical.** Mirador filters annotations by `motivation`. Physicochemical annotations use `supplementing`, which is NOT in the default list.
+With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
+every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
+and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
+use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
 
 ```javascript
-const viewer = Mirador.viewer({
-  id: 'mirador-container',
-  annotations: {
-    filteredMotivations: [
-      // Default motivations
-      'oa:commenting',
-      'oa:tagging',
-      'sc:painting',
-      'commenting',
-      'tagging',
-      // Add this for physicochemical annotations
-      'supplementing',
-    ],
-  },
-}, [scientificAnnotationPlugin]);
+annotations: {
+  filteredMotivations: [
+    'commenting', 'tagging', 'painting', 'classifying', 'identifying',
+    'describing', 'assessing', 'linking', 'supplementing',
+    'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
+    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
+  ],
+}
 ```
-
-Without this, annotations will load but won't display in the UI.
 
 ### Point Annotation Postprocessor
 
@@ -237,14 +231,7 @@ const viewer = Mirador.viewer(
     // Annotation configuration
     annotations: {
       htmlSanitizationRuleSet: 'iiif',
-      filteredMotivations: [
-        'oa:commenting',
-        'oa:tagging',
-        'sc:painting',
-        'commenting',
-        'tagging',
-        'supplementing',  // Required for physicochemical annotations
-      ],
+      // Leave filteredMotivations unset to show every motivation (see Troubleshooting)
     },
 
     // Request postprocessors
@@ -385,14 +372,18 @@ const viewer = Mirador.viewer(config, [
 
 **Symptom:** Annotations load (visible in Redux DevTools) but don't appear.
 
-**Solution:** Add `supplementing` to `filteredMotivations`:
+**Solution:** With Mirador 4.2+, leave `annotations.filteredMotivations` unset: its default (an empty array) shows
+every motivation, including the W3C motivations `classifying`, `identifying`, `describing`, `assessing`
+and `linking`, and IIIF `supplementing`. If you restrict it, list every motivation your annotations
+use, bare and `oa:`-prefixed for IIIF v2; anything missing is loaded but not displayed.
 
 ```javascript
 annotations: {
   filteredMotivations: [
-    'oa:commenting', 'oa:tagging', 'sc:painting',
-    'commenting', 'tagging',
-    'supplementing'  // Add this
+    'commenting', 'tagging', 'painting', 'classifying', 'identifying',
+    'describing', 'assessing', 'linking', 'supplementing',
+    'oa:commenting', 'oa:tagging', 'oa:classifying', 'oa:identifying',
+    'oa:describing', 'oa:assessing', 'oa:linking', 'sc:painting',
   ],
 }
 ```
@@ -508,10 +499,9 @@ plugin:
 
 ### Interaction with scientific annotations
 
-- **`filteredMotivations` does not affect search.** Scientific annotations require
-  `supplementing` in `annotations.filteredMotivations`, but Mirador renders search hits
-  from a separate state slice that ignores annotation motivation — adding `supplementing`
-  neither helps nor hinders search-hit display.
+- **`filteredMotivations` does not affect search.** Mirador renders search hits from a
+  separate state slice that ignores annotation motivation, so restricting or widening
+  `annotations.filteredMotivations` neither helps nor hinders search-hit display.
 - **Index only text annotations.** Scientific bodies are `Dataset` (CSV/spectra) with no
   searchable text; index transcription/commenting annotations in your search service, not
   the scientific ones.
