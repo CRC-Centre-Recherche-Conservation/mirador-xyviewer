@@ -187,7 +187,7 @@ function initMirador() {
       },
     },
     // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters + selection highlight + search result focus)
-    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, ...openLocalFilePlugins]
+    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, ...metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, ...openLocalFilePlugins]
   );
 
   // Demo-only: the full carto-chimie auth story on REAL data — one Sign-in unlocks the

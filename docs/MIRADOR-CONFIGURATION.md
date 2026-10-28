@@ -228,7 +228,7 @@ import Mirador from 'mirador';
 import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,
-  metadataFiltersPlugin,
+  ...metadataFiltersPlugin,
   selectionHighlightPlugin,
   annotationPostprocessor
 } from 'mirador-xyviewer';
@@ -290,7 +290,7 @@ const viewer = Mirador.viewer(
   [
     scientificAnnotationPlugin,  // Spectrum visualization
     imageComparisonPlugin,       // Image comparison (optional)
-    metadataFiltersPlugin,       // Metadata filters (optional)
+    ...metadataFiltersPlugin,    // Metadata filters (optional)
     selectionHighlightPlugin     // Selection highlight (optional)
   ]
 );
@@ -301,14 +301,15 @@ window.miradorInstance = viewer;
 
 ## Plugin-Specific Options
 
-Mirador-xyviewer provides four independent plugins that can be used separately or combined:
+Mirador-xyviewer provides five plugins; all are optional:
 
 | Plugin | Description |
 |--------|-------------|
 | `scientificAnnotationPlugin` | Spectrum visualization (CSV/TSV), manifest links, metadata display |
 | `imageComparisonPlugin` | Side-by-side image comparison with synchronized zoom/pan |
-| `metadataFiltersPlugin` | Filter annotations by metadata values |
+| `metadataFiltersPlugin` | Filter annotations by metadata values (button and panel) and hide the filtered shapes on the canvas. Exported as an array of two Mirador plugins: spread it (`...metadataFiltersPlugin`) |
 | `selectionHighlightPlugin` | Pulse animation to highlight selected annotations on the image |
+| `searchResultFocusPlugin` | Switches the left panel to the Annotations list when a Content Search hit is selected |
 
 ### Using Only the Annotation Plugin
 
@@ -331,7 +332,7 @@ const viewer = Mirador.viewer(config, [imageComparisonPlugin]);
 ```javascript
 import { metadataFiltersPlugin } from 'mirador-xyviewer';
 
-const viewer = Mirador.viewer(config, [metadataFiltersPlugin]);
+const viewer = Mirador.viewer(config, [...metadataFiltersPlugin]);
 ```
 
 ### Using Only the Selection Highlight Plugin
@@ -352,7 +353,7 @@ All plugins are independent and can be combined as needed:
 import {
   scientificAnnotationPlugin,
   imageComparisonPlugin,
-  metadataFiltersPlugin,
+  ...metadataFiltersPlugin,
   selectionHighlightPlugin
 } from 'mirador-xyviewer';
 
@@ -360,7 +361,7 @@ import {
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
   imageComparisonPlugin,
-  metadataFiltersPlugin,
+  ...metadataFiltersPlugin,
   selectionHighlightPlugin
 ]);
 
@@ -380,7 +381,7 @@ import { miradorImageToolsPlugin } from 'mirador-image-tools';
 
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
-  metadataFiltersPlugin,
+  ...metadataFiltersPlugin,
   ...miradorImageToolsPlugin,  // Array of plugins: spread it
 ]);
 ```

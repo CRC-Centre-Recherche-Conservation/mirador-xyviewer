@@ -18,6 +18,7 @@ import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { MiradorState, MiradorPlugin } from '../types/mirador';
 import type { IIIFAnnotation, LocalizedString } from '../types/iiif';
 import { containPlugin } from './containPlugin';
+import { metadataFilterOverlayPlugin } from './MetadataFilterOverlayPlugin';
 
 /** Plugin component props */
 interface MetadataFiltersPluginProps {
@@ -403,10 +404,8 @@ export const ConnectedMetadataFiltersPlugin = (connect as any)(
   { forwardRef: true }
 )(MetadataFiltersPluginComponent);
 
-/**
- * Plugin definition for Mirador
- */
-export const metadataFiltersPlugin: MiradorPlugin = containPlugin({
+/** Filter button and panel (OpenSeadragonViewer target). */
+const metadataFiltersPanelPlugin: MiradorPlugin = containPlugin({
   target: 'OpenSeadragonViewer',
   mode: 'add',
   name: 'MetadataFiltersPlugin',
@@ -416,5 +415,15 @@ export const metadataFiltersPlugin: MiradorPlugin = containPlugin({
   }>,
   mapStateToProps: mapStateToProps as unknown as MiradorPlugin['mapStateToProps'],
 });
+
+/**
+ * Plugin definition for Mirador: the filter button/panel plus the canvas overlay that
+ * hides filtered shapes. An array (one Mirador plugin per target): hosts spread it
+ * (`[...metadataFiltersPlugin]`); unspread only works through `Mirador.viewer`.
+ */
+export const metadataFiltersPlugin: MiradorPlugin[] = [
+  metadataFiltersPanelPlugin,
+  metadataFilterOverlayPlugin,
+];
 
 export default metadataFiltersPlugin;

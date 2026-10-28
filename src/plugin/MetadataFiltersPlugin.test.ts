@@ -75,9 +75,26 @@ describe('mapStateToProps language', () => {
 });
 
 describe('plugin export', () => {
-  it('targets OpenSeadragonViewer in add mode with mapStateToProps wired', () => {
-    expect(metadataFiltersPlugin.target).toBe('OpenSeadragonViewer');
-    expect(metadataFiltersPlugin.mode).toBe('add');
-    expect(typeof metadataFiltersPlugin.mapStateToProps).toBe('function');
+  it('is the panel plugin plus the canvas overlay plugin', () => {
+    expect(Array.isArray(metadataFiltersPlugin)).toBe(true);
+    const [panel, overlay] = metadataFiltersPlugin;
+    expect(panel.target).toBe('OpenSeadragonViewer');
+    expect(panel.mode).toBe('add');
+    expect(typeof panel.mapStateToProps).toBe('function');
+    expect(overlay.target).toBe('AnnotationsOverlay');
+    expect(overlay.mode).toBe('wrap');
+  });
+
+  it('yields both targets once flattened like Mirador does, nested or spread', () => {
+    // Mirador's filterValidPlugins spreads array elements into the plugin list.
+    const flatten = (plugins: unknown[]) => plugins.flatMap((p) => (Array.isArray(p) ? p : [p]));
+    for (const plugins of [[metadataFiltersPlugin], [...metadataFiltersPlugin]]) {
+      const valid = flatten(plugins) as Array<{ target: string; component: unknown }>;
+      expect(valid.every((p) => p.component)).toBe(true);
+      expect(valid.map((p) => p.target)).toEqual([
+        'OpenSeadragonViewer',
+        'AnnotationsOverlay',
+      ]);
+    }
   });
 });

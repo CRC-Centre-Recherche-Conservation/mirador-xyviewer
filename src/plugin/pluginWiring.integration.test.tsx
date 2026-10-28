@@ -1,7 +1,7 @@
 /**
  * Pattern D integration: plugin wiring.
- * (a) the four exported plugin objects are structurally valid;
- * (b) the demo entry registers all four via Mirador.viewer (mirador mocked).
+ * (a) the exported plugin objects are structurally valid;
+ * (b) the demo entry registers all the plugins via Mirador.viewer (mirador mocked).
  * demo/ is outside coverage.include, so this catches "a plugin export or the demo
  * registration broke" without adding coverage.
  */
@@ -40,21 +40,21 @@ describe('plugin wiring', () => {
       imageComparisonPlugin,
       metadataFiltersPlugin,
       selectionHighlightPlugin,
-    ]) {
+    ].flat()) {
       expect(typeof p.target).toBe('string');
       expect(['wrap', 'add', 'replace']).toContain(p.mode);
       expect(p.component).toBeDefined();
     }
   });
 
-  it('the demo registers all four plugins via Mirador.viewer', async () => {
+  it('the demo registers all the plugins via Mirador.viewer', async () => {
     await import('../../demo/main');
     expect(viewer).toHaveBeenCalledTimes(1);
     const pluginsArg = viewer.mock.calls[0][1] as unknown[];
-    // Spread of miradorImageToolsPlugin ([]) + the four library plugins.
+    // Spread of miradorImageToolsPlugin ([]) + the library plugins (metadataFiltersPlugin is spread: it is an array).
     expect(pluginsArg).toContain(scientificAnnotationPlugin);
     expect(pluginsArg).toContain(imageComparisonPlugin);
-    expect(pluginsArg).toContain(metadataFiltersPlugin);
+    for (const p of metadataFiltersPlugin) expect(pluginsArg).toContain(p);
     expect(pluginsArg).toContain(selectionHighlightPlugin);
   });
 });
