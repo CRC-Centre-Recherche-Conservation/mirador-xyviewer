@@ -534,23 +534,11 @@ const COLORS = [
 
 ### Localization
 
-Components use `react-i18next`. Add translations:
+Components do not use `react-i18next`. User-facing strings are defaults overridable through props (for example the `labels` prop of `SpectrumPlot`), so a host can translate them without a runtime i18n dependency.
 
-```typescript
-// src/locales/en.json
-{
-  "loadSpectrum": "Load Spectrum",
-  "loading": "Loading...",
-  "error": "Failed to load data"
-}
+### Build externals and peer policy
 
-// src/locales/fr.json
-{
-  "loadSpectrum": "Charger le spectre",
-  "loading": "Chargement...",
-  "error": "Échec du chargement"
-}
-```
+`config/externals.ts` decides what stays out of `dist/`: every `peerDependencies` entry plus `redux` (type-only import), matched with their subpaths (`react/jsx-runtime`, `@mui/material/styles`, ...). Only `papaparse` and `ipaddr.js` are bundled. `config/externals.test.ts` guards this: when you import a new host-provided package, declare it as a peer.
 
 ## Testing
 

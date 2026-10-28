@@ -369,12 +369,13 @@ const viewer = Mirador.viewer(config, [
 
 ```javascript
 import { scientificAnnotationPlugin, metadataFiltersPlugin } from 'mirador-xyviewer';
-import miradorImageToolsPlugin from 'mirador-image-tools';
+// Optional companion plugin: npm install mirador-image-tools
+import { miradorImageToolsPlugin } from 'mirador-image-tools';
 
 const viewer = Mirador.viewer(config, [
   scientificAnnotationPlugin,
   metadataFiltersPlugin,
-  ...miradorImageToolsPlugin,  // Image manipulation tools
+  ...miradorImageToolsPlugin,  // Array of plugins: spread it
 ]);
 ```
 
