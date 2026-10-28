@@ -389,6 +389,14 @@ describe('hostile input', () => {
     expect(svgSelectorBounds('<rect x="1" y="2" width="3" height="4"/>')).toMatchObject({ x: 1, y: 2, width: 3, height: 4 });
   });
 
+  it('ignores SVG attributes named after Object.prototype members', () => {
+    expect(svgSelectorBounds(
+      '<rect __proto__="1" constructor="2" toString="3" x="1" y="2" width="3" height="4"/>'
+    )).toMatchObject({ x: 1, y: 2, width: 3, height: 4 });
+    expect(svgSelectorBounds('<path constructor="M 0 0 L 9 9"/>')).toBeUndefined();
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+  });
+
   it('limits nested iiif-content links', () => {
     let link = 'https://iiif.example.org/cs';
     for (let i = 0; i < 50; i++) link = `https://iiif.example.org/?iiif-content=${encodeURIComponent(link)}`;

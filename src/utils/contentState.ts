@@ -285,8 +285,9 @@ const MAX_SVG_CHARS = 65_536;
 const ATTR_NAME = /[a-zA-Z_:][-a-zA-Z0-9_:.]*/y;
 
 /** Linear attribute scanner: each position is visited a bounded number of times. */
-function attrs(tag: string): Record<string, string> {
-  const out: Record<string, string> = {};
+function attrs(tag: string): Map<string, string> {
+  // A Map, so producer attribute names can never reach Object.prototype.
+  const out = new Map<string, string>();
   const skipSpace = (from: number) => {
     let k = from;
     while (k < tag.length && /\s/.test(tag[k])) k++;
@@ -306,7 +307,7 @@ function attrs(tag: string): Record<string, string> {
     if (quote !== '"' && quote !== "'") { i = Math.max(i + 1, k); continue; }
     const close = tag.indexOf(quote, k + 1);
     if (close === -1) break;
-    out[name[0]] = tag.slice(k + 1, close);
+    out.set(name[0], tag.slice(k + 1, close));
     i = close + 1;
   }
   return out;
@@ -433,7 +434,7 @@ export function svgSelectorBounds(svg: string): ContentStateRegion | undefined {
     if (!m || m.index + m[0].length > gt) continue;
     pos = gt + 1;
     const a = attrs(svg.slice(m.index + m[0].length, gt));
-    const n = (k: string, fallback = 0) => num(a[k]) ?? fallback;
+    const n = (k: string, fallback = 0) => num(a.get(k)) ?? fallback;
     switch (m[1].toLowerCase()) {
       case 'rect':
         addPoint(box, n('x'), n('y'));
@@ -453,14 +454,17 @@ export function svgSelectorBounds(svg: string): ContentStateRegion | undefined {
         break;
       case 'polygon':
       case 'polyline': {
-        const nums = (a.points ?? '').split(/[\s,]+/).filter(Boolean).map(num);
+        const nums = (a.get('points') ?? '').split(/[\s,]+/).filter(Boolean).map(num);
         for (let i = 0; i + 1 < nums.length; i += 2) {
           if (nums[i] !== undefined && nums[i + 1] !== undefined) addPoint(box, nums[i]!, nums[i + 1]!);
         }
         break;
       }
       case 'path':
-        if (a.d) addPath(box, a.d);
+        {
+          const d = a.get('d');
+          if (d) addPath(box, d);
+        }
         break;
     }
   }
