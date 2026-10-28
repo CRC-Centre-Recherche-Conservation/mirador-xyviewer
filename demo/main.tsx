@@ -9,7 +9,8 @@ import Mirador from 'mirador';
 import { miradorImageToolsPlugin } from 'mirador-image-tools';
 import { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, annotationPostprocessor } from '../src';
 import { setupDemoAuth, rewriteBackendUrls } from './demo-auth';
-import { contentStateFromLocation, createContentStateOpener, setupContentStateInputs } from './contentStateInputs';
+import { contentStateFromLocation, createContentStateOpener, openContentState, setupContentStateInputs } from './contentStateInputs';
+import { openLocalFilePlugins } from './openLocalFilePlugin';
 
 // The demo runs against the REAL published Avranches manuscript manifest — itself
 // IIIF Presentation v2 (sc:Manifest / sequences / canvases) and carrying NO
@@ -164,6 +165,19 @@ function initMirador() {
       osdConfig: {
         crossOriginPolicy: 'Anonymous',
       },
+      // en/fr strings for the "Open local file" plugins (see openLocalFilePlugin.tsx).
+      translations: {
+        en: {
+          openLocalFile: 'Open local file',
+          openLocalFileHelp: 'IIIF manifest or Content State (.json). Tip: you can also paste a link or drop a file onto the viewer.',
+          or: 'or',
+        },
+        fr: {
+          openLocalFile: 'Ouvrir un fichier local',
+          openLocalFileHelp: 'Manifeste IIIF ou Content State (.json). Astuce : vous pouvez aussi coller un lien ou déposer un fichier sur la visionneuse.',
+          or: 'ou',
+        },
+      },
       // Request postprocessors: inject the v2 annotation lists onto the published
       // manifest, and transform point annotations (xywh w=1,h=1) into SVG circles.
       requests: {
@@ -173,20 +187,16 @@ function initMirador() {
       },
     },
     // Pass the plugins (image tools + scientific annotation + image comparison + metadata filters + selection highlight + search result focus)
-    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin]
+    [...miradorImageToolsPlugin, scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, ...openLocalFilePlugins]
   );
 
   // Demo-only: the full carto-chimie auth story on REAL data — one Sign-in unlocks the
   // spectra AND the maXRF maps, all proxied through /lab. See demo-auth.ts.
   setupDemoAuth(miradorInstance.store);
 
-  // IIIF Content State 1.0: query string, paste, drag and drop, "Open file…".
-  setupContentStateInputs(
-    miradorInstance.store,
-    document.getElementById('open-file-button'),
-    document.getElementById('open-file-input') as HTMLInputElement | null
-  );
-  if (requestedState) void createContentStateOpener(miradorInstance.store)(requestedState);
+  // IIIF Content State 1.0: query string, paste, drag and drop, "Open local file" (rail + Add resource drawer).
+  setupContentStateInputs(miradorInstance.store);
+  if (requestedState) void openContentState(createContentStateOpener(miradorInstance.store), requestedState);
 
   // Expose to window for DevTools inspection (dev only)
   if (isDev && typeof window !== 'undefined') {
