@@ -20,7 +20,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Spectrum Visualization**: Load and display CSV/TSV spectral data with Plotly
 - **Manifest Links**: Open related IIIF manifests in new windows
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
-- **Point Annotations**: Automatic conversion of analysis points to visible markers
+- **Point Annotations**: Automatic conversion of analysis points (tiny `xywh`, `PointSelector`) to visible markers, with selector arrays, SVG polygons and `pixel:` fragments handled
 - **Metadata Filters**: Filter annotations by metadata values
 - **Selection Highlight**: Pulse animation to locate selected annotations on the image (technique, date, operator, etc.)
 

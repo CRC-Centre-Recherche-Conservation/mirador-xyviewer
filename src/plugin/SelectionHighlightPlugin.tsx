@@ -10,6 +10,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
 import type { MiradorPlugin } from '../types/mirador';
+import { MAX_SVG_LENGTH, extractNumbers, parsePoint, parseXYWH, svgAttr } from '../utils/annotationSelectors';
 
 /** Default point radius (matches annotationTransformer.ts) */
 const DEFAULT_POINT_RADIUS = 12;
@@ -36,6 +37,8 @@ interface AnnotationResource {
   // These are getters that return computed values
   fragmentSelector?: [number, number, number, number] | null;
   svgSelector?: { value: string; type?: string } | null;
+  /** Selector list (getter); read for selectors Mirador's other getters do not expose. */
+  selector?: unknown;
 }
 
 /**
@@ -106,39 +109,183 @@ interface PluginWrapperProps {
  * @internal Exposed for tests; not part of the public API.
  */
 export function getAnnotationBounds(resource: AnnotationResource): [number, number, number, number] | null {
-  // Try fragment selector first: [x, y, width, height]
-  // The getter returns null if not present
+  // Fragment first: [x, y, width, height]. Mirador's getter yields NaN for `pixel:` /
+  // `percent:` values, so pixel ones are re-read from the selector list.
   const fragment = resource.fragmentSelector;
-  if (fragment && Array.isArray(fragment) && fragment.length === 4) {
+  if (fragment && Array.isArray(fragment) && fragment.length === 4 && fragment.every(Number.isFinite)) {
     return fragment as [number, number, number, number];
   }
+  const selectors = (Array.isArray(resource.selector) ? resource.selector : []) as Record<string, unknown>[];
+  for (const s of selectors) {
+    if (s?.type === 'FragmentSelector' && typeof s.value === 'string') {
+      const c = parseXYWH(s.value);
+      if (c) return [c.x, c.y, c.w, c.h];
+    }
+  }
 
-  // Try SVG selector: parse the SVG path to extract center point
   const svg = resource.svgSelector;
-  if (svg && svg.value) {
-    const svgString = svg.value;
-    // Extract the M (move to) command which contains the center x,y
-    // SVG path format: "M x y-radius A ..."
-    const moveMatch = svgString.match(/M\s*([\d.]+)\s+([\d.]+)/);
-    if (moveMatch) {
-      const x = parseFloat(moveMatch[1]);
-      // The y coordinate in the path is y-radius, so we need to add back the radius
-      // to get the center point
-      const yMinusRadius = parseFloat(moveMatch[2]);
+  if (svg && typeof svg.value === 'string') {
+    const bounds = svgBounds(svg.value);
+    if (bounds) return bounds;
+  }
 
-      // Try to extract radius from the arc command
-      const arcMatch = svgString.match(/A\s*([\d.]+)\s+([\d.]+)/);
-      const radius = arcMatch ? parseFloat(arcMatch[1]) : DEFAULT_POINT_RADIUS;
-
-      const y = yMinusRadius + radius;
-
-      // Return bounds as [x, y, width, height] centered on the point
-      const size = radius * 2;
-      return [x - radius, y - radius, size, size];
+  // PointSelector not (yet) turned into a circle, e.g. an embedded page.
+  for (const s of selectors) {
+    const p = parsePoint(s);
+    if (p) {
+      const size = DEFAULT_POINT_RADIUS * 2;
+      return [p.x - DEFAULT_POINT_RADIUS, p.y - DEFAULT_POINT_RADIUS, size, size];
     }
   }
 
   return null;
+}
+
+type Point = [number, number];
+
+/** Bounding box [x, y, w, h] of points, or null when there are none (single pass: no spread limit). */
+function boxOf(points: Point[]): [number, number, number, number] | null {
+  if (!points.length) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of points) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  return [minX, minY, maxX - minX, maxY - minY];
+}
+
+/** Coordinate budget per SVG: beyond it the box is computed from what was read. */
+const MAX_POINTS = 50_000;
+
+/** Numbers per segment of each path command (arcs: only the end point is used). */
+const PATH_ARITY: Record<string, number> = { M: 2, L: 2, T: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, A: 7 };
+
+/** Absolute points visited by a path `d` (curve control points included: a cheap superset). */
+function pathPoints(d: string): Point[] {
+  const points: Point[] = [];
+  let cx = 0;
+  let cy = 0;
+  let sx = 0;
+  let sy = 0;
+  for (const m of d.matchAll(/([a-zA-Z])([^a-zA-Z]*)/g)) {
+    if (points.length > MAX_POINTS) break;
+    const rel = m[1] === m[1].toLowerCase();
+    const cmd = m[1].toUpperCase();
+    if (cmd === 'Z') {
+      cx = sx;
+      cy = sy;
+      continue;
+    }
+    const arity = PATH_ARITY[cmd];
+    if (!arity) continue;
+    const nums = extractNumbers(m[2]);
+    for (let i = 0; i + arity <= nums.length; i += arity) {
+      const seg = nums.slice(i, i + arity);
+      if (cmd === 'H' || cmd === 'V') {
+        if (cmd === 'H') cx = rel ? cx + seg[0] : seg[0];
+        else cy = rel ? cy + seg[0] : seg[0];
+        points.push([cx, cy]);
+      } else {
+        const pairs = cmd === 'A' ? seg.slice(5) : seg;
+        // Arcs bulge beyond their end points: widen by the radii (cheap superset).
+        const [rx, ry] = cmd === 'A' ? [Math.abs(seg[0]), Math.abs(seg[1])] : [0, 0];
+        for (let j = 0; j < pairs.length; j += 2) {
+          const px = rel ? cx + pairs[j] : pairs[j];
+          const py = rel ? cy + pairs[j + 1] : pairs[j + 1];
+          if (j + 2 >= pairs.length) {
+            cx = px;
+            cy = py;
+          }
+          if (rx || ry) points.push([px - rx, py - ry], [px + rx, py + ry]);
+          else points.push([px, py]);
+        }
+      }
+      if (cmd === 'M' && i === 0) {
+        sx = cx;
+        sy = cy;
+      }
+    }
+  }
+  return points;
+}
+
+const N = String.raw`([-+]?(?:\d+(?:\.\d*)?|\.\d+))`;
+const SEP = String.raw`[\s,]+`;
+/** The plugin's own marker: `M x y A r r 0 1 1 x y+2r A r r 0 1 1 x y` (two equal arcs back to the start). */
+const MARKER_PATH = new RegExp(
+  String.raw`^\s*M\s*${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*$`
+);
+
+const LONE_MOVE = new RegExp(String.raw`^\s*M\s*${N}${SEP}${N}\s*$`);
+
+/** Circle marker [x, y, w, h] when `d` is exactly the plugin's marker path (or a lone `M x y`, read as a point). */
+function markerBounds(d: string): [number, number, number, number] | null {
+  const lone = d.length < 100 ? d.match(LONE_MOVE) : null;
+  if (lone) return [Number(lone[1]) - DEFAULT_POINT_RADIUS, Number(lone[2]), DEFAULT_POINT_RADIUS * 2, DEFAULT_POINT_RADIUS * 2];
+  const m = d.length < 300 ? d.match(MARKER_PATH) : null;
+  if (!m) return null;
+  const [x, y, rx, ry, x1, y1, rx2, ry2, x2, y2] = m.slice(1).map(Number);
+  const r = rx;
+  const same = ry === r && rx2 === r && ry2 === r && x1 === x && x2 === x && y2 === y && y1 === y + 2 * r;
+  // The path starts at (x, y - r): add the radius back to get the centre.
+  return same && r > 0 ? [x - r, y, r * 2, r * 2] : null;
+}
+
+/**
+ * Bounds of an SVG selector value. The plugin's circle marker is read as a point;
+ * any other path, polygon, polyline, circle, ellipse or rect gets the box of all
+ * its (signed, decimal) coordinates.
+ */
+function svgBounds(svg: string): [number, number, number, number] | null {
+  if (svg.length > MAX_SVG_LENGTH) return null;
+  const attr = svgAttr;
+  const num = (tag: string, name: string): number => parseFloat(attr(tag, name) ?? '') || 0;
+
+  const shapes = [...svg.matchAll(/<(path|polygon|polyline|circle|ellipse|rect)\b[^<>]*>/gi)];
+  if (shapes.length === 1 && shapes[0][1].toLowerCase() === 'path') {
+    const marker = markerBounds(attr(shapes[0][0], 'd') ?? '');
+    if (marker) return marker;
+  }
+
+  const points: Point[] = [];
+  for (const m of shapes) {
+    if (points.length > MAX_POINTS) break;
+    const tag = m[0];
+    // Shapes without their size attribute carry no geometry.
+    const sizeAttr = { circle: 'r', ellipse: 'rx', rect: 'width' }[m[1].toLowerCase()];
+    if (sizeAttr && attr(tag, sizeAttr) === undefined) continue;
+    switch (m[1].toLowerCase()) {
+      case 'path':
+        points.push(...pathPoints(attr(tag, 'd') ?? ''));
+        break;
+      case 'polygon':
+      case 'polyline': {
+        const n = extractNumbers(attr(tag, 'points') ?? '');
+        for (let i = 0; i + 1 < n.length; i += 2) points.push([n[i], n[i + 1]]);
+        break;
+      }
+      case 'circle': {
+        const [cx, cy, r] = [num(tag, 'cx'), num(tag, 'cy'), num(tag, 'r')];
+        points.push([cx - r, cy - r], [cx + r, cy + r]);
+        break;
+      }
+      case 'ellipse': {
+        const [cx, cy, rx, ry] = [num(tag, 'cx'), num(tag, 'cy'), num(tag, 'rx'), num(tag, 'ry')];
+        points.push([cx - rx, cy - ry], [cx + rx, cy + ry]);
+        break;
+      }
+      default: {
+        const [x, y] = [num(tag, 'x'), num(tag, 'y')];
+        points.push([x, y], [x + num(tag, 'width'), y + num(tag, 'height')]);
+      }
+    }
+  }
+  return boxOf(points);
 }
 
 /**
@@ -361,7 +508,12 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
       const resource = resolveSelectedResource(annotations, searchAnnotations, selectedAnnotationId);
 
       if (resource) {
-        const bounds = getAnnotationBounds(resource);
+        let bounds: ReturnType<typeof getAnnotationBounds> = null;
+        try {
+          bounds = getAnnotationBounds(resource);
+        } catch {
+          // A malformed selector must not take the viewer down.
+        }
 
         if (bounds) {
           // Trigger pulse animation

@@ -21,6 +21,7 @@ interface AnnotationResource {
   targetId: string;
   fragmentSelector?: [number, number, number, number] | null;
   svgSelector?: { value: string } | null;
+  selector?: unknown;
 }
 
 interface AnnotationList {
@@ -82,6 +83,60 @@ describe('SelectionHighlightPlugin', () => {
       // Should use DEFAULT_POINT_RADIUS = 12
       expect(bounds![2]).toBe(24); // width = 12 * 2
       expect(bounds![3]).toBe(24); // height = 12 * 2
+    });
+
+    it('reads a polygon path with negative and decimal coordinates', () => {
+      const svg = '<svg><path d="M -10.5 20 L 30 40.25 L 50 -60 Z"/></svg>';
+      expect(getAnnotationBounds({ id: 'a', targetId: 'c', svgSelector: { value: svg } })).toEqual([-10.5, -60, 60.5, 100.25]);
+    });
+
+    it('reads polygon, rect, circle and ellipse SVG shapes', () => {
+      const b = (value: string) => getAnnotationBounds({ id: 'a', targetId: 'c', svgSelector: { value } });
+      expect(b('<svg><polygon points="0,0 10,5 4,-8"/></svg>')).toEqual([0, -8, 10, 13]);
+      expect(b('<svg><rect x="5" y="6" width="10" height="20"/></svg>')).toEqual([5, 6, 10, 20]);
+      expect(b('<svg><circle cx="50" cy="50" r="10"/></svg>')).toEqual([40, 40, 20, 20]);
+      expect(b('<svg><ellipse cx="50" cy="50" rx="10" ry="5"/></svg>')).toEqual([40, 45, 20, 10]);
+    });
+
+    it('handles relative path commands', () => {
+      const svg = '<svg><path d="m 10 10 l 20 0 v 15 h -20 z"/></svg>';
+      expect(getAnnotationBounds({ id: 'a', targetId: 'c', svgSelector: { value: svg } })).toEqual([10, 10, 20, 15]);
+    });
+
+    it('falls back to a PointSelector when nothing else is readable', () => {
+      const resource = { id: 'a', targetId: 'c', selector: [{ type: 'PointSelector', x: 100, y: 200 }] };
+      expect(getAnnotationBounds(resource)).toEqual([88, 188, 24, 24]);
+    });
+
+    it('reads a pixel: fragment when Mirador yields NaN, and ignores percent:', () => {
+      const nan = [NaN, 2, 3, 4] as unknown as [number, number, number, number];
+      expect(
+        getAnnotationBounds({
+          id: 'a',
+          targetId: 'c',
+          fragmentSelector: nan,
+          selector: [{ type: 'FragmentSelector', value: 'xywh=pixel:1,2,3,4' }],
+        })
+      ).toEqual([1, 2, 3, 4]);
+      expect(
+        getAnnotationBounds({
+          id: 'a',
+          targetId: 'c',
+          fragmentSelector: nan,
+          selector: [{ type: 'FragmentSelector', value: 'xywh=percent:1,2,3,4' }],
+        })
+      ).toBeNull();
+    });
+
+    it('prefers the fragment bbox over the SVG in a selector array', () => {
+      expect(
+        getAnnotationBounds({
+          id: 'a',
+          targetId: 'c',
+          fragmentSelector: [0, 0, 60, 100],
+          svgSelector: { value: '<svg><polygon points="0,0 60,0 60,100"/></svg>' },
+        })
+      ).toEqual([0, 0, 60, 100]);
     });
 
     it('should return null for resource without selector', () => {
@@ -263,5 +318,33 @@ describe('SelectionHighlightPlugin export', () => {
     expect(selectionHighlightPlugin.mode).toBe('wrap');
     expect(selectionHighlightPlugin.name).toBe('SelectionHighlightPlugin');
     expect(selectionHighlightPlugin.component).toBeDefined();
+  });
+});
+
+describe('getAnnotationBounds hardening', () => {
+  const res = (value: string) => ({ id: 'a', targetId: 'c', svgSelector: { value } });
+
+  it('reads width, not stroke-width', () => {
+    const b = getAnnotationBounds(res('<svg><rect stroke-width="2" x="5" y="6" width="100" height="20"/></svg>'));
+    expect(b).toEqual([5, 6, 100, 20]);
+  });
+
+  it('does not take a producer semicircle for the marker', () => {
+    const b = getAnnotationBounds(res('<svg><path d="M 0 0 A 50 50 0 0 1 100 0"/></svg>'));
+    expect(b![2]).toBeGreaterThan(100);
+  });
+
+  it('survives 200k coordinates and hostile tag runs quickly', () => {
+    const t = Date.now();
+    const pts = Array.from({ length: 200000 }, (_, i) => `${i},${i}`).join(' ');
+    expect(getAnnotationBounds(res(`<svg><polygon points="${pts}"/></svg>`))).toBeNull();
+    expect(getAnnotationBounds(res('<path '.repeat(40000)))).toBeNull();
+    expect(getAnnotationBounds(res(`<svg><path d="M 1 ${'1'.repeat(40000)}x"/></svg>`))).not.toBeUndefined();
+    expect(Date.now() - t).toBeLessThan(1500);
+  });
+
+  it('still reads a large-but-allowed polygon', () => {
+    const pts = Array.from({ length: 5000 }, (_, i) => `${i},${i}`).join(' ');
+    expect(getAnnotationBounds(res(`<svg><polygon points="${pts}"/></svg>`))).toEqual([0, 0, 4999, 4999]);
   });
 });

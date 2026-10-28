@@ -26,6 +26,7 @@ import type {
   MetadataEntry,
   SeeAlsoEntry,
 } from '../types/iiif';
+import { normalizeTargetSelector } from './annotationSelectors';
 
 /** Open dataset MIME types that imply a Dataset body even without an explicit `@type`. */
 const DATASET_MIMES = new Set([
@@ -615,6 +616,8 @@ export function normalizeAnnotationResources(
 
   const out: Record<string, AnnotationV3> = {};
   for (const ann of expandAnnotations(all)) {
+    // Embedded pages skip the postprocessor, so apply the same display pass here.
+    normalizeTargetSelector(ann as unknown as Record<string, unknown>);
     out[ann.id] = ann;
   }
 

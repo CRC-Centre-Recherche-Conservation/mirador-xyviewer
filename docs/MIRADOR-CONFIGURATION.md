@@ -93,7 +93,7 @@ Without this, annotations will load but won't display in the UI.
 
 ### Point Annotation Postprocessor
 
-To make point annotations (1x1 pixel) visible as circles:
+To make point annotations visible as circles and normalise selectors (tiny `xywh`, `PointSelector`, WADM selector arrays, `<polygon>`/`<polyline>` rebuilt as paths, `xywh=pixel:` canonicalised; `xywh=percent:` is left as is):
 
 ```javascript
 import { annotationPostprocessor } from 'mirador-xyviewer';
@@ -397,7 +397,7 @@ annotations: {
 
 ### Point Annotations Not Visible
 
-**Symptom:** Point annotations (1x1 pixel) don't show on canvas.
+**Symptom:** Point annotations (1x1 pixel, `PointSelector`) don't show on canvas. Annotations embedded in a manifest do not go through the postprocessor: give them their own `SvgSelector`.
 
 **Solution:** Add the annotation postprocessor:
 
