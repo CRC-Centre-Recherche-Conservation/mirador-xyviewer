@@ -24,7 +24,7 @@ const B = 'https://iiif.example.org/anno/b';
 const annotationA = {
   id: A,
   type: 'Annotation',
-  motivation: 'classifying',
+  motivation: 'supplementing',
   body: [
     { type: 'SpecificResource', purpose: 'classifying', source: 'https://t.example.org/c/1', label: { en: ['Lead white'] } },
     { type: 'SpecificResource', purpose: 'linking', source: { id: B, type: 'Annotation' } },
@@ -56,9 +56,14 @@ const state = {
   },
 };
 
-function setup(ids: string[]) {
+function setup(ids: string[], config: Record<string, unknown> = {}, stored: IIIFAnnotation[] = [annotationA, annotationB]) {
   const seen: Array<{ type: string; [k: string]: unknown }> = [];
-  const store = createStore((s: typeof state = state, a: { type: string }) => {
+  const initial = {
+    ...state,
+    config: { ...state.config, ...config },
+    annotations: { c1: { list1: { json: { ...state.annotations.c1.list1.json, items: stored } } } },
+  };
+  const store = createStore((s: typeof state = initial, a: { type: string }) => {
     seen.push(a);
     return s;
   });
@@ -103,6 +108,20 @@ describe('shouldUseCustomRendering', () => {
 });
 
 describe('connected plugin with Web Annotation bodies', () => {
+  it('applies config.scientificAnnotations.labels to the links caption and purpose captions', () => {
+    setup([A, B], {
+      scientificAnnotations: { labels: { linkedAnnotations: 'Proof', purposes: { classifying: 'Pigment' } } },
+    });
+    expect(screen.getByRole('group', { name: 'Proof' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Linked annotations' })).toBeNull();
+    expect(screen.getByText('Pigment')).toBeInTheDocument();
+  });
+
+  it('falls back to the default caption when the configured one is not a string', () => {
+    setup([A, B], { scientificAnnotations: { labels: { linkedAnnotations: {} } } });
+    expect(screen.getByRole('group', { name: 'Linked annotations' })).toBeInTheDocument();
+  });
+
   it('renders chips and the Choice item instead of the default list', () => {
     setup([A, B]);
     expect(screen.queryByTestId('default')).toBeNull();
@@ -110,16 +129,18 @@ describe('connected plugin with Web Annotation bodies', () => {
     expect(screen.getByText('Spectrum')).toBeInTheDocument();
   });
 
-  it('dispatches SELECT_ANNOTATION from the Evidence button without selecting the parent', () => {
+  it('dispatches SELECT_ANNOTATION from a linked row without selecting the parent', () => {
     const { seen, toggle } = setup([A, B]);
-    fireEvent.click(screen.getByRole('button', { name: /Evidence/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Select linked annotation 1 of 1/ }));
     expect(seen).toContainEqual({ type: 'mirador/SELECT_ANNOTATION', windowId: 'w1', annotationId: B });
     expect(seen.filter((a) => a.type === 'mirador/SELECT_ANNOTATION')).toHaveLength(1);
     expect(toggle).not.toHaveBeenCalled();
   });
 
-  it('disables Evidence when the linked annotation is not on the canvas', () => {
-    setup([A]);
-    expect(screen.getByRole('button', { name: /Evidence/ })).toHaveAttribute('aria-disabled', 'true');
+  it('disables the row when the linked annotation is not loaded', () => {
+    setup([A], {}, [annotationA]);
+    const row = screen.getByRole('button', { name: /Select linked annotation 1 of 1/ });
+    expect(row).toHaveAttribute('aria-disabled', 'true');
+    expect(row).toHaveAttribute('aria-label', expect.stringContaining('Not available in this viewer'));
   });
 });

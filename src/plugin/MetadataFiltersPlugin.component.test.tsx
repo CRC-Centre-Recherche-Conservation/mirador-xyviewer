@@ -40,3 +40,24 @@ describe('MetadataFiltersPluginComponent hidden count', () => {
     expect(screen.getByRole('button', { name: /^Filter annotations/ })).toBeTruthy();
   });
 });
+
+describe('MetadataFiltersPluginComponent filter button', () => {
+  beforeEach(() => filtersStore.clearWindow('w2'));
+
+  it('stays disabled when the host hid every group the canvas has', () => {
+    render(
+      <MetadataFiltersPluginComponent
+        windowId="w2"
+        canvasId="A"
+        annotationResources={annos('a1') as never}
+        hiddenFilterGroups={['Type']}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /^Filter annotations/ })).toBeDisabled();
+  });
+
+  it('is enabled when a group remains', () => {
+    render(<MetadataFiltersPluginComponent windowId="w2" canvasId="A" annotationResources={annos('a1') as never} />);
+    expect(screen.getByRole('button', { name: /^Filter annotations/ })).toBeEnabled();
+  });
+});

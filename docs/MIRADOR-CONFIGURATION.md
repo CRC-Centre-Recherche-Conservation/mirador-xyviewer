@@ -195,6 +195,40 @@ const viewer = Mirador.viewer({
 }, [scientificAnnotationPlugin]);
 ```
 
+### Annotation Labels
+
+The connected `scientificAnnotationPlugin` reads its options from the `scientificAnnotations` key of the Mirador config (the basic plugin does not; pass `labels` to `AnnotationBodyRenderer` directly there).
+All strings are English by default.
+
+```javascript
+const viewer = Mirador.viewer({
+  id: 'mirador-container',
+  scientificAnnotations: {
+    labels: {
+      linkedAnnotations: 'Evidence',               // caption of the `linking` rows (default "Linked annotations")
+      linkUnavailable: 'Not on this canvas',       // detail of a row whose target is not loaded
+      purposes: { classifying: 'Pigment' },        // caption per SpecificResource purpose
+    },
+    showAnnotationId: 'menu',                      // 'menu' (default) | 'inline'
+    linkSubtitleMetadataLabel: 'Technique',        // metadata shown under each linked-annotation row
+    hiddenFilterGroups: ['Identified materials'],  // filter groups to leave out (see METADATA-FILTERS.md)
+    extendFiltersToLinked: true,                   // body filters keep the annotations a match cites (default)
+    propertyGroupOf: (uri) => (uri.includes('loterre.fr') ? 'Elements' : undefined), // name a descriptive term's row
+  },
+}, [scientificAnnotationPlugin]);
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `labels` | `AnnotationBodyLabels` | UI string overrides, all English by default (see below). |
+| `linkSubtitleMetadataLabel` | `string` | Label of the metadata entry whose value is shown under each linked-annotation row (matched case-insensitively on the target annotation). No default: rows then show only where the target is. |
+| `extendFiltersToLinked` | `boolean` | Default `true`: a characterization matching a body filter keeps the annotations it cites. `false` filters only the annotations carrying the term. See [METADATA-FILTERS.md](./METADATA-FILTERS.md#linked-annotations-1). |
+| `hiddenFilterGroups` | `string[]` | Filter groups left out of the filter panel: each entry matches a metadata label, a body group caption or a purpose (case-insensitive). See [METADATA-FILTERS.md](./METADATA-FILTERS.md#hiding-filter-groups). |
+| `propertyGroupOf` | `(uri: string) => string \| undefined` | Names the row (card) and the filter group of a `describing` term from its source URI, when neither the enclosing `Composite` label nor the source's `inScheme` label does. Return `undefined` to keep the default "Description" row. Must be pure and fast; a throwing hook is ignored. |
+| `showAnnotationId` | `'menu' \| 'inline'` | Where the annotation IIIF id is shown on every card. `'menu'` (default) puts "Copy annotation id" and "Open JSON" in the card's "⋮" menu (cards with a zone also get "Zoom to zone"); `'inline'` keeps the id as a link under the title. |
+
+Label keys: `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), for linked rows `linkOnThisPage` ("on this page"), `linkOnCanvas` ("on {canvas}"), `linkUnavailable` ("Not available in this viewer"), `linkCount` ("{n} linked annotations", the accessible name of the link icon and count in a card header) and `linkCountOne` ("1 linked annotation"), `goToPage` ("Go to page"), `hiddenByFilter` ("(hidden by filter)"), `showAll` ("Show all"), `backTo` ("Back to {title}"), `selectLinked` ("Select linked annotation {n} of {total}: {details}"), `citedBy` ("Cited by"), `linkNavigationFailed`, and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `zoomToZone` ("Zoom to zone", frames the annotation's own zone), `untitled`, and for the filter panel and term menu `showMore` ("Show {n} more"), `showFewer`, `expandGroup` ("Expand {name}") and `collapseGroup` ("Collapse {name}"), `allValuesIn` ("All values of {name}", the master checkbox), `selectedOf` ("{selected} of {total}"), `only` ("Only", the visible text of the button) and `onlyTerm` ("Only {term}", its accessible name, which must start with `only`), `valueCount` ("{n} annotations") and `valueCountOne` ("1 annotation"), `valueCountLinked` ("{own} carrying it, {linked} cited by them"), `valueCountVisible` ("{visible} of {n} visible"), `noneHint`, `filterNone` ("Not specified"), `showingOf` ("Showing {shown} of {total} annotations"), `annotationCount` ("{n} annotations") and `annotationCountOne` ("1 annotation"), `resetFilters` ("Reset all filters"), `filterButton` ("Filter annotations"), `shownBecauseLinked` ("shown because linked to {title}"), `filterBy` ("Filter by {term}"), `removeFilter` ("Remove filter: {term}"), `highlightTerm` ("Highlight annotations with this term"), `filterActive` ("filter active", added to a chip's accessible name while its term filters), `filtersEmpty` ("No annotation on this canvas can be filtered"). `evidence` and `evidenceUnavailable` are deprecated: they are only used as the fallback for `linkedAnnotations` and `linkUnavailable` when those are not set.
+
 ### Theme Customization
 
 ```javascript
@@ -307,7 +341,7 @@ Mirador-xyviewer provides five plugins; all are optional:
 |--------|-------------|
 | `scientificAnnotationPlugin` | Spectrum visualization (CSV/TSV), manifest links, metadata display |
 | `imageComparisonPlugin` | Side-by-side image comparison with synchronized zoom/pan |
-| `metadataFiltersPlugin` | Filter annotations by metadata values (button and panel) and hide the filtered shapes on the canvas. Exported as an array of two Mirador plugins: spread it (`...metadataFiltersPlugin`) |
+| `metadataFiltersPlugin` | Filter annotations by metadata values and by the controlled terms of their bodies (button and panel) and hide the filtered shapes on the canvas. Exported as an array of two Mirador plugins: spread it (`...metadataFiltersPlugin`) |
 | `selectionHighlightPlugin` | Pulse animation to highlight selected annotations on the image |
 | `searchResultFocusPlugin` | Switches the left panel to the Annotations list when a Content Search hit is selected |
 

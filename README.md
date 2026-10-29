@@ -21,8 +21,9 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Manifest Links**: Open related IIIF manifests in new windows
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
 - **Point Annotations**: Automatic conversion of analysis points (tiny `xywh`, `PointSelector`) to visible markers, with selector arrays, SVG polygons and `pixel:` fragments handled
-- **Metadata Filters**: Filter annotations by metadata values (panel list and canvas shapes)
-- **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as an "Evidence" button that selects the linked annotation, and `Choice` alternatives (any producer; WADM §4.1, §4.3)
+- **Metadata Filters**: Filter annotations by the controlled terms of their bodies and by metadata values, with a characterization keeping the annotations it cites (panel list and canvas shapes)
+- **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as named rows that select the linked annotation (also on another canvas, with a way back and "Cited by" on the target), and `Choice` alternatives (any producer; WADM §4.1, §4.3)
+- **Page sections**: when a canvas has several `AnnotationPage`s with a `label`, the Annotations panel groups the cards under collapsible, sticky headers (page label in the reader's language, count), in manifest order
 - **Reader language**: IIIF language maps (labels, metadata, localized text bodies) follow Mirador's `language` setting (IIIF Presentation 3 §4.4)
 - **Error containment**: A rendering error in a plugin, annotation or body is contained (the viewer keeps running); `ErrorBoundary` is exported for hosts embedding the standalone components
 - **Selection Highlight**: Pulse animation to locate selected annotations on the image (technique, date, operator, etc.)
@@ -46,6 +47,24 @@ selection resets when the language changes, because filter keys are language-spe
 Exported components used outside Mirador fall back to the browser language and accept
 a `LanguageProvider` to override it. Fallback UI strings such as the `seeAlso` link
 label are English and overridable via props (`fallbackLinkLabel`, `seeAlsoHeading`).
+
+## Plugin options
+
+UI strings of the annotation cards (captions, linked-annotation rows) are English and
+overridable through the Mirador config key `scientificAnnotations.labels`; see
+[docs/MIRADOR-CONFIGURATION.md](docs/MIRADOR-CONFIGURATION.md#annotation-labels).
+
+```js
+Mirador.viewer({ id: 'mirador', scientificAnnotations: { labels: { linkedAnnotations: 'Evidence' } } }, plugins);
+```
+
+Annotations with a `classifying` or `identifying` motivation are shown as summary cards
+(title, text, terms grouped by role, linked annotations, report link). The annotation id
+is in each card's "⋮" menu; set `scientificAnnotations.showAnnotationId: 'inline'` to keep
+it visible on the card. `scientificAnnotations.linkSubtitleMetadataLabel` (for example `'Technique'`)
+names the metadata whose value is shown under each linked-annotation row. `scientificAnnotations.propertyGroupOf(uri)` names the card row
+and filter group of a `describing` term when neither the enclosing `Composite` label nor the
+source's `inScheme` does (see docs/MIRADOR-CONFIGURATION.md).
 
 ## IIIF API compatibility
 
@@ -242,7 +261,7 @@ Mirador.viewer({
 | [IIIF Annotations](./docs/IIIF-ANNOTATIONS.md) | How to structure annotations for physicochemical data |
 | [Spectral Data Format](./docs/SPECTRAL-DATA-FORMAT.md) | CSV/TSV format specification |
 | [Mirador Configuration](./docs/MIRADOR-CONFIGURATION.md) | Full configuration options |
-| [Metadata Filters](./docs/METADATA-FILTERS.md) | Filter annotations by metadata |
+| [Metadata Filters](./docs/METADATA-FILTERS.md) | Filter annotations by body terms and metadata |
 | [Developer Guide](./docs/DEVELOPER-GUIDE.md) | Architecture and extension |
 
 ## Demo

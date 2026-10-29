@@ -167,6 +167,17 @@ External AnnotationPage file (`canvas1.json`):
 }
 ```
 
+### Page label and panel sections
+
+When a canvas references several annotation pages and every one of them has a `label`
+(a language map in v3; a string or `@value` list on a v2 `sc:AnnotationList`), the Annotations
+panel groups its cards under one collapsible header per page: the label in the reader's
+language and the number of cards listed. Sections follow the order of the pages in the manifest
+(`annotations` of the canvas). A page whose annotations are all hidden by a metadata filter
+is not shown. With a single page, or when a page with annotations has no label, the panel
+stays a flat list. Selecting an annotation (on the canvas or through a link) reopens its
+section and scrolls to its card.
+
 ## Annotation Structure
 
 ### Required Fields
@@ -240,7 +251,7 @@ External AnnotationPage file (`canvas1.json`):
 }
 ```
 
-> **Tip:** Metadata labels are used by the [Metadata Filters](./METADATA-FILTERS.md) plugin to create filter groups. Use consistent labels across annotations for effective filtering (e.g., always use "Technique" instead of mixing "Technique" and "Analysis Type").
+> **Tip:** Metadata labels are used by the [Metadata Filters](./METADATA-FILTERS.md) plugin to create filter groups. Use consistent labels across annotations for effective filtering (e.g., always use "Technique" instead of mixing "Technique" and "Analysis Type"). Give several values of one metadata as an array of strings (`"value": {"en": ["lapis lazuli", "lead white"]}`): each entry is one filter value, and a joined string is never split. The `SpecificResource` bodies with a `classifying`, `identifying`, `assessing`, `describing` or `tagging` purpose are also filter facets, keyed by their source URI.
 
 ## Body Types
 
@@ -363,11 +374,21 @@ falls back to the source id. `source` may be a string or an object. The chip is 
 In IIIF Presentation 2, an `oa:SpecificResource` resource with a `full` source and an
 `oa:hasPurpose` is normalized to the same model.
 
-**Evidence (linking).** A `SpecificResource` with `"purpose": "linking"` is shown as an
-"Evidence" button (label overridable through the `labels` prop of `AnnotationBodyRenderer`).
-It selects the linked annotation, matched by id (or by its `#target-N` form when a multi-target
-annotation was expanded), when that annotation is on the current canvas. Otherwise the button
-is disabled with an explanatory tooltip.
+**Linked annotations (linking).** A `SpecificResource` with `"purpose": "linking"` is shown, under the caption "Linked annotations" (`labels.linkedAnnotations`, see [MIRADOR-CONFIGURATION.md](MIRADOR-CONFIGURATION.md#annotation-labels)),
+as one named row per target (several bodies pointing to the same annotation give one row). The row title is the
+body `label`, else the `label` of the target annotation, else the end of its id; the subtitle is the value of the
+target's metadata named by `scientificAnnotations.linkSubtitleMetadataLabel`, then where it is
+("on this page", "on <canvas label>", or "Not available in this viewer").
+
+- The target is matched by id (or its `#target-N` form for an expanded multi-target annotation) among the
+  annotations of the current canvas, then among the annotations already loaded for the other canvases of the
+  manifest. Nothing is fetched: an annotation that is not loaded stays an unavailable row (still focusable,
+  `aria-disabled`, with the reason).
+- Clicking a row selects the target; on another canvas the viewer first goes to that canvas. The target card
+  gets a "Back to ..." link and a "Cited by" line listing the annotations that link to it.
+- Hovering or focusing a card lights its zone together with the zones it links to; hovering a row lights its target only.
+  "Show all" frames the zone and its linked zones.
+- A `linking` body whose source is not an `Annotation` (and is not loaded) is shown as a link that opens in a new tab.
 
 ```json
 {
@@ -376,6 +397,31 @@ is disabled with an explanatory tooltip.
   "source": { "id": "https://iiif.example.org/annotation/xrf-point-1", "type": "Annotation" }
 }
 ```
+
+#### Classification cards
+
+An annotation whose `motivation` contains `classifying` or `identifying` (the body purposes are not used for routing) is shown as a summary card. Collapsed: a kicker ("Classification" / "Identification"), the title (the annotation `label`, else the class labels, else the start of the text) and two lines of text. Selecting the card expands it:
+
+| Body | Shown as |
+|---|---|
+| `TextualBody` with purpose `describing`, `commenting` or none | The text, in the reader's language (`language` variants and `Choice` are resolved) |
+| `SpecificResource` `classifying` / `identifying` | "Classified as" / "Identified as" chips |
+| `SpecificResource` `assessing` | "Assessment" chips |
+| `SpecificResource` `describing` | "Description" chips |
+| `SpecificResource` `tagging` | "Tags" chips |
+| Any other purpose | "Other terms" |
+| `SpecificResource` `linking` | "Linked annotations" |
+| `TextualBody` with purpose `classifying`, `identifying`, `assessing` or `tagging` | A free-text chip of that group |
+
+A chip label is the body `label`, else the source `label`, else the last segment of the source URI. Clicking a chip opens a menu ("Open in vocabulary" when the source is an http(s) URL). The report button ("Open report") uses `homepage`, else the first `text/html` `seeAlso`; every other `seeAlso` entry goes to the card's "⋮" menu.
+
+**Assessments are never paired with classes by position**, since bodies may be deduplicated by their producer. They are paired with a class only when the data says so:
+
+- the annotation has a single class: its assessments qualify it (shown as one row, the text moves under "Full statement");
+- a `Composite` (non-normative in WADM, read tolerantly) holds one class and its assessments;
+- one annotation per class (each card then has a single class).
+
+Otherwise the assessments are captioned "Overall assessment (see text)" and the text carries the pairing. A `Composite` with a `label` and `describing` items, or a source with `inScheme.label` (or a URI named by the host's `propertyGroupOf` option), makes a named "Description" row. Without a text, only the term groups are shown.
 
 ### 5. Choice (Alternatives)
 
@@ -390,6 +436,23 @@ like any other body (nesting is bounded).
     "items": [
       { "type": "TextualBody", "language": "en", "value": "Red layer" },
       { "type": "TextualBody", "language": "fr", "value": "Couche rouge" }
+    ]
+  }
+}
+```
+
+### Composite, List and Independents (tolerated)
+
+The Web Annotation model also defines `Composite` (parts of one whole), `List` (ordered) and `Independents` (unrelated bodies). They are not normative in IIIF and rarely used, so the normalizer only reads them tolerantly into `{ type, items }` (`isCompositeBody`, `isListBody`, `isIndependentsBody`). Each item is normalized like any other body and keeps its own `purpose`; `id`, `label` (a plain string becomes a language map) and `purpose` of the construct are kept, as are its other properties (`creator`, `rights`, extensions). Items may be an array, a single object or a JSON-LD `{ "@list": [...] }` (also `item` / `oa:item` in v2); non-object items are dropped, nesting is bounded (as for `Choice`) and at most 500 items are kept. The construct itself is not rendered yet.
+
+```json
+{
+  "body": {
+    "type": "Composite",
+    "label": { "en": ["Lead white"] },
+    "items": [
+      { "type": "SpecificResource", "purpose": "classifying", "source": "https://example.org/vocab/lead-white" },
+      { "type": "SpecificResource", "purpose": "assessing", "source": "https://example.org/vocab/highly-reliable" }
     ]
   }
 }

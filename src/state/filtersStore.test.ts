@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { parseValueWithUrl, normalizeKey, createKey } from './filtersStore';
+import { parseValueWithUrl, normalizeKey, createKey, facetGroupKey, filtersStore } from './filtersStore';
 
 /**
  * Tests for filtersStore
@@ -142,13 +142,13 @@ describe('filtersStore', () => {
       const groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups.length).toBe(2);
 
-      const techniqueGroup = groups.find(g => g.key === 'technique');
+      const techniqueGroup = groups.find(g => g.key === 'meta:technique');
       expect(techniqueGroup).toBeDefined();
       expect(techniqueGroup!.values.size).toBe(2);
       expect(techniqueGroup!.values.get('xrf')?.count).toBe(1);
       expect(techniqueGroup!.values.get('raman')?.count).toBe(1);
 
-      const operatorGroup = groups.find(g => g.key === 'operator');
+      const operatorGroup = groups.find(g => g.key === 'meta:operator');
       expect(operatorGroup).toBeDefined();
       expect(operatorGroup!.values.size).toBe(2);
     });
@@ -189,35 +189,40 @@ describe('filtersStore', () => {
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
 
       const groups = filtersStore.getGroups('test-window', 'test-canvas');
-      const operatorGroup = groups.find(g => g.key === 'operator');
+      const operatorGroup = groups.find(g => g.key === 'meta:operator');
 
       expect(operatorGroup).toBeDefined();
-      const noneValue = operatorGroup!.values.get('__none__');
+      const noneValue = operatorGroup!.values.get('\u0000none');
       expect(noneValue).toBeDefined();
       expect(noneValue!.count).toBe(1);
-      expect(noneValue!.displayText).toBe('None');
+      expect(noneValue!.displayText).toBe('Not specified');
     });
 
-    it('should not reinitialize if already initialized (unless forced)', () => {
-      const annotations1 = [
-        {
-          id: 'anno-1',
-          metadata: [{ label: { en: ['Technique'] }, value: { en: ['XRF'] } }],
-        },
-      ];
-      const annotations2 = [
-        {
-          id: 'anno-2',
-          metadata: [{ label: { en: ['Technique'] }, value: { en: ['Raman'] } }],
-        },
+    it('should not reinitialize with the same annotations (unless forced)', () => {
+      const annotations = [
+        { id: 'anno-1', metadata: [{ label: { en: ['Technique'] }, value: { en: ['XRF'] } }] },
       ];
 
-      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations1);
-      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations2);
+      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
+      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
 
       const groups = filtersStore.getGroups('test-window', 'test-canvas');
-      expect(groups[0]?.values.has('xrf')).toBe(true);
-      expect(groups[0]?.values.has('raman')).toBe(false);
+      expect(groups[0]?.values.get('xrf')?.selected).toBe(false);
+    });
+
+    it('should rebuild when more annotations load, keeping the selection', () => {
+      const first = { id: 'anno-1', metadata: [{ label: { en: ['Technique'] }, value: { en: ['XRF'] } }] };
+      const second = { id: 'anno-2', metadata: [{ label: { en: ['Technique'] }, value: { en: ['Raman'] } }] };
+
+      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', [first]);
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
+      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', [first, second]);
+
+      const group = filtersStore.getGroups('test-window', 'test-canvas')[0];
+      expect(group.values.has('raman')).toBe(true);
+      expect(group.values.get('xrf')?.selected).toBe(false);
+      expect(group.values.get('raman')?.selected).toBe(true);
     });
 
     it('should reinitialize when forced', () => {
@@ -270,12 +275,12 @@ describe('filtersStore', () => {
       let groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.values.get('xrf')?.selected).toBe(true);
 
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
 
       groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.values.get('xrf')?.selected).toBe(false);
 
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
 
       groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.values.get('xrf')?.selected).toBe(true);
@@ -288,7 +293,7 @@ describe('filtersStore', () => {
 
     it('should handle non-existent value key', () => {
       // Should not throw
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'nonexistent');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'nonexistent');
     });
   });
 
@@ -308,7 +313,7 @@ describe('filtersStore', () => {
     });
 
     it('should deselect all values in a group', () => {
-      filtersStore.deselectAll('test-window', 'test-canvas', 'technique');
+      filtersStore.deselectAll('test-window', 'test-canvas', 'meta:technique');
 
       const groups = filtersStore.getGroups('test-window', 'test-canvas');
       for (const value of groups[0]?.values.values() ?? []) {
@@ -317,8 +322,8 @@ describe('filtersStore', () => {
     });
 
     it('should select all values in a group', () => {
-      filtersStore.deselectAll('test-window', 'test-canvas', 'technique');
-      filtersStore.selectAll('test-window', 'test-canvas', 'technique');
+      filtersStore.deselectAll('test-window', 'test-canvas', 'meta:technique');
+      filtersStore.selectAll('test-window', 'test-canvas', 'meta:technique');
 
       const groups = filtersStore.getGroups('test-window', 'test-canvas');
       for (const value of groups[0]?.values.values() ?? []) {
@@ -341,7 +346,7 @@ describe('filtersStore', () => {
       ];
 
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
 
       const hiddenIds = filtersStore.updateHiddenAnnotations('test-window', 'test-canvas', annotations);
 
@@ -368,7 +373,7 @@ describe('filtersStore', () => {
       ];
 
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
-      filtersStore.toggleValue('test-window', 'test-canvas', 'operator', '__none__');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:operator', '\u0000none');
 
       const hiddenIds = filtersStore.updateHiddenAnnotations('test-window', 'test-canvas', annotations);
 
@@ -393,7 +398,7 @@ describe('filtersStore', () => {
       ];
 
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'raman');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'raman');
       filtersStore.updateHiddenAnnotations('test-window', 'test-canvas', annotations);
 
       const groups = filtersStore.getGroups('test-window', 'test-canvas');
@@ -450,7 +455,7 @@ describe('filtersStore', () => {
     });
 
     it('should return true when any value is deselected', () => {
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
 
       expect(filtersStore.hasActiveFilters('test-window', 'test-canvas')).toBe(true);
     });
@@ -479,7 +484,7 @@ describe('filtersStore', () => {
       ];
 
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
       filtersStore.updateHiddenAnnotations('test-window', 'test-canvas', annotations);
 
       expect(filtersStore.isAnnotationVisible('test-window', 'test-canvas', 'anno-1')).toBe(false);
@@ -500,7 +505,7 @@ describe('filtersStore', () => {
       ];
 
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
       filtersStore.updateHiddenAnnotations('test-window', 'test-canvas', annotations);
 
       expect(filtersStore.getHiddenAnnotationIds('test-window', 'test-canvas').size).toBe(1);
@@ -586,7 +591,7 @@ describe('filtersStore', () => {
         events.push(event);
       });
 
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
 
       expect(events.some(e => e.type === 'toggle-value')).toBe(true);
       unsubscribe();
@@ -632,14 +637,14 @@ describe('filtersStore', () => {
       ];
 
       filtersStore.initializeFromAnnotations('test-window', 'test-canvas', annotations);
-      filtersStore.toggleValue('test-window', 'test-canvas', 'technique', 'xrf');
+      filtersStore.toggleValue('test-window', 'test-canvas', 'meta:technique', 'xrf');
 
       const activeFilters = filtersStore.getActiveFilters('test-window', 'test-canvas');
 
-      expect(activeFilters.get('technique')?.has('xrf')).toBe(false);
-      expect(activeFilters.get('technique')?.has('raman')).toBe(true);
-      expect(activeFilters.get('operator')?.has('john')).toBe(true);
-      expect(activeFilters.get('operator')?.has('jane')).toBe(true);
+      expect(activeFilters.get('meta:technique')?.has('xrf')).toBe(false);
+      expect(activeFilters.get('meta:technique')?.has('raman')).toBe(true);
+      expect(activeFilters.get('meta:operator')?.has('john')).toBe(true);
+      expect(activeFilters.get('meta:operator')?.has('jane')).toBe(true);
     });
 
     it('should return empty map for uninitialized state', () => {
@@ -664,12 +669,12 @@ describe('filtersStore', () => {
       let groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.expanded).toBe(true);
 
-      filtersStore.toggleGroupExpanded('test-window', 'test-canvas', 'technique');
+      filtersStore.toggleGroupExpanded('test-window', 'test-canvas', 'meta:technique');
 
       groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.expanded).toBe(false);
 
-      filtersStore.toggleGroupExpanded('test-window', 'test-canvas', 'technique');
+      filtersStore.toggleGroupExpanded('test-window', 'test-canvas', 'meta:technique');
 
       groups = filtersStore.getGroups('test-window', 'test-canvas');
       expect(groups[0]?.expanded).toBe(true);
@@ -744,21 +749,56 @@ describe('annotations without metadata', () => {
   it('does not count them under None', async () => {
     const { filtersStore, NONE_KEY } = await import('./filtersStore');
     filtersStore.initializeFromAnnotations(w, c, annotations, true, ['en']);
-    const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'technique')!;
+    const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'meta:technique')!;
     expect(technique.values.get(NONE_KEY)).toMatchObject({ count: 1, visibleCount: 1 });
   });
 
   it('never hides them, whatever is deselected', async () => {
     const { filtersStore, NONE_KEY } = await import('./filtersStore');
     filtersStore.initializeFromAnnotations(w, c, annotations, true, ['en']);
-    filtersStore.toggleValue(w, c, 'technique', NONE_KEY);
-    filtersStore.toggleValue(w, c, 'technique', 'xrf');
-    filtersStore.toggleValue(w, c, 'operator', NONE_KEY);
+    filtersStore.toggleValue(w, c, 'meta:technique', NONE_KEY);
+    filtersStore.toggleValue(w, c, 'meta:technique', 'xrf');
+    filtersStore.toggleValue(w, c, 'meta:operator', NONE_KEY);
     const hidden = filtersStore.updateHiddenAnnotations(w, c, annotations);
     expect([...hidden].sort()).toEqual(['other', 'raman', 'xrf']);
     expect(filtersStore.isAnnotationVisible(w, c, 'cls-none')).toBe(true);
     expect(filtersStore.isAnnotationVisible(w, c, 'cls-empty')).toBe(true);
-    const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'technique')!;
+    const technique = filtersStore.getGroups(w, c).find((g) => g.key === 'meta:technique')!;
     expect(technique.values.get(NONE_KEY)!.visibleCount).toBe(0);
+  });
+
+  describe('propertyGroupOf', () => {
+    const body = (uri: string) => ({
+      type: 'SpecificResource',
+      purpose: 'describing',
+      source: uri,
+      label: { en: [uri.split('/').pop()!] },
+    });
+    const annotations = [
+      { id: 'a1', body: [body('http://data.loterre.fr/lead'), body('http://v/layer')] },
+      { id: 'a2', body: [body('http://data.loterre.fr/iron')] },
+    ];
+    const init = (fn?: (uri: string) => string | undefined, language = 'en') =>
+      filtersStore.initializeFromAnnotations('w-hook', 'c-hook', annotations as never, false, [language], { propertyGroupOf: fn });
+
+    it('captions a describing group with the hook result', () => {
+      init((u) => (u.includes('loterre') ? 'Elements' : undefined));
+      const group = filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === facetGroupKey('describing', 'Elements'));
+      expect(group?.label).toBe('Elements');
+      expect(group?.values.size).toBe(2);
+    });
+
+    it('keeps the selection for the same hook and resets it for a new one', () => {
+      const hook = (u: string) => (u.includes('loterre') ? 'Elements' : undefined);
+      init(hook);
+      const key = facetGroupKey('describing', 'Elements');
+      const valueKey = [...filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === key)!.values.keys()][0];
+      filtersStore.toggleFacet('w-hook', 'c-hook', key, valueKey);
+      init(hook);
+      expect(filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === key)!.values.get(valueKey)!.selected).toBe(false);
+      init((u) => (u.includes('loterre') ? 'Elements' : undefined));
+      expect(filtersStore.getGroups('w-hook', 'c-hook').find((g) => g.key === key)!.values.get(valueKey)!.selected).toBe(true);
+      filtersStore.clearFilters('w-hook', 'c-hook');
+    });
   });
 });

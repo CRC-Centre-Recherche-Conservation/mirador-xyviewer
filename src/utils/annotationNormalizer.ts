@@ -287,11 +287,64 @@ function mapSpecificResourceBody(
   } as AnnotationBody;
 }
 
+/** WADM multiplicity constructs (non-normative, rare in IIIF) read tolerantly as `{ type, items }`. */
+const MULTI_TYPES = new Set(['Composite', 'List', 'Independents']);
+
+/** Construct keys mapped explicitly; every other own key is carried over as-is. */
+const MULTI_HANDLED_KEYS = new Set([
+  '@id', '@type', 'type', 'id', 'label', 'items', 'item', 'oa:item', 'purpose', 'oa:hasPurpose', 'hasPurpose',
+]);
+
+/** Items kept per construct (caps what reaches the renderers). */
+const MAX_MULTI_ITEMS = 500;
+
+/** `items` / `item` (also `oa:item`) as one value, an array or a JSON-LD `{ @list }`; anything else is empty. */
+function multiItems(raw: Record<string, unknown>): unknown[] {
+  const value = raw.items ?? raw.item ?? raw['oa:item'];
+  const list = isObject(value) && Array.isArray(value['@list']) ? value['@list'] : toArray(value);
+  return list.slice(0, MAX_MULTI_ITEMS);
+}
+
+/** Construct name (`Composite`, `List`, `Independents`) a wire object declares, if any. */
+function multiTypeOf(raw: Record<string, unknown>): string | undefined {
+  const declared = raw['@type'] ?? raw.type;
+  const type = typeof declared === 'string' ? stripPrefix(declared) : undefined;
+  return type && MULTI_TYPES.has(type) ? type : undefined;
+}
+
+/**
+ * oa:/WADM Composite, List or Independents → `{ type, items }`, each item normalized like any
+ * body (so it keeps its own `purpose`). Order is preserved; items nested too deep are dropped.
+ */
+function mapMultiBody(raw: Record<string, unknown>, type: string, depth: number): AnnotationBody | undefined {
+  if (depth >= MAX_CHOICE_DEPTH) return undefined;
+  const id = refId(raw);
+  const label = toLocalizedMap(raw.label);
+  const purpose = mapPurpose(raw);
+  const rest = Object.fromEntries(
+    Object.entries(raw).filter(([k]) => !MULTI_HANDLED_KEYS.has(k) && k !== '__proto__')
+  );
+  const items = multiItems(raw)
+    .filter((i) => isObject(i) && !Array.isArray(i))
+    .flatMap((i) => mapBody(i, depth + 1) ?? []);
+  return {
+    ...rest,
+    type,
+    items,
+    ...(id ? { id } : {}),
+    ...(label && Object.values(label).some((v) => v.some(Boolean)) ? { label } : {}),
+    ...(purpose ? { purpose } : {}),
+  } as AnnotationBody;
+}
+
 /** v2 `resource` object (or already-v3 body) → normalized AnnotationBody. Never throws; undefined = drop. */
 function mapBody(raw: unknown, depth = 0): AnnotationBody | undefined {
   if (!isObject(raw)) {
     return { type: 'TextualBody', value: typeof raw === 'string' ? raw : '' };
   }
+
+  const multiType = multiTypeOf(raw);
+  if (multiType) return mapMultiBody(raw, multiType, depth);
 
   // Already a v3 body (bare `type`, no v2 `@type`): pass through unchanged.
   if (typeof raw.type === 'string' && raw['@type'] === undefined) {
@@ -604,33 +657,107 @@ export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
  * and the keys line up with the ids Mirador renders on the canvas.
  */
 const EMPTY_RESOURCES: Record<string, AnnotationV3> = {};
-const resourcesCache = new WeakMap<object, Record<string, AnnotationV3>>();
+
+interface CanvasAnalysis {
+  resources: Record<string, AnnotationV3>;
+  /** Per page, in state order: the entry, its key and the ids its annotations had before expansion. */
+  pages: { key: string; id?: unknown; json: Record<string, unknown>; baseIds: string[] }[];
+}
+const analysisCache = new WeakMap<object, CanvasAnalysis>();
+
+/** One walk over the canvas state feeds both the resource map and the page grouping. */
+function analyseCanvas(canvasAnnotations: Record<string, { json?: unknown }>): CanvasAnalysis {
+  const cached = analysisCache.get(canvasAnnotations);
+  if (cached) return cached;
+
+  const all: AnnotationV3[] = [];
+  const pages: CanvasAnalysis['pages'] = [];
+  for (const [key, entry] of Object.entries(canvasAnnotations)) {
+    if (!isObject(entry)) continue;
+    const list = normalizeAnnotationList(entry.json);
+    all.push(...list);
+    if (isObject(entry.json)) pages.push({ key, id: (entry as { id?: unknown }).id, json: entry.json, baseIds: list.map((a) => a.id) });
+  }
+
+  // No prototype: annotation ids come from producers (e.g. "__proto__").
+  const resources: Record<string, AnnotationV3> = Object.create(null);
+  for (const ann of expandAnnotations(all)) {
+    // Keep the panel copy consistent for pages that missed the manifest pass (over budget, or injected without the helper).
+    normalizeTargetSelector(ann as unknown as Record<string, unknown>);
+    resources[ann.id] = ann;
+  }
+
+  const analysis = { resources, pages };
+  analysisCache.set(canvasAnnotations, analysis);
+  return analysis;
+}
 
 export function normalizeAnnotationResources(
   canvasAnnotations: Record<string, { json?: unknown }> | undefined
 ): Record<string, AnnotationV3> {
   if (!isObject(canvasAnnotations)) return EMPTY_RESOURCES;
+  // Memoized on the (Redux-stable) per-canvas state object: the same input returns
+  // the SAME reference, so the connected mapStateToProps does not re-render needlessly.
+  return analyseCanvas(canvasAnnotations).resources;
+}
 
-  // Memoize on the (Redux-stable) per-canvas state object: the same input returns
-  // the SAME reference, so the connected mapStateToProps does not produce a fresh
-  // object on every unrelated dispatch (avoids needless re-renders).
-  const cached = resourcesCache.get(canvasAnnotations);
+/** One annotation page/list of a canvas: its label and the ids of its annotations, in order. */
+export interface AnnotationPageGroup {
+  id: string;
+  label?: LocalizedString;
+  annotationIds: string[];
+}
+
+const EMPTY_PAGES: AnnotationPageGroup[] = [];
+
+const hasText = (l: unknown): boolean =>
+  typeof l === 'string'
+    ? l.trim() !== ''
+    : isObject(l) &&
+      Object.values(l).some((v) => Array.isArray(v) && v.some((t) => typeof t === 'string' && t.trim() !== ''));
+const pagesCache = new WeakMap<object, AnnotationPageGroup[]>();
+
+/**
+ * The pages of a canvas in the order Mirador requested them (the manifest's), each with its
+ * localized-map label and the ids {@link normalizeAnnotationResources} gives its annotations.
+ * Pages without annotations are left out; an id repeated on several pages stays on the first.
+ */
+export function normalizeAnnotationPages(
+  canvasAnnotations: Record<string, { json?: unknown }> | undefined,
+): AnnotationPageGroup[] {
+  if (!isObject(canvasAnnotations)) return EMPTY_PAGES;
+  const cached = pagesCache.get(canvasAnnotations);
   if (cached) return cached;
 
-  const all: AnnotationV3[] = [];
-  for (const entry of Object.values(canvasAnnotations)) {
-    if (!isObject(entry)) continue;
-    all.push(...normalizeAnnotationList(entry.json));
+  const { resources, pages } = analyseCanvas(canvasAnnotations);
+  // Expanded ids (`x#target-n`) by the id they came from.
+  const byBase = new Map<string, string[]>();
+  for (const a of Object.values(resources)) {
+    const base = (a as { _originalAnnotationId?: string })._originalAnnotationId ?? a.id;
+    const ids = byBase.get(base);
+    if (ids) ids.push(a.id);
+    else byBase.set(base, [a.id]);
   }
-
-  // No prototype: annotation ids come from producers (e.g. "__proto__").
-  const out: Record<string, AnnotationV3> = Object.create(null);
-  for (const ann of expandAnnotations(all)) {
-    // Keep the panel copy consistent for pages that missed the manifest pass (over budget, or injected without the helper).
-    normalizeTargetSelector(ann as unknown as Record<string, unknown>);
-    out[ann.id] = ann;
+  const seen = new Set<string>();
+  const out: AnnotationPageGroup[] = [];
+  for (const { key, id: entryId, json, baseIds } of pages) {
+    const annotationIds: string[] = [];
+    for (const base of baseIds) {
+      for (const id of byBase.get(base) ?? []) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        annotationIds.push(id);
+      }
+    }
+    if (!annotationIds.length) continue;
+    // `label` is the container label in every supported format (v3 AnnotationPage, v2 AnnotationList).
+    const label = v2ValueToLocalized(json.label as LocalizedStringV2 | undefined);
+    out.push({
+      id: typeof entryId === 'string' ? entryId : key,
+      ...(hasText(label) ? { label: asLocalized(label) } : {}),
+      annotationIds,
+    });
   }
-
-  resourcesCache.set(canvasAnnotations, out);
+  pagesCache.set(canvasAnnotations, out);
   return out;
 }

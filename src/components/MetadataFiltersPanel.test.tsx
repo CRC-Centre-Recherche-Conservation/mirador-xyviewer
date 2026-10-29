@@ -29,9 +29,9 @@ beforeEach(() => {
 });
 
 describe('MetadataFiltersPanel', () => {
-  it('shows a "no metadata" message when the store has no groups', () => {
+  it('shows an empty message when the store has no groups', () => {
     render(<MetadataFiltersPanel windowId={WIN} canvasId={CANVAS} annotations={[]} />);
-    expect(screen.getByText(/No metadata available/i)).toBeInTheDocument();
+    expect(screen.getByText(/No annotation on this canvas can be filtered/i)).toBeInTheDocument();
   });
 
   it('renders the group label, its values, and a checkbox per value', () => {
@@ -74,11 +74,9 @@ describe('MetadataFiltersPanel', () => {
     expect(screen.queryByText('Filters')).toBeNull();
   });
 
-  it('shows annotation and group counts in the footer', () => {
+  it('shows the annotation count in the status footer', () => {
     seed();
     render(<MetadataFiltersPanel windowId={WIN} canvasId={CANVAS} annotations={annotations} />);
-    // Footer text: "2 annotations | 1 filter groups"
-    expect(screen.getByText(/2 annotations/)).toBeInTheDocument();
-    expect(screen.getByText(/1 filter groups/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('2 annotations');
   });
 });
