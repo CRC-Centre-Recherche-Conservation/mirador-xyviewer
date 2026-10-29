@@ -211,6 +211,8 @@ interface PluginWrapperProps {
   windowCanvasId?: string;
   /** Canvases the window shows (two in book view). */
   visibleCanvasIds?: string[];
+  /** Annotations hovered in the window (Mirador does not pass them to CanvasAnnotations). */
+  hoveredAnnotationIds?: string[];
   /** The canvas's annotation pages in manifest order, with their labels. */
   pageGroups?: AnnotationPageGroup[];
   /** Rest of Mirador's wrap chain, when other plugins wrap the same target. */
@@ -235,6 +237,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   propertyGroupOf,
   windowCanvasId,
   visibleCanvasIds,
+  hoveredAnnotationIds: hoveredFromState,
   pageGroups = EMPTY_PAGE_GROUPS,
   children,
 }) => {
@@ -243,12 +246,12 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     windowId,
     canvasId,
     selectedAnnotationId,
-    hoveredAnnotationIds = [],
     selectAnnotation,
     deselectAnnotation,
     hoverAnnotation,
     htmlSanitizationRuleSet,
   } = targetProps;
+  const hoveredAnnotationIds = hoveredFromState ?? targetProps.hoveredAnnotationIds ?? EMPTY_IDS;
   const ruleSet = htmlSanitizationRuleSet ?? 'iiif';
 
   // Refs for scrolling to annotations
@@ -633,12 +636,13 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           scrollMarginTop: sections ? 36 : undefined,
           p: 1.5,
           cursor: 'pointer',
-          bgcolor: isHovered ? 'action.hover' : 'transparent',
+          // A selected card is not greyed: focus shows as an outline only.
+          bgcolor: isHovered && !isSelected ? 'action.hover' : 'transparent',
           borderBottom: '1px solid',
           borderColor: 'divider',
           borderLeft: '3px solid',
           borderLeftColor: isSelected ? 'primary.main' : isHovered ? 'action.hover' : 'transparent',
-          '&:hover': { bgcolor: 'action.hover' },
+          '&:hover': { bgcolor: isSelected ? 'transparent' : 'action.hover' },
           '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
         }}
       >
@@ -779,6 +783,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
 };
 
 const EMPTY_PAGE_GROUPS: AnnotationPageGroup[] = [];
+const EMPTY_IDS: string[] = [];
 
 /**
  * Visible annotations grouped by AnnotationPage, in page order, or `undefined` when the
@@ -850,6 +855,8 @@ export function mapStateToProps(
     linkSubtitleMetadataLabel: str(state.config?.scientificAnnotations?.linkSubtitleMetadataLabel),
     propertyGroupOf: asPropertyGroupOf(state.config?.scientificAnnotations?.propertyGroupOf),
     windowCanvasId: window?.canvasId,
+    // Mirador's CanvasAnnotations does not pass the hover state down.
+    hoveredAnnotationIds: window?.hoveredAnnotationIds ?? EMPTY_IDS,
     visibleCanvasIds: visibleIds(window),
     pageGroups: canvasId ? safePageGroups(state.annotations?.[canvasId]) : EMPTY_PAGE_GROUPS,
   };

@@ -31,14 +31,16 @@ function setup(
   selectedAnnotationId: string | undefined,
   config: Record<string, unknown> = {},
   items: IIIFAnnotation[] = [analysis, lapis],
+  hoveredAnnotationIds?: string[],
 ) {
   const state = {
     config: { language: 'en', ...config },
-    windows: { w1: { id: 'w1', canvasId: 'c1' } },
+    windows: { w1: { id: 'w1', canvasId: 'c1', hoveredAnnotationIds } },
     annotations: { c1: { l: { json: { id: 'l', type: 'AnnotationPage', items } } } },
   };
   const store = createStore((s: typeof state = state) => s);
   const selectAnnotation = vi.fn();
+  const hoverAnnotation = vi.fn();
   render(
     <Provider store={store as never}>
       <ConnectedScientificAnnotationPlugin
@@ -50,14 +52,14 @@ function setup(
             selectedAnnotationId,
             selectAnnotation,
             deselectAnnotation: vi.fn(),
-            hoverAnnotation: vi.fn(),
+            hoverAnnotation,
           } as never
         }
         TargetComponent={(() => <div />) as never}
       />
     </Provider>,
   );
-  return { selectAnnotation };
+  return { selectAnnotation, hoverAnnotation };
 }
 
 const card = (name: string) => screen.getByRole('group', { name });
@@ -88,6 +90,12 @@ describe('classification cards in the plugin', () => {
     const li = card('lapis lazuli, lead white');
     expect(li).toHaveAttribute('aria-current', 'true');
     expect(getComputedStyle(li).borderLeftStyle).toBe('solid');
+  });
+
+  it('a selected card stays ungreyed while hovered or focused; an unselected one is greyed', () => {
+    setup(lapis.id, {}, [analysis, lapis], [lapis.id, analysis.id]);
+    expect(getComputedStyle(card('lapis lazuli, lead white')).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(getComputedStyle(card('PAR416-pXRF-0045 - pXRF')).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
   });
 
   it('Enter and Space select the focused card', () => {
@@ -157,5 +165,21 @@ describe('classification cards in the plugin', () => {
     expect(li).toHaveAttribute('aria-expanded', 'false');
     fireEvent.focus(li);
     fireEvent.blur(li);
+  });
+
+  it('reads the hovered ids from the window state: no redispatch when unchanged', () => {
+    vi.useFakeTimers();
+    try {
+      const { hoverAnnotation } = setup(undefined, {}, [analysis, lapis], [lapis.id]);
+      const li = card('lapis lazuli, lead white');
+      fireEvent.focus(li);
+      vi.advanceTimersByTime(200);
+      expect(hoverAnnotation).not.toHaveBeenCalled();
+      fireEvent.focus(card('PAR416-pXRF-0045 - pXRF'));
+      vi.advanceTimersByTime(200);
+      expect(hoverAnnotation).toHaveBeenCalledWith('w1', [analysis.id]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

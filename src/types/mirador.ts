@@ -48,6 +48,7 @@ export interface MiradorWindow {
   manifestId?: string;
   canvasId?: string;
   view?: string;
+  hoveredAnnotationIds?: string[];
   [key: string]: unknown;
 }
 
