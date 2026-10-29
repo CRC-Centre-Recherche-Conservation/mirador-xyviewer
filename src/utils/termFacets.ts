@@ -33,9 +33,18 @@ const MAX_DEPTH = 4;
 /** Facets read per annotation: remote JSON is untrusted. */
 const MAX_FACETS = 500;
 
+/** Last path or fragment segment of an IRI, undecoded; scanned by hand to stay linear on untrusted input. */
+export const rawLastSegment = (iri: string): string => {
+  let end = iri.length;
+  while (end > 0 && (iri[end - 1] === '/' || iri[end - 1] === '#')) end--;
+  let start = end;
+  while (start > 0 && iri[start - 1] !== '/' && iri[start - 1] !== '#') start--;
+  return iri.slice(start, end);
+};
+
 /** Last path or fragment segment of an IRI, decoded. */
 export const lastSegment = (iri: string): string => {
-  const seg = iri.replace(/[/#]+$/, '').split(/[/#]/).pop() ?? iri;
+  const seg = rawLastSegment(iri);
   try {
     return decodeURIComponent(seg);
   } catch {

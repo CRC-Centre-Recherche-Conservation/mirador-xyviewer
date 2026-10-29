@@ -55,6 +55,9 @@ describe('extractBodyFacets', () => {
   it('falls back to the last segment of the URI for a label', () => {
     expect(extractBodyFacets(sr('tagging', 'http://v/terms/red%20lead'), ['en'])[0].label).toBe('red lead');
     expect(lastSegment('http://v/a/b/')).toBe('b');
+    expect(lastSegment('http://v/a#frag')).toBe('frag');
+    expect(lastSegment('http://v/a/b#/#')).toBe('b');
+    expect(lastSegment('#'.repeat(50000))).toBe('');
   });
 
   it('names describing sub-groups after the Composite, else the concept scheme', () => {

@@ -20,6 +20,7 @@ import type { MiradorState } from '../types/mirador';
 import { normalizeAnnotationResources } from './annotationNormalizer';
 import { getLocalizedString, getLocalizedStrings } from './localization';
 import { isValidUrl } from './security';
+import { rawLastSegment } from './termFacets';
 
 export interface CanvasInfo {
   id: string;
@@ -287,7 +288,7 @@ export function metadataValue(resource: IIIFAnnotation | undefined, label: strin
 export function canvasLabelOf(canvases: CanvasInfo[], canvasId: string | undefined, prefs: string[]): string {
   if (!canvasId) return '';
   const c = canvases.find((x) => x.id === canvasId);
-  return getLocalizedString(c?.label, prefs) || canvasId.replace(/[/#]+$/, '').split(/[/#]/).pop() || canvasId;
+  return getLocalizedString(c?.label, prefs) || rawLastSegment(canvasId) || canvasId;
 }
 
 /** One row per linked target: duplicates collapse, non-annotation links become external rows. */
