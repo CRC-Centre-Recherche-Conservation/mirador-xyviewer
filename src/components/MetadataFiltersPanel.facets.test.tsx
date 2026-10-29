@@ -89,9 +89,9 @@ describe('panel with body facets', () => {
     expect(master.checked).toBe(true);
     fireEvent.click(master); // all -> none
     expect(master.checked).toBe(false);
-    expect(master.indeterminate).toBe(false);
+    expect(master).not.toHaveAttribute('aria-checked');
     fireEvent.click(screen.getByRole('checkbox', { name: /Raman/ })); // one back
-    expect(master.indeterminate).toBe(true);
+    expect(master).toHaveAttribute('aria-checked', 'mixed');
     fireEvent.click(master); // some -> all
     expect(master.checked).toBe(true);
   });

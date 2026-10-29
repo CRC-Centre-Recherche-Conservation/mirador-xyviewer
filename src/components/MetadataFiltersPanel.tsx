@@ -207,6 +207,7 @@ const FilterGroupItem: React.FC<{
     return b.count + b.linkedCount - (a.count + a.linkedCount);
   });
   const folded = !showAll && sorted.length > COLLAPSED_VALUES;
+  const partlySelected = !allSelected && !noneSelected;
   const shownValues = folded
     ? sorted.filter((v, i) => i < COLLAPSED_VALUES || !v.selected)
     : sorted;
@@ -218,10 +219,16 @@ const FilterGroupItem: React.FC<{
         <Checkbox
           size="small"
           checked={allSelected}
-          indeterminate={!allSelected && !noneSelected}
+          indeterminate={partlySelected}
           onChange={handleMaster}
           onClick={(e) => e.stopPropagation()}
-          slotProps={{ input: { 'aria-label': fillTemplate(text.allValuesIn, { name: group.label }) } }}
+          slotProps={{
+            input: {
+              'aria-label': fillTemplate(text.allValuesIn, { name: group.label }),
+              // MUI 7 only draws the mixed icon; expose the state to assistive tech on every version.
+              'aria-checked': partlySelected ? 'mixed' : undefined,
+            },
+          }}
           sx={{ py: 0.5 }}
         />
         <ButtonBase
