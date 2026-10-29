@@ -195,7 +195,7 @@ describe('filtersStore', () => {
       const noneValue = operatorGroup!.values.get('\u0000none');
       expect(noneValue).toBeDefined();
       expect(noneValue!.count).toBe(1);
-      expect(noneValue!.displayText).toBe('None');
+      expect(noneValue!.displayText).toBe('Not specified');
     });
 
     it('should not reinitialize with the same annotations (unless forced)', () => {

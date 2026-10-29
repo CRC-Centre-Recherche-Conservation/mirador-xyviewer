@@ -160,6 +160,7 @@ function initMirador() {
         },
         propertyGroupOf: demoPropertyGroupOf,
         linkSubtitleMetadataLabel: 'Technique',
+        hiddenFilterGroups: ['Identified materials'],
       },
       // Mirador configuration
       window: {

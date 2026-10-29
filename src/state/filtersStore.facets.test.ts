@@ -70,9 +70,9 @@ describe('body facets', () => {
     filtersStore.initializeFromAnnotations(W, C, annotations, false, ['en']);
     const groups = filtersStore.getGroups(W, C);
     expect(groups.map((g) => g.label).sort()).toEqual(['Colour', 'Layer']);
-    // Y carries describing terms but no layer: it is not in the Layer population.
+    // Y carries describing terms but no layer: "Not specified" in Layer (a characterization keeps what it cites).
     const layer = groups.find((g) => g.label === 'Layer')!;
-    expect(layer.values.get(NONE_KEY)).toBeUndefined();
+    expect(layer.values.get(NONE_KEY)?.count).toBe(1);
     expect(filtersStore.getHiddenAnnotationIds(W, C).size).toBe(0);
   });
 
@@ -91,12 +91,12 @@ describe('populations', () => {
     expect(filtersStore.getHiddenAnnotationIds(W, C)).toEqual(new Set(['B']));
   });
 
-  it('counts None only inside the population', () => {
+  it('counts None only inside the population (metadata: annotations with metadata)', () => {
     filtersStore.initializeFromAnnotations(W, C, [A, B, { id: 'M', metadata: [meta('Other', 'x')] }], false, ['en']);
     const technique = filtersStore.getGroups(W, C).find((g) => g.key === 'meta:technique')!;
     expect(technique.values.get(NONE_KEY)?.count).toBe(1); // M only; A has no metadata
     const assessing = filtersStore.getGroups(W, C).find((g) => g.key === 'body:assessing')!;
-    expect(assessing.values.has(NONE_KEY)).toBe(false);
+    expect(assessing.values.get(NONE_KEY)?.count).toBe(1); // M; B is cited by A, which carries an assessment
   });
 
   it('gives one facet value per entry of a multi-valued metadata, never splitting strings', () => {
@@ -123,10 +123,10 @@ describe('populations', () => {
   });
 });
 
-describe('apply to linked annotations', () => {
+describe('linked annotations', () => {
   beforeEach(() => filtersStore.initializeFromAnnotations(W, C, all, false, ['en']));
 
-  it('is on by default and extends the class groups to the filterable annotations', () => {
+  it('is on by default and extends the body groups to the filterable annotations', () => {
     expect(filtersStore.getInheritLinked(W, C)).toBe(true);
     const group = filtersStore.getGroups(W, C).find((g) => g.key === CLASS)!;
     expect(group.inherits).toBe(true);
@@ -245,10 +245,10 @@ describe('review regressions', () => {
     expect([...big.values.keys()].filter((k) => k !== NONE_KEY).length).toBe(MAX_VALUES_PER_GROUP);
   });
 
-  it('limits a describing sub-group to the annotations carrying it', () => {
+  it('puts every annotation in the population of a describing sub-group, the absent ones under "Not specified"', () => {
     const sub = (label: string, uri: string) => ({ type: 'Composite', label: { en: [label] }, items: [term('describing', uri, uri)] });
     filtersStore.initializeFromAnnotations(W, C, [{ id: 'a', body: [sub('Colour', 'u:blue')] }, { id: 'b', body: [sub('Layer', 'u:ink')] }], false, ['en']);
-    for (const g of filtersStore.getGroups(W, C)) expect(g.values.get(NONE_KEY)).toBeUndefined();
+    for (const g of filtersStore.getGroups(W, C)) expect(g.values.get(NONE_KEY)?.count).toBe(1);
   });
 
   it('keeps metadata and body group keys apart, and real values apart from None', () => {

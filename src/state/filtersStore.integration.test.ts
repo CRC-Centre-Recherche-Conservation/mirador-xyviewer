@@ -100,17 +100,27 @@ describe('facets of the f. 009 page', () => {
     expect(technique.appliesTo).toBe(14);
   });
 
-  it('does not inherit assessments', () => {
+  it('extends the assessments to the annotations the characterization cites', () => {
     const assessing = filtersStore.getGroups(W, C).find((g) => g.key === 'body:assessing')!;
-    expect(assessing.inherits).toBe(false);
+    expect(assessing.inherits).toBe(true);
     expect(assessing.appliesTo).toBe(2);
-    expect(assessing.values.get('\u0000none')).toBeUndefined();
-    const [first] = [...assessing.values.values()];
+    // The 6 analyses nobody cites have no assessment: "Not specified".
+    expect(assessing.values.get('\u0000none')?.count).toBe(6);
+    // Only the lapis lazuli characterization is "Reliable" (both are "Highly reliable"); "Not specified" goes off.
+    const assessed = [...assessing.values.values()].find((v) => v.displayText === 'Reliable')!;
     filtersStore.deselectAll(W, C, 'body:assessing');
-    filtersStore.toggleFacet(W, C, 'body:assessing', first.key);
+    filtersStore.toggleFacet(W, C, 'body:assessing', assessed.key);
     const hidden = filtersStore.getHiddenAnnotationIds(W, C);
-    // Only characterizations can be hidden by an assessment.
-    expect([...hidden].every((id) => [lapisChar.id, redLeadChar.id].includes(id))).toBe(true);
+    const shown = annotations.map((a) => a.id).filter((id) => !hidden.has(id));
+    const keptChar = lapisChar;
+    const droppedChar = redLeadChar;
+    const keptLinked = lapisLinked;
+    // The kept characterization keeps what it cites; the other one and what only it cites go.
+    expect(shown.sort()).toEqual([keptChar.id, ...keptLinked].sort());
+    expect(hidden.has(droppedChar.id)).toBe(true);
+    expect(hidden.size).toBe(annotations.length - 1 - keptLinked.length);
+    const because = filtersStore.getShownBecauseLinked(W, C);
+    for (const id of keptLinked) expect(because.get(id)).toEqual([keptChar.id]);
   });
 
   it('filters by one term from a chip menu and clears it on a second use', () => {

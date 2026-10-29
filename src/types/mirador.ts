@@ -120,27 +120,36 @@ export interface AnnotationBodyLabels {
   zoomToZone?: string;
   /** Title of a classification card without any label or text (default "Untitled annotation"). */
   untitled?: string;
-  /** Filter panel: switch extending the class filters to linked annotations (default "Apply to linked annotations"). */
-  applyToLinked?: string;
-  /** Filter panel block titles (defaults "From annotation content" and "From metadata"). */
-  filtersFromContent?: string;
-  filtersFromMetadata?: string;
   /** Filter groups: fold/unfold (defaults "Show {n} more" and "Show fewer"). */
   showMore?: string;
   showFewer?: string;
-  /** Group header: annotations carrying a value of the group and, through links, others (defaults "{n} annotations", "1 annotation" and "+{n} linked"). */
-  appliesTo?: string;
-  appliesToOne?: string;
-  plusLinked?: string;
-  /** Accessible names of the toggles of filter groups (defaults "Expand {name}", "Collapse {name}", "Select all: {name}", "Deselect all: {name}"). */
+  /** Accessible names of the group toggles (defaults "Expand {name}", "Collapse {name}") and of its master checkbox ("All values of {name}"). */
   expandGroup?: string;
   collapseGroup?: string;
-  selectAllIn?: string;
-  deselectAllIn?: string;
-  /** Filter value standing for annotations without a value (default "None"). */
+  allValuesIn?: string;
+  /** Group caption when only part of its values is selected (default "{selected} of {total}"). */
+  selectedOf?: string;
+  /** Text of the "Only" button of a value (default "Only") and its accessible name (default "Only {term}", must start with the text). */
+  only?: string;
+  onlyTerm?: string;
+  /** Accessible count of a value (defaults "{n} annotations" and "1 annotation"). */
+  valueCount?: string;
+  valueCountOne?: string;
+  /** Count tooltip when annotations are kept through links (default "{own} carrying it, {linked} cited by them"). */
+  valueCountLinked?: string;
+  /** Added to the accessible count while a filter hides some (default "{visible} of {n} visible"). */
+  valueCountVisible?: string;
+  /** Tooltip of the absence value (default "No value in this group, and not cited by an annotation that has one"). */
+  noneHint?: string;
+  /** Filter value standing for annotations without a value (default "Not specified"). */
   filterNone?: string;
-  /** Panel summary when a filter is active (default "{shown} of {total} shown"). */
-  shownOf?: string;
+  /** Panel status while a filter is active, and otherwise (defaults "Showing {shown} of {total} annotations" and "{n} annotations"). */
+  showingOf?: string;
+  annotationCount?: string;
+  annotationCountOne?: string;
+  /** Tooltip of the reset icon and of the filter button (defaults "Reset all filters" and "Filter annotations"). */
+  resetFilters?: string;
+  filterButton?: string;
   /** Note on an annotation kept by a filter only through a link (default "shown because linked to {title}"). */
   shownBecauseLinked?: string;
   /** Term menu entries (defaults "Filter by {term}", "Remove filter: {term}" and "Highlight annotations with this term"). */
@@ -149,7 +158,7 @@ export interface AnnotationBodyLabels {
   highlightTerm?: string;
   /** Chip state added to its accessible name while its term filters the canvas (default "filter active"). */
   filterActive?: string;
-  /** Filter panel without any facet (default "No metadata available for filtering"). */
+  /** Filter panel without any facet (default "No annotation on this canvas can be filtered"). */
   filtersEmpty?: string;
 }
 
@@ -168,6 +177,8 @@ export interface ScientificAnnotationsConfig {
   propertyGroupOf?: (uri: string) => string | undefined;
   /** Filter groups to leave out of the filter panel: a metadata label, a term group caption or a purpose (e.g. "Identified materials"). */
   hiddenFilterGroups?: string[];
+  /** Whether a characterization keeps the annotations it cites when a body filter applies (default true). */
+  extendFiltersToLinked?: boolean;
 }
 
 /** Mirador config */

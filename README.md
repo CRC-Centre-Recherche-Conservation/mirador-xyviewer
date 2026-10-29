@@ -21,7 +21,7 @@ A Mirador 4 plugin for visualizing physicochemical analysis data in IIIF format.
 - **Manifest Links**: Open related IIIF manifests in new windows
 - **Image Comparison**: Side-by-side comparison with synchronized zoom/pan
 - **Point Annotations**: Automatic conversion of analysis points (tiny `xywh`, `PointSelector`) to visible markers, with selector arrays, SVG polygons and `pixel:` fragments handled
-- **Metadata Filters**: Filter annotations by the controlled terms of their bodies and by metadata values, optionally extended to linked annotations (panel list and canvas shapes)
+- **Metadata Filters**: Filter annotations by the controlled terms of their bodies and by metadata values, with a characterization keeping the annotations it cites (panel list and canvas shapes)
 - **Web Annotation bodies**: `SpecificResource` terms as chips grouped by purpose, `linking` bodies as named rows that select the linked annotation (also on another canvas, with a way back and "Cited by" on the target), and `Choice` alternatives (any producer; WADM §4.1, §4.3)
 - **Page sections**: when a canvas has several `AnnotationPage`s with a `label`, the Annotations panel groups the cards under collapsible, sticky headers (page label in the reader's language, count), in manifest order
 - **Reader language**: IIIF language maps (labels, metadata, localized text bodies) follow Mirador's `language` setting (IIIF Presentation 3 §4.4)

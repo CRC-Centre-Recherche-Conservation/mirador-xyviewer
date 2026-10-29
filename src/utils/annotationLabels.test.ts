@@ -39,9 +39,9 @@ describe('termGroupCaption', () => {
 describe('sanitizeLabels', () => {
   it('keeps strings only and is stable per config object', async () => {
     const { sanitizeLabels } = await import('./annotationLabels');
-    const raw = { applyToLinked: 'Include linked', showMore: 3, purposes: { a: 'b' } };
+    const raw = { onlyTerm: 'Seulement {term}', showMore: 3, purposes: { a: 'b' } };
     const clean = sanitizeLabels(raw)!;
-    expect(clean.applyToLinked).toBe('Include linked');
+    expect(clean.onlyTerm).toBe('Seulement {term}');
     expect(clean.showMore).toBeUndefined();
     expect(sanitizeLabels(raw)).toBe(clean);
     expect(sanitizeLabels(null)).toBeUndefined();

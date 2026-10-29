@@ -32,8 +32,8 @@ describe('filter-visibility integration', () => {
       />,
     );
 
-    // Deselect the first value -> the annotation carrying it becomes hidden.
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    // Deselect the first value (the first checkbox is the group's master) -> the annotation carrying it becomes hidden.
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
 
     const hidden = onFiltersChange.mock.calls.at(-1)![0] as Set<string>;
     expect(hidden.size).toBe(1);

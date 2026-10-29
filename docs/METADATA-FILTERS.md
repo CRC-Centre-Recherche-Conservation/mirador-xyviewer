@@ -8,7 +8,7 @@ This guide explains how to use the filtering system to filter annotations in mir
 - [User Interface](#user-interface)
 - [How Filtering Works](#how-filtering-works)
 - [Facets From Annotation Bodies](#facets-from-annotation-bodies)
-- [Apply to Linked Annotations](#apply-to-linked-annotations)
+- [Linked Annotations](#linked-annotations-1)
 - [Annotation Metadata Structure](#annotation-metadata-structure)
 - [Plugin Configuration](#plugin-configuration)
 - [Best Practices](#best-practices)
@@ -26,11 +26,11 @@ This is useful when you have many annotations with different characteristics (te
 
 - Filter by the terms of classifying, identifying, assessing, describing and tagging bodies, keyed by the term's URI (independent of the reader's language)
 - Filter by any metadata label/value pairs in annotations; array values give one filter value per entry
-- Optional inheritance: keep the annotations linked to the ones carrying the selected term
+- A characterization keeps the annotations it cites (host option `extendFiltersToLinked`, on by default)
 - Multiple filters can be active simultaneously (AND logic across groups)
 - Real-time count of visible/hidden annotations
 - Draggable and resizable filter panel
-- "None" filter for annotations in a group's population that have no value for it
+- "Not specified" value for annotations in a group's population that have no value for it
 - The same filters from a term chip's menu on classification cards
 
 ## User Interface
@@ -48,26 +48,23 @@ A filter button appears on the bottom-right of the OpenSeadragon viewer when ann
 Clicking the filter button opens a draggable/resizable panel with:
 
 1. **Header**: Title, hidden count, reset button, close button
-2. **"Apply to linked annotations" switch** (on by default), shown when the canvas has class groups, with "N of M shown" while a filter is active
-3. **"From annotation content" block**: one group per purpose, in the order of the cards: Classified as, Identified as, Assessment, Description, Tags. Each group header counts the annotations carrying a value of the group (`2 annotations (+8 linked)`); the "None" value counts the filterable annotations that do not
-4. **"From metadata" block**: one expandable group per metadata label, alphabetical
-5. **Filter Values**: Checkboxes for each unique value with counts (`1 · +5 linked` when inheritance adds annotations). A group of more than 8 values folds behind "Show N more" (deselected values always stay visible)
-6. **Footer**: Summary of annotations and filter groups
+2. **Groups**: terms of the annotation bodies first (one group per purpose in the order of the cards: Classified as, Identified as, Assessment, Description, Tags; Description splits into sub-groups such as Colour or Layer), a thin rule, then one group per metadata label, alphabetical. A group header has a **master checkbox** (checked, indeterminate or empty), the group name, `2 of 5` when only part of its values is selected, and a chevron. Groups unfold at load while the running total of values stays within 12; the rest start collapsed.
+3. **Values**: a checkbox, the label (one line, full text in a tooltip), an **Only** button (visible on hover and keyboard focus) and **one count**: the annotations kept when the value is ticked, those carrying it plus those they cite (`6`). Under a filter the count reads `visible/total` (`4/6`) and is dimmed at `0`. A group of more than 8 values folds behind "Show N more" (deselected values always stay visible). The last row, after a dotted rule, is **Not specified**: annotations of the group's population with no value for it (tooltip: *No value in this group, and not cited by an annotation that has one*).
+4. **Status footer** (announced to assistive technology): `16 annotations`, or `Showing 6 of 16 annotations` while a filter is active
 
-The two block titles only appear when both blocks exist.
+The reader's mental model: tick the terms you want; an annotation stays when it matches every group, and a characterization also keeps the annotations it cites.
 
 ### Interactions
 
 | Action | Result |
 |--------|--------|
 | Click checkbox | Toggle visibility of annotations with that value |
-| "Apply to linked annotations" switch | Extend the class groups to the annotations the carriers link to |
+| "Only" button of a value | Keep only that value in its group; clicking it again when it is already the only one restores the group |
 | "Show N more" | Unfold the values of a long group |
 | Chip menu "Filter by <term>" (classification card) | Keep only that term in its group; a second use ("Remove filter: <term>") clears the group's filter |
 | Chip menu "Highlight annotations with this term" | Light the zones of the annotations carrying the term on the canvas |
-| Click group header | Expand/collapse the group |
-| "Select all" icon | Show all annotations with values in that group |
-| "Deselect all" icon | Hide all annotations with values in that group |
+| Click group name or chevron | Expand/collapse the group |
+| Master checkbox of a group | All values selected: deselect them all; otherwise select them all |
 | Reset button | Reset all filters to default (all visible) |
 | Drag header | Move the panel |
 | Drag corner | Resize the panel |
@@ -82,10 +79,10 @@ The filter uses **AND** logic across groups and **OR** logic within a group:
 2. Across groups, an annotation must pass every group that applies to it.
 3. **Each group only tests its own population**:
    - a metadata group tests the annotations that have metadata;
-   - a body group tests the carriers of that purpose (plus, for Classified as / Identified as with the switch on, the filterable annotations of the canvas, see below).
+   - a body group tests the carriers of that purpose (plus, with `extendFiltersToLinked` on, the filterable annotations of the canvas, see below).
    So "Technique = pXRF" never hides a characterization, and "Classified as" never acts on an annotation outside its population.
-4. **"None"** is a value of a group counting only the annotations *of its population* without a value for it, never the others.
-5. An annotation with **neither metadata nor controlled body terms** (no `metadata` array, an empty one, only empty values in the reader's languages, only text bodies, or only terms the host hid with `hiddenFilterGroups`) is outside filtering: never hidden by any filter, and not counted under any "None". Motivations play no role: filtering never depends on `motivation` (analyses may be `commenting` in v2 or `supplementing` in v3).
+4. **"Not specified"** is a value of a group counting only the annotations *of its population* without a value for it, never the others.
+5. An annotation with **neither metadata nor controlled body terms** (no `metadata` array, an empty one, only empty values in the reader's languages, only text bodies, or only terms the host hid with `hiddenFilterGroups`) is outside filtering: never hidden by any filter, and not counted under "Not specified". Motivations play no role: filtering never depends on `motivation` (analyses may be `commenting` in v2 or `supplementing` in v3).
 
 ### Linked annotations
 
@@ -108,7 +105,7 @@ If you deselect "XRF" in the Technique group:
 - **Hidden**: A, C (have XRF)
 - **Visible**: B, D (B has Raman, D has no technique)
 
-If you also deselect "None" in the Technique group:
+If you also deselect "Not specified" in the Technique group:
 - **Hidden**: A, C, D (A and C have XRF, D has no technique)
 - **Visible**: B
 
@@ -116,12 +113,11 @@ With several values per annotation, the OR rule within a group applies. If annot
 
 ### Visible Count Display
 
-Each filter value shows two numbers:
-- **Single number** (e.g., `5`): Total count equals visible count
-- **Fraction** (e.g., `3/5`): 3 visible out of 5 total (some hidden by other filters)
-- **`1 · +5 linked`**: 1 annotation carries the term, and 5 more get it through a link (see below); the linked part also becomes a fraction when some are hidden by other filters
+Each filter value shows one number, in annotations, whatever the way they match (carrying the term or cited by an annotation carrying it):
+- **Single number** (e.g., `6`): total equals visible
+- **Fraction** (e.g., `4/6`): 4 visible out of 6 total (some hidden by other groups); dimmed when 0 are visible
 
-This helps understand the impact of filters across groups.
+When the count includes cited annotations, its tooltip splits it: *1 carrying it, 5 cited by them*.
 
 ## Facets From Annotation Bodies
 
@@ -164,21 +160,19 @@ Rules:
 
 This annotation has no `metadata`, yet it is filterable: it carries one value in Classified as and one in Assessment.
 
-## Apply to Linked Annotations
+## Linked Annotations
 
-Analyses are usually *cited by* a characterization (`linking` bodies) rather than classified themselves. With the switch **on** (the default), selecting "lapis lazuli" keeps the characterization **and the annotations it links to**:
+Analyses are usually *cited by* a characterization (`linking` bodies) rather than classified themselves. By default a characterization keeps the annotations it cites, **for every body group** (Classified as, Identified as, Assessment, Description sub-groups, Tags): selecting "lapis lazuli" keeps the characterization **and the annotations it links to**.
 
-- The population of the **Classified as** and **Identified as** groups extends to all filterable annotations of the canvas. An annotation passes if it carries the value itself **or** if an annotation carrying it links to it.
+- **One rule**: a characterization keeps/drags the annotations it cites. There is no switch in the panel.
 - **One hop, one direction**: only carrier to target, as written in the carrier's `linking` bodies. Links of linked annotations and links pointing back are not followed.
-- **Assessments and descriptions are never inherited**: the switch does not apply to those groups.
-- Filterable annotations neither carrying nor cited count as "None" in these groups (with "lapis lazuli" as the only selected value, they are hidden).
-- Counts read `1 · +5 linked` (1 carrier, 5 linked); the group header reads `2 annotations (+8 linked)`, the annotations carrying a value of the group.
+- Filterable annotations neither carrying nor cited count as "Not specified" in these groups (with "lapis lazuli" as the only selected value, they are hidden).
 - An annotation kept only because of a link says so on its card: *shown because linked to <title of the carrier>*.
 - Linked annotations on other canvases are not reached: filter state is per window and canvas, so inheritance never crosses canvases. `#target-N` ids of expanded multi-target annotations are folded to the annotation they belong to.
 
-With the switch **off**, only the annotations carrying the term are filtered (typically the characterizations); their linked analyses are not touched.
+A host can turn the extension off with `scientificAnnotations.extendFiltersToLinked: false`: only the annotations carrying the term are then filtered (typically the characterizations) and their linked analyses are not touched. Changing the option rebuilds the groups.
 
-Example (Paris, Bibliothèque Mazarine, Ms 416, f. 009: two characterizations citing 8 of the 14 analyses): with "lapis lazuli" as the only selected value, the lapis-lazuli characterization and its 5 analyses stay; the red lead characterization, its 3 analyses and the 6 uncited analyses are hidden. With the switch off, only the red lead characterization is hidden.
+Example (Paris, Bibliothèque Mazarine, Ms 416, f. 009: two characterizations citing 8 of the 14 analyses): with "lapis lazuli" as the only selected value, the lapis-lazuli characterization and its 5 analyses stay (`6`); the red lead characterization, its 3 analyses and the 6 uncited analyses are hidden. With `extendFiltersToLinked: false`, only the red lead characterization is hidden.
 
 ## Annotation Metadata Structure
 
@@ -347,6 +341,10 @@ const viewer = Mirador.viewer(config, [
 ]);
 ```
 
+### Linked annotations option
+
+`scientificAnnotations.extendFiltersToLinked` (default `true`): when `false`, body filters no longer keep the annotations cited by a matching characterization. See [Linked Annotations](#linked-annotations-1).
+
 ### Hiding Filter Groups
 
 A group that duplicates another (for example a joined-string metadata whose terms are also bodies) can be left out of the panel with the `hiddenFilterGroups` option of the Mirador config key `scientificAnnotations`:
@@ -363,7 +361,7 @@ Each entry matches, case-insensitively, a metadata label (in the reader's langua
 
 ### UI Strings
 
-Panel texts are English by default and overridable through `scientificAnnotations.labels` (see [MIRADOR-CONFIGURATION.md](./MIRADOR-CONFIGURATION.md)): `applyToLinked`, `filtersFromContent`, `filtersFromMetadata`, `showMore`, `showFewer`, `appliesTo`, `plusLinked`, `filterNone`, `shownOf`, `shownBecauseLinked`, `filterBy`, `removeFilter`, `highlightTerm`, `filterActive`, `filtersEmpty`, and the group captions `classifiedAs`, `identifiedAs`, `assessment`, `description`, `tags`.
+Panel texts are English by default and overridable through `scientificAnnotations.labels` (see [MIRADOR-CONFIGURATION.md](./MIRADOR-CONFIGURATION.md)): `showMore`, `showFewer`, `expandGroup`, `collapseGroup`, `allValuesIn`, `selectedOf`, `only`, `onlyTerm` (must start with `only`, WCAG 2.5.3), `valueCount`, `valueCountOne`, `valueCountLinked`, `valueCountVisible`, `noneHint`, `filterNone` ("Not specified"), `showingOf`, `annotationCount`, `annotationCountOne`, `resetFilters`, `filterButton`, `shownBecauseLinked`, `filterBy`, `removeFilter`, `highlightTerm`, `filterActive`, `filtersEmpty`, and the group captions `classifiedAs`, `identifiedAs`, `assessment`, `description`, `tags`.
 
 ### Disabling Filters for a Specific Window
 
@@ -414,7 +412,7 @@ const viewer = Mirador.viewer({
 ### For Users
 
 1. **Start Broad**: Begin with all filters selected, then narrow down
-2. **Check "None"**: Remember that "None" filters catch annotations without that metadata
+2. **Check "Not specified"**: Remember that it catches annotations without that metadata
 3. **Watch Counts**: Use visible/total counts to understand filter impact
 4. **Reset Often**: Use the reset button to start fresh if confused
 
@@ -436,10 +434,11 @@ The filter state is managed per window+canvas combination using `filtersStore`:
 Facets from bodies change what the filters count and hide:
 
 - Annotations carrying only controlled body terms (typically `classifying` ones without `metadata`) are now filterable instead of outside filtering.
-- Groups count only their own population; "None" no longer counts annotations outside it.
+- Groups count only their own population; "Not specified" no longer counts annotations outside it.
 - Within a group an annotation is hidden only when **all** its values are deselected (it used to be hidden when **any** was).
 - Array metadata values give one value per entry (only the first was used).
-- With the switch on, "Classified as" / "Identified as" filters also hide uncited annotations of the canvas. Turn the switch off, or hide the groups with `hiddenFilterGroups`, to keep the previous behaviour.
+- Body filters also hide uncited annotations of the canvas, since a characterization keeps what it cites. Set `extendFiltersToLinked: false`, or hide the groups with `hiddenFilterGroups`, to keep the previous behaviour.
+- The "Apply to linked annotations" switch, the "From …" block titles, `+N linked`, the group `n/m` chip and the select/deselect icons are gone. Label keys removed: `applyToLinked`, `filtersFromContent`, `filtersFromMetadata`, `appliesTo`, `appliesToOne`, `plusLinked`, `selectAllIn`, `deselectAllIn`, `shownOf` (ignored if still set). The default of `filterNone` is now "Not specified".
 
 ### Performance
 
@@ -458,4 +457,4 @@ The filter system integrates with Mirador's Redux store:
 
 ### Limits and group keys
 
-Pages are remote JSON, so the store caps what it builds per canvas: at most 100 groups and 500 values per group; the rest is ignored. Metadata group keys are `meta:<label>`, body group keys `body:<purpose>[:<group>]`, and the "None" value key is `\u0000none`, so a remote label or value cannot collide with them. A `describing` sub-group only tests the annotations that carry it. A chip shows the "filter active" state when its term is the only one selected in its group.
+Pages are remote JSON, so the store caps what it builds per canvas: at most 100 groups and 500 values per group; the rest is ignored. Metadata group keys are `meta:<label>`, body group keys `body:<purpose>[:<group>]`, and the "Not specified" value key is `\u0000none`, so a remote label or value cannot collide with them. A chip shows the "filter active" state when its term is the only one selected in its group.

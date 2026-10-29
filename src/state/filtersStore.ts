@@ -58,7 +58,7 @@ export interface FilterGroup {
   appliesTo: number;
   /** Other annotations that get a value through a link. */
   appliesToLinked: number;
-  /** Whether "Apply to linked annotations" extends this group (class and identification groups). */
+  /** Whether a characterization keeps the annotations it cites for this group (every body group). */
   inherits: boolean;
 }
 
@@ -70,6 +70,8 @@ export interface FilterOptions {
   hiddenGroups?: string[];
   /** Names the group of a descriptive term from its source URI (`scientificAnnotations.propertyGroupOf`). */
   propertyGroupOf?: PropertyGroupOf;
+  /** Body groups also keep the annotations cited by a matching one (`scientificAnnotations.extendFiltersToLinked`, default true). */
+  extendToLinked?: boolean;
 }
 
 /** What the store reads from an annotation. */
@@ -94,7 +96,7 @@ interface FilterState {
   /** Options the groups were built with, as a comparison key. */
   signature: string;
   options: FilterOptions;
-  /** "Apply to linked annotations". */
+  /** Body groups extend to the annotations cited by a carrier (host option `extendToLinked`). */
   inheritLinked: boolean;
   /** Ids of the annotations the groups were built from: more annotations loading rebuilds them. */
   idsKey: string;
@@ -202,8 +204,11 @@ interface FacetEntry {
   valueText: string;
 }
 
-/** Class groups: the ones "Apply to linked annotations" extends. */
-const INHERITING: ReadonlySet<string> = new Set(['classifying', 'identifying']);
+/** Values shown before a group is collapsed at load: groups unfold while the running total stays within it. */
+const INITIAL_VALUE_BUDGET = 12;
+
+/** Values shown before "Show N more" in the panel. */
+export const COLLAPSED_VALUES = 8;
 
 /** Whether a host-hidden group name matches a group. */
 function isHiddenGroup(hidden: ReadonlySet<string>, key: string, label: string, purpose?: string): boolean {
@@ -278,6 +283,7 @@ const signatureOf = (options: FilterOptions): string =>
     hookId(options.propertyGroupOf),
     FACET_PURPOSES.map((p) => termGroupCaption(options.labels, p)),
     resolveLabels(options.labels).filterNone,
+    options.extendToLinked !== false,
   ]);
 
 function pushTo<K, V>(map: Map<K, V[]>, key: K, value: V): void {
@@ -431,6 +437,7 @@ class FiltersStore {
     const state = this.getState(key);
     state.prefs = prefs;
     state.options = options;
+    state.inheritLinked = options.extendToLinked !== false;
     state.signature = signature;
     state.idsKey = idsKey;
     state.groups.clear();
@@ -450,12 +457,12 @@ class FiltersStore {
             key: e.groupKey,
             label: e.groupLabel,
             values: new Map(),
-            expanded: true, // Start expanded
+            expanded: true, // refined below once the values are known
             kind: e.kind,
             ...(e.purpose ? { purpose: e.purpose } : {}),
             appliesTo: 0,
             appliesToLinked: 0,
-            inherits: e.kind === 'body' && !!e.purpose && INHERITING.has(e.purpose),
+            inherits: e.kind === 'body',
           };
           state.groups.set(e.groupKey, group);
         }
@@ -481,7 +488,6 @@ class FiltersStore {
     for (const [groupKey, old] of kept ?? []) {
       const group = state.groups.get(groupKey);
       if (!group) continue;
-      group.expanded = old.expanded;
       for (const [valueKey, value] of group.values) {
         const before = old.values.get(valueKey);
         if (before) value.selected = before.selected;
@@ -495,6 +501,19 @@ class FiltersStore {
     state.profiles = annotations.map((a, i) => this.profileOf(a, state, entriesOf[i]));
     this.recompute(state, noneText);
 
+    // Unfold the groups in display order while their rows (with "Not specified", folded values excluded) fit the budget; the first always unfolds.
+    let budget = INITIAL_VALUE_BUDGET;
+    const displayOrder = [...state.groups.values()].sort(
+      (a, b) =>
+        (a.kind === b.kind ? 0 : a.kind === 'body' ? -1 : 1) ||
+        (a.kind === 'body' ? FACET_PURPOSES.indexOf(a.purpose!) - FACET_PURPOSES.indexOf(b.purpose!) : 0) ||
+        a.label.localeCompare(b.label)
+    );
+    displayOrder.forEach((group, i) => {
+      budget -= Math.min(group.values.size, COLLAPSED_VALUES + 1);
+      group.expanded = kept?.get(group.key)?.expanded ?? (i === 0 || budget >= 0);
+    });
+
     this.notify({ type: 'init', windowId, canvasId });
   }
 
@@ -502,8 +521,8 @@ class FiltersStore {
    * Counts and hidden set from the profiles and the current selection.
    *
    * A group only tests its population: annotations with metadata for a metadata group,
-   * carriers of the purpose for a body group (all filterable annotations for the class
-   * groups while "Apply to linked annotations" is on). Within a group an annotation passes
+   * carriers of the purpose for a body group (all filterable annotations for every body
+   * group while the extension to linked annotations is on). Within a group an annotation passes
    * when one of its values is selected; across groups it must pass every one.
    */
   private recompute(state: FilterState, noneText = resolveLabels(state.options.labels).filterNone): Set<string> {
@@ -714,7 +733,7 @@ class FiltersStore {
     return hiddenIds;
   }
 
-  /** "Apply to linked annotations" (on by default). */
+  /** Whether body groups extend to cited annotations (host option, on by default). */
   getInheritLinked(windowId: string, canvasId: string): boolean {
     return this.states.get(createKey(windowId, canvasId))?.inheritLinked ?? true;
   }

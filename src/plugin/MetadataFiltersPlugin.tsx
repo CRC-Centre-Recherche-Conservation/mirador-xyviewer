@@ -13,7 +13,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MetadataFiltersPanel } from '../components/MetadataFiltersPanel';
 import { filtersStore, hasFacets, type FilterableAnnotation } from '../state/filtersStore';
-import { sanitizeLabels } from '../utils/annotationLabels';
+import { resolveLabels, sanitizeLabels } from '../utils/annotationLabels';
 import { resolvePreferredLanguages } from '../utils/localization';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { MiradorState, MiradorPlugin, AnnotationBodyLabels } from '../types/mirador';
@@ -40,13 +40,15 @@ interface MetadataFiltersPluginProps {
   labels?: AnnotationBodyLabels;
   /** `config.scientificAnnotations.hiddenFilterGroups` */
   hiddenFilterGroups?: string[];
+  /** `config.scientificAnnotations.extendFiltersToLinked` (default true) */
+  extendFiltersToLinked?: boolean;
   /** `config.scientificAnnotations.propertyGroupOf` */
   propertyGroupOf?: (uri: string) => string | undefined;
 }
 
 /** Default window size */
 const DEFAULT_WIDTH = 320;
-const DEFAULT_HEIGHT = 400;
+const DEFAULT_HEIGHT = 480;
 
 /**
  * What the filters read from the annotation resources: metadata and bodies.
@@ -76,10 +78,12 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
       language,
       labels,
       hiddenFilterGroups,
+      extendFiltersToLinked,
       propertyGroupOf,
     },
     ref
   ) {
+    const text = useMemo(() => resolveLabels(labels), [labels]);
     const [isOpen, setIsOpen] = useState(false);
     const [hiddenCount, setHiddenCount] = useState(0);
     const [hasFilterable, setHasFilterable] = useState(false);
@@ -99,8 +103,8 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
       [annotationsWithMetadata]
     );
     const filterOptions = useMemo(
-      () => ({ labels, hiddenGroups: hiddenFilterGroups, propertyGroupOf }),
-      [labels, hiddenFilterGroups, propertyGroupOf]
+      () => ({ labels, hiddenGroups: hiddenFilterGroups, propertyGroupOf, extendToLinked: extendFiltersToLinked !== false }),
+      [labels, hiddenFilterGroups, propertyGroupOf, extendFiltersToLinked]
     );
 
     // Reader's language preferences; filter keys depend on them
@@ -205,7 +209,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
         />
 
         {/* Filter button */}
-        <Tooltip title={buttonDisabled ? "No metadata available" : "Filter annotations by metadata"}>
+        <Tooltip title={buttonDisabled ? text.filtersEmpty : text.filterButton}>
           {/* The span (needed so the tooltip works on a disabled button) carries the
               absolute positioning, so the tooltip anchors to the button's real spot. */}
           <span style={{ position: 'absolute', bottom: 160, right: 20, zIndex: 999 }}>
@@ -319,7 +323,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
                   </Box>
                 )}
                 {hasActiveFilters && (
-                  <Tooltip title="Reset all filters">
+                  <Tooltip title={text.resetFilters}>
                     <IconButton
                       size="small"
                       onClick={handleResetAll}
@@ -341,6 +345,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
               {/* Filter content */}
               <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <MetadataFiltersPanel
+                  key={canvasId}
                   windowId={windowId}
                   canvasId={canvasId}
                   annotations={annotationsWithMetadata}
@@ -422,6 +427,7 @@ export function mapStateToProps(
     language: state.config?.language,
     labels: sanitizeLabels(state.config?.scientificAnnotations?.labels),
     hiddenFilterGroups: hiddenGroups(state.config?.scientificAnnotations?.hiddenFilterGroups),
+    extendFiltersToLinked: state.config?.scientificAnnotations?.extendFiltersToLinked !== false,
     propertyGroupOf: asPropertyGroupOf(state.config?.scientificAnnotations?.propertyGroupOf),
   };
 }

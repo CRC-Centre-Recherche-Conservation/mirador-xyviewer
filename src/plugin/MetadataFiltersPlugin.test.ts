@@ -111,3 +111,15 @@ describe('plugin export', () => {
     }
   });
 });
+
+describe('mapStateToProps extendFiltersToLinked', () => {
+  it('defaults to true and only false turns it off', () => {
+    const run = (extendFiltersToLinked: unknown) =>
+      mapStateToProps(
+        { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { extendFiltersToLinked } } } as never,
+        { windowId: 'window-1' },
+      ).extendFiltersToLinked;
+    expect(run(undefined)).toBe(true);
+    expect(run(false)).toBe(false);
+  });
+});
