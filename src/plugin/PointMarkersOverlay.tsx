@@ -2,7 +2,7 @@
  * PointMarkersOverlay
  *
  * Point annotations as DOM markers above the OpenSeadragon canvas (portaled into
- * `viewer.canvas`, placed like the zone badges). Mirador's canvas drawing of a point is a
+ * `viewer.canvas`). Mirador's canvas drawing of a point is a
  * 1 px circle a few screen pixels wide, so the markers replace it: sized in screen pixels,
  * with a hover/selected look. Decorative (aria-hidden): the cards and rows stay the
  * accessible surface. A drag that starts on a marker pans the image; a press without movement

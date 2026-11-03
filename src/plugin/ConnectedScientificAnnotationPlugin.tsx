@@ -31,14 +31,12 @@ import { filtersStore, facetGroupKey } from '../state/filtersStore';
 import { TermActionsContext, type TermActionsValue, type TermFacetRef } from '../components/TermActionsContext';
 import type { Term } from '../utils/classificationModel';
 import { linkNavigationStore } from '../state/linkNavigationStore';
-import { canvasEmphasisStore } from '../state/canvasEmphasisStore';
-import { DEFAULT_PLUGIN_CONFIG, resolvePointMarkerConfig } from './pointMarkers';
+import { DEFAULT_PLUGIN_CONFIG } from './pointMarkers';
 import { CitedBy } from '../components/CitedBy';
 import { LinkContext } from '../components/LinkContext';
 import { EMPTY_LINK_INDEX, baseAnnotationId, getLinkIndex, type LinkIndex } from '../utils/linkIndex';
 import { fillTemplate } from '../utils/annotationLabels';
 import { cancelPendingNavigation, useLinkController } from './useLinkController';
-import { LinkedZonesOverlay, computeZoneBadges } from './LinkedZonesOverlay';
 import { normalizeAnnotationResources, normalizeAnnotationPages } from '../utils/annotationNormalizer';
 import type { AnnotationPageGroup } from '../utils/annotationNormalizer';
 import { AnnotationPageSection } from '../components/AnnotationPageSection';
@@ -207,8 +205,6 @@ interface PluginWrapperProps {
   propertyGroupOf?: (uri: string) => string | undefined;
   /** `config.scientificAnnotations.linkSubtitleMetadataLabel`. */
   linkSubtitleMetadataLabel?: string;
-  /** `config.scientificAnnotations.pointMarkers`, to place badges beside point markers. */
-  pointMarkersConfig?: unknown;
   /** Canvas the window shows (a panel in book view may show another). */
   windowCanvasId?: string;
   /** Canvases the window shows (two in book view). */
@@ -237,7 +233,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   linkIndex = EMPTY_LINK_INDEX,
   linkSubtitleMetadataLabel,
   propertyGroupOf,
-  pointMarkersConfig,
   windowCanvasId,
   visibleCanvasIds,
   hoveredAnnotationIds: hoveredFromState,
@@ -325,41 +320,10 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     prefs,
   });
 
-  // Numbered badges only at navigation moments (card/row pointer or focus, "Show all", a followed
-  // link), never from canvas hover or selection alone.
-  const emphasis = useSyncExternalStore(
-    useCallback((cb: () => void) => canvasEmphasisStore.subscribe((w) => w === windowId && cb()), [windowId]),
-    () => canvasEmphasisStore.get(windowId),
-  );
-  const zoneBadges = useMemo(
-    () =>
-      computeZoneBadges({
-        canvasId,
-        visibleCanvasIds,
-        index: linkIndex,
-        canvasAnnotationIds,
-        annotationResources,
-        hiddenIds: hiddenAnnotationIds,
-        emphasis,
-        prefs,
-      }),
-    [canvasId, visibleCanvasIds, linkIndex, canvasAnnotationIds, annotationResources, hiddenAnnotationIds, emphasis, prefs],
-  );
-  const pointConfig = useMemo(() => resolvePointMarkerConfig(pointMarkersConfig), [pointMarkersConfig]);
-
   // Hover lights the zone and its linked zones; leaving clears it (debounced).
   const handleAnnotationHover = useCallback((annotationId: string | null) => {
     linkContext.hover(annotationId ? linkContext.groupOf(annotationId) : []);
   }, [linkContext]);
-
-  // Card pointer/focus numbers all its linked zones; a row inside it narrows that to its own.
-  const emphasizeCard = useCallback((annotationId: string, target: EventTarget | null) => {
-    if ((target as Element | null)?.closest?.('[data-xyviewer-link-row]')) return;
-    if (classificationKind(annotationResources[annotationId]?.motivation)) {
-      canvasEmphasisStore.hover(windowId, annotationId, 'all');
-    }
-  }, [windowId, annotationResources]);
-  const releaseCard = useCallback((annotationId: string) => canvasEmphasisStore.release(windowId, annotationId), [windowId]);
 
   // Term chips: filter by a term, highlight its annotations (same facet as the filter panel).
   const textLabels = useMemo(() => resolveLabels(labels), [labels]);
@@ -414,11 +378,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   useEffect(() => {
     linkNavigationStore.reconcile(windowId, selectedAnnotationId, shownCanvasIds);
   }, [windowId, selectedAnnotationId, shownCanvasIds]);
-  // The followed row's badge lasts as long as its move is the current one ("Back to..." is offered).
-  const current = nav.stack.length > 0 ? nav.current : undefined;
-  useEffect(() => {
-    if (emphasis?.source === 'follow' && emphasis.move !== current) canvasEmphasisStore.endFollow(windowId);
-  }, [windowId, current, emphasis]);
   const reduxStore = useContext(ReactReduxContext)?.store;
   useEffect(
     () => () => {
@@ -426,7 +385,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
       if (st && !st.windows?.[windowId]) {
         cancelPendingNavigation(windowId);
         linkNavigationStore.clear(windowId);
-        canvasEmphasisStore.clear(windowId);
       }
     },
     [windowId, reduxStore],
@@ -639,14 +597,12 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         aria-expanded={classificationKind(resource?.motivation) ? isSelected : undefined}
         aria-current={isSelected || undefined}
         tabIndex={0}
-        onFocus={(e: React.FocusEvent<HTMLElement>) => {
+        onFocus={() => {
           handleAnnotationHover(annotation.id);
-          emphasizeCard(annotation.id, e.target);
         }}
         onBlur={(e: React.FocusEvent<HTMLElement>) => {
           if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
           handleAnnotationHover(null);
-          releaseCard(annotation.id);
         }}
         // Keep MenuList roving focus / typeahead away from the body and its dialog.
         onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
@@ -661,11 +617,9 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         }}
         onMouseEnter={() => {
           handleAnnotationHover(annotation.id);
-          emphasizeCard(annotation.id, null);
         }}
         onMouseLeave={() => {
           handleAnnotationHover(null);
-          releaseCard(annotation.id);
         }}
         sx={{
           position: 'relative',
@@ -814,7 +768,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           : visibleAnnotations.map(renderCard)}
       </MenuList>
       {failureNotice}
-      <LinkedZonesOverlay windowId={windowId} badges={zoneBadges} pointConfig={pointConfig} />
      </TermActionsContext.Provider>
      </LinkContext.Provider>
     </LanguageProvider>
@@ -892,7 +845,6 @@ export function mapStateToProps(
     signInPage: findSignInPage(canvasId ? state.annotations?.[canvasId] : undefined),
     linkIndex: getLinkIndex(state, windowId),
     linkSubtitleMetadataLabel: str(state.config?.scientificAnnotations?.linkSubtitleMetadataLabel),
-    pointMarkersConfig: state.config?.scientificAnnotations?.pointMarkers,
     propertyGroupOf: asPropertyGroupOf(state.config?.scientificAnnotations?.propertyGroupOf),
     windowCanvasId: window?.canvasId,
     // Mirador's CanvasAnnotations does not pass the hover state down.

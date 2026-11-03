@@ -55,7 +55,7 @@ describe('LinkedAnnotationList', () => {
     );
     expect(screen.getByRole('group', { name: 'Linked annotations' })).toHaveTextContent('Linked annotations · 2');
     fireEvent.click(screen.getByRole('button', { name: /linked annotation 1 of 2: Beta, pXRF, on this page/ }));
-    expect(ctx.follow).toHaveBeenCalledWith('a', { annotationId: 'b', canvasId: 'c1', n: 1 });
+    expect(ctx.follow).toHaveBeenCalledWith('a', { annotationId: 'b', canvasId: 'c1' });
     fireEvent.click(screen.getByRole('button', { name: 'Show all' }));
     expect(ctx.showAll).toHaveBeenCalledWith('a');
   });
