@@ -257,6 +257,8 @@ The card lists `homepage`, `rendering` and `seeAlso` entries together under "Lin
 }
 ```
 
+**Metadata values and links.** Per IIIF Presentation 3 §4.5 (and 2.1), a metadata `value` may hold minimal HTML, and the standard way to link a term is `"value": {"en": ["<a href=\"https://example.org/concept/raman\">Raman</a>"]}`. Values with markup are sanitized by Mirador's `SanitizedHtml` (the `htmlSanitizationRuleSet`, default `iiif`: `a`, `b`, `br`, `i`, `img`, `p`, `span`; scripts, event handlers and `javascript:` URLs are removed), and links open in a new tab with `rel="noopener noreferrer"`. Where a value is used as plain text (filter facets and their labels, the linked-annotation subtitle), tags are stripped and entities decoded, so `<a href="…">Raman</a>` and `Raman` are the same facet value. Labels are plain text. The older `"Raman (https://example.org/concept/raman)"` convention is still rendered as a link for existing producers, but it is a legacy, non-standard form: prefer HTML.
+
 > **Tip:** Metadata labels are used by the [Metadata Filters](./METADATA-FILTERS.md) plugin to create filter groups. Use consistent labels across annotations for effective filtering (e.g., always use "Technique" instead of mixing "Technique" and "Analysis Type"). Give several values of one metadata as an array of strings (`"value": {"en": ["lapis lazuli", "lead white"]}`): each entry is one filter value, and a joined string is never split. The `SpecificResource` bodies with a `classifying`, `identifying`, `assessing`, `describing` or `tagging` purpose are also filter facets, keyed by their source URI.
 
 ## Body Types

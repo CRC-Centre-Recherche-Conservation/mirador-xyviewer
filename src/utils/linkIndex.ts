@@ -19,7 +19,7 @@ import {
 import type { MiradorState } from '../types/mirador';
 import { normalizeAnnotationResources } from './annotationNormalizer';
 import { getLocalizedString, getLocalizedStrings } from './localization';
-import { isValidUrl } from './security';
+import { isValidUrl, metadataPlainText } from './security';
 import { rawLastSegment } from './termFacets';
 
 export interface CanvasInfo {
@@ -279,7 +279,7 @@ export function metadataValue(resource: IIIFAnnotation | undefined, label: strin
   const wanted = label.trim().toLowerCase();
   for (const m of resource.metadata) {
     if (getLocalizedString(m?.label, prefs).trim().toLowerCase() === wanted) {
-      return getLocalizedStrings(m.value, prefs).join(', ');
+      return getLocalizedStrings(m.value, prefs).map(metadataPlainText).join(', ');
     }
   }
   return '';

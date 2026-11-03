@@ -28,7 +28,7 @@ import { pickChoiceItem, selectLanguageVariants } from '../components/Annotation
 import { getLocalizedString } from './localization';
 import { baseAnnotationId } from './linkIndex';
 import { hostGroupName, lastSegment, schemeName, type PropertyGroupOf } from './termFacets';
-import { isValidUrl, stripTags } from './security';
+import { decodeEntities, isValidUrl, stripTags } from './security';
 
 export type ClassificationKind = 'classifying' | 'identifying';
 
@@ -112,17 +112,6 @@ function slotOf(body: { purpose?: unknown }): Slot {
 
 const MAX_DEPTH = 4;
 const TITLE_FROM_TEXT = 80;
-
-const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
-
-/** Decode the common named and numeric HTML entities (single pass, no DOM). */
-function decodeEntities(text: string): string {
-  return text.replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([a-zA-Z]{2,6}));/g, (m, dec, hex, name) => {
-    if (name) return NAMED_ENTITIES[name.toLowerCase()] ?? m;
-    const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
-    return cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff) ? String.fromCodePoint(cp) : m;
-  });
-}
 
 interface Leaf {
   /** Source order, across Composites. */

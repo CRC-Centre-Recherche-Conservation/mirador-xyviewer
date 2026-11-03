@@ -153,6 +153,21 @@ describe('filtersStore', () => {
       expect(operatorGroup!.values.size).toBe(2);
     });
 
+    it('gives an HTML metadata value and its plain text the same facet, without tags', () => {
+      const meta = (v: string) => [{ label: { en: ['Technique'] }, value: { en: [v] } }];
+      filtersStore.initializeFromAnnotations('test-window', 'test-canvas', [
+        { id: 'a1', metadata: meta('<a href="https://x/c">Raman</a>') },
+        { id: 'a2', metadata: meta('Raman') },
+        { id: 'a3', metadata: meta('<b>XRF</b> &amp; <i>XRD</i>') },
+      ]);
+      const group = filtersStore.getGroups('test-window', 'test-canvas').find((g) => g.key === 'meta:technique')!;
+      expect(group.values.get('raman')?.count).toBe(2);
+      expect(group.values.get('raman')?.displayText).toBe('Raman');
+      const labels = [...group.values.values()].map((v) => v.displayText);
+      expect(labels.some((l) => /[<>]/.test(l))).toBe(false);
+      expect(labels).toContain('XRF & XRD');
+    });
+
     it('should set all values as selected by default', () => {
       const annotations = [
         {

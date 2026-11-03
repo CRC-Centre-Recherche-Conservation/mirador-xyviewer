@@ -75,6 +75,30 @@ export function stripTags(text: string): string {
   return stripped;
 }
 
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/** Decode the common named and numeric HTML entities (single pass, no DOM). */
+export function decodeEntities(text: string): string {
+  return text.replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([a-zA-Z]{2,6}));/g, (m, dec, hex, name) => {
+    if (name) return NAMED_ENTITIES[name.toLowerCase()] ?? m;
+    const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+    return cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff) ? String.fromCodePoint(cp) : m;
+  });
+}
+
+/** Whether a string looks like it carries markup (a tag, comment or closing tag). */
+export function looksLikeMarkup(text: string): boolean {
+  return /<[a-z!/]/i.test(text);
+}
+
+/**
+ * Plain text of a metadata value. IIIF allows minimal HTML in values (Presentation 3 §4.5),
+ * so markup is stripped and entities decoded; markup-free values are returned unchanged.
+ */
+export function metadataPlainText(value: string): string {
+  return looksLikeMarkup(value) ? decodeEntities(stripTags(value)).trim() : value;
+}
+
 /**
  * Validate Content-Type header against allowlist
  */

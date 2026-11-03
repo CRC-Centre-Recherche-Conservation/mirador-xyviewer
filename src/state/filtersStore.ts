@@ -13,6 +13,7 @@
 
 import type { LocalizedString } from '../types/iiif';
 import type { AnnotationBodyLabels } from '../types/mirador';
+import { metadataPlainText } from '../utils/security';
 import { getLocalizedString, getLocalizedStrings, resolvePreferredLanguages } from '../utils/localization';
 import { resolveLabels, termGroupCaption } from '../utils/annotationLabels';
 import { baseAnnotationId, collectLinkingBodies } from '../utils/linkIndex';
@@ -185,7 +186,7 @@ export function entryKeys(
   prefs: string[]
 ): { labelText: string; labelKey: string; valueText: string; valueKey: string } {
   const labelText = getLocalizedString(entry.label, prefs) || 'Unknown';
-  const valueText = getLocalizedString(entry.value, prefs) || '';
+  const valueText = metadataPlainText(getLocalizedString(entry.value, prefs) || '');
   return { labelText, labelKey: normalizeKey(labelText), valueText, valueKey: normalizeKey(valueText) };
 }
 
@@ -229,7 +230,9 @@ function facetEntries(
       const groupKey = metadataGroupKey(labelText);
       if (isHiddenGroup(hidden, normalizeKey(labelText), labelText)) continue;
       // IIIF: every string of the chosen language is a value; strings are never split.
-      for (const valueText of getLocalizedStrings(entry?.value, prefs)) {
+      for (const rawValue of getLocalizedStrings(entry?.value, prefs)) {
+        // IIIF §4.5: values may be minimal HTML (`<a href>Raman</a>`); facets work on the text.
+        const valueText = metadataPlainText(rawValue);
         const valueKey = normalizeKey(valueText);
         if (valueKey) out.push({ groupKey, groupLabel: labelText, kind: 'metadata', valueKey, valueText });
       }

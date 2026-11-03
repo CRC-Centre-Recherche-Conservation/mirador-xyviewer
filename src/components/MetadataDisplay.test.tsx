@@ -57,6 +57,42 @@ describe('MetadataDisplay', () => {
     );
   });
 
+  describe('HTML values (IIIF Presentation 3 section 4.5)', () => {
+    const one = (v: string) => [{ label: loc('Technique'), value: loc(v) }] as MetadataEntry[];
+
+    it('renders <a href> as a link that opens safely in a new tab', () => {
+      render(<MetadataDisplay metadata={one('<a href="https://x/c">Raman</a>')} />);
+      const link = screen.getByRole('link', { name: 'Raman' });
+      expect(link).toHaveAttribute('href', 'https://x/c');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('strips scripts, event handlers and javascript: hrefs', () => {
+      const { container } = render(
+        <MetadataDisplay
+          metadata={one('<script>alert(1)</script><a href="javascript:alert(2)" onclick="x()">Bad</a> <b onclick="y()">ok</b>')}
+        />,
+      );
+      expect(container.querySelector('script')).toBeNull();
+      expect(container.innerHTML).not.toMatch(/onclick|javascript:/i);
+      expect(screen.getByText('ok')).toBeInTheDocument();
+    });
+
+    it('keeps the legacy "Label (url)" convention and plain text', () => {
+      render(
+        <MetadataDisplay
+          metadata={[
+            { label: loc('Technique'), value: loc('Raman (https://x/c)') },
+            { label: loc('Operator'), value: loc('Jane') },
+          ]}
+        />,
+      );
+      expect(screen.getByRole('link', { name: 'Raman' })).toHaveAttribute('href', 'https://x/c');
+      expect(screen.getByText('Jane')).toBeInTheDocument();
+    });
+  });
+
   describe('seeAlso', () => {
     it('renders no anchor for a javascript: URL', () => {
       const { container } = render(

@@ -165,7 +165,7 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
 
       {isSelected && (
         <Box sx={{ mt: 0.5 }}>
-          {Array.isArray(metadata) && metadata.length > 0 && <MetadataDisplay metadata={metadata} />}
+          {Array.isArray(metadata) && metadata.length > 0 && <MetadataDisplay metadata={metadata} ruleSet={ruleSet} />}
 
           {hasProse && !explicit && proseBlocks}
 

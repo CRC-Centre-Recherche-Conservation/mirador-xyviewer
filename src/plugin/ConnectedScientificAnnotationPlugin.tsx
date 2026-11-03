@@ -706,6 +706,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                     homepage={homepage}
                     rendering={rendering}
                     body={body}
+                    ruleSet={ruleSet}
                   />
                   {citedBy}
                 </Box>

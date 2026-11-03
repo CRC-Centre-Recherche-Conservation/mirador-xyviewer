@@ -5,10 +5,11 @@
 
 import React from 'react';
 import { Box, Typography, Link } from '@mui/material';
+import { SanitizedHtml } from 'mirador';
 import type { MetadataEntry, LocalizedString, SeeAlsoEntry } from '../types/iiif';
 import { getLocalizedString, getLocalizedStrings } from '../utils/localization';
 import { useLanguagePreferences } from '../utils/LanguageContext';
-import { isValidUrl } from '../utils/security';
+import { isValidUrl, looksLikeMarkup } from '../utils/security';
 import { parseValueWithUrl } from '../state/filtersStore';
 
 export interface MetadataDisplayProps {
@@ -32,6 +33,8 @@ export interface MetadataDisplayProps {
   seeAlsoHeading?: string;
   /** Entries of any link list with these ids are not listed (already offered elsewhere, e.g. an authenticated download). */
   hiddenSeeAlsoIds?: ReadonlySet<string>;
+  /** Mirador HTML sanitization rule set for values that carry markup (default 'iiif'). */
+  ruleSet?: string;
 }
 
 /** Upper bound on rendered values per entry (hostile or huge arrays). */
@@ -97,6 +100,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   fallbackLinkLabel = 'Linked resource',
   seeAlsoHeading = 'Linked resources',
   hiddenSeeAlsoIds,
+  ruleSet = 'iiif',
 }) => {
   // _compact is kept for API compatibility but the layout is now unified
   const prefs = useLanguagePreferences();
@@ -109,9 +113,12 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   }
 
   /**
-   * Render a metadata value, converting URLs to clickable links
+   * Render a metadata value: sanitized HTML when it has markup, else URLs become clickable links
    */
   const renderValue = (value: string) => {
+    // IIIF §4.5: values may be minimal HTML (e.g. `<a href>`); Mirador's sanitizer opens links
+    // in a new tab with rel="noopener noreferrer". Plain values keep the legacy "(url)" / bare-URL links.
+    if (looksLikeMarkup(value)) return <SanitizedHtml ruleSet={ruleSet} htmlString={value} />;
     const { text, url } = extractUrlFromValue(value);
 
     if (url) {

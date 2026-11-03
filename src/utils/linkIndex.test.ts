@@ -177,6 +177,8 @@ describe('buildLinkRows', () => {
     expect(buildLinkRows(bodies, { ...env, subtitleLabel: undefined })[0].subtitle).toBe('');
     expect(metadataValue(analysisItems[0], 'technique', ['en'])).toBe('X-ray microfluorescence');
     expect(metadataValue(analysisItems[0], 'Nope', ['en'])).toBe('');
+    const html = { metadata: [{ label: { en: ['Technique'] }, value: { en: ['<a href="https://x/c">Raman</a>'] } }] } as unknown as IIIFAnnotation;
+    expect(metadataValue(html, 'Technique', ['en'])).toBe('Raman');
   });
 
   it('collapses several bodies pointing to the same annotation', () => {
