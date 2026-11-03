@@ -8,14 +8,13 @@
  * carries the information.
  */
 
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { ReactReduxContext } from 'react-redux';
-import { OSDReferences, getCurrentCanvasWorld } from 'mirador';
 import type { IIIFAnnotation } from '../types/iiif';
 import { buildClassificationView, classificationKind } from '../utils/classificationModel';
 import { baseAnnotationId, buildLinkRows, listedIdsByBase, type LinkIndex } from '../utils/linkIndex';
 import { annotationBounds, type Box } from './viewportFraming';
+import { useViewerPlacement } from './viewerPlacement';
 
 /** Badge diameter in screen pixels (independent of the zoom). */
 export const BADGE_SIZE = 22;
@@ -98,57 +97,6 @@ export function computeZoneBadges(input: ZoneBadgeInput): ZoneBadge[] {
   return [];
 }
 
-interface OSDPointLike {
-  x: number;
-  y: number;
-}
-
-interface OSDViewportLike {
-  viewportToViewerElementCoordinates: (point: OSDPointLike) => OSDPointLike;
-  getCenter?: (current?: boolean) => OSDPointLike;
-  getFlip?: () => boolean;
-  getContainerSize?: () => OSDPointLike;
-}
-
-interface OSDViewerLike {
-  viewport?: OSDViewportLike;
-  canvas?: HTMLElement;
-  addHandler: (event: string, handler: () => void) => void;
-  removeHandler: (event: string, handler: () => void) => void;
-}
-
-interface WorldLike {
-  canvasIds?: string[];
-  canvasToWorldCoordinates: (canvasId: string) => number[];
-  canvasScale?: (canvasId: string) => number;
-}
-
-/** The window's OpenSeadragon viewer, when it exists (Mirador keeps it in a ref per window). */
-function viewerOf(windowId: string): OSDViewerLike | undefined {
-  try {
-    const viewer = (OSDReferences.get(windowId) as { current?: OSDViewerLike } | undefined)?.current;
-    return viewer?.canvas && viewer.viewport ? viewer : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Viewer element pixel of a world point; OpenSeadragon needs its own Point class. */
-function toPixel(viewport: OSDViewportLike, x: number, y: number): OSDPointLike | undefined {
-  try {
-    // OpenSeadragon needs its own Point (with rotate): clone the prototype of a real one.
-    const center = viewport.getCenter?.(true);
-    const point = center ? Object.assign(Object.create(Object.getPrototypeOf(center)), { x, y }) : { x, y };
-    const p = viewport.viewportToViewerElementCoordinates(point);
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return undefined;
-    // OpenSeadragon rotates but does not mirror this conversion.
-    const width = viewport.getFlip?.() ? viewport.getContainerSize?.().x : undefined;
-    return width === undefined ? p : { x: width - p.x, y: p.y };
-  } catch {
-    return undefined;
-  }
-}
-
 const STYLE = `
 .xyviewer-zone-badge{position:absolute;box-sizing:border-box;width:${BADGE_SIZE}px;height:${BADGE_SIZE}px;margin:-${BADGE_SIZE / 2}px 0 0 -${BADGE_SIZE / 2}px;border-radius:50%;
 background:#111;color:#fff;border:2px solid #fff;box-shadow:0 0 0 1px #000,0 1px 4px rgba(0,0,0,.6);
@@ -163,58 +111,29 @@ export interface LinkedZonesOverlayProps {
 }
 
 export const LinkedZonesOverlay: React.FC<LinkedZonesOverlayProps> = ({ windowId, badges }) => {
-  const store = useContext(ReactReduxContext)?.store;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [viewer, setViewer] = useState<OSDViewerLike | undefined>(() => (windowId ? viewerOf(windowId) : undefined));
   const wanted = badges.length > 0 && !!windowId;
 
-  // Mirador fills the viewer ref after render: re-read it (also when the viewer was replaced).
-  useEffect(() => {
-    if (!wanted || !windowId) return undefined;
-    const current = viewerOf(windowId);
-    if (current !== viewer) {
-      setViewer(current);
-      return undefined;
-    }
-    if (viewer) return undefined;
-    const id = requestAnimationFrame(() => setViewer(viewerOf(windowId)));
-    return () => cancelAnimationFrame(id);
-  }, [wanted, windowId, viewer]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!wanted || !viewer?.viewport || !container || !windowId) return undefined;
-    const place = () => {
-      let world: WorldLike | undefined;
-      try {
-        world = getCurrentCanvasWorld(store?.getState(), { windowId }) as WorldLike | undefined;
-      } catch {
-        world = undefined;
-      }
+  const viewer = useViewerPlacement(
+    windowId,
+    wanted,
+    ({ pixelOf }) => {
+      const container = containerRef.current;
+      if (!container) return;
       const children = container.children;
       badges.forEach((badge, i) => {
         const el = children[i] as HTMLElement | undefined;
         if (!el) return;
-        const origin = world?.canvasIds?.includes(badge.canvasId) ? world.canvasToWorldCoordinates(badge.canvasId) : undefined;
-        const scale = world?.canvasScale?.(badge.canvasId) ?? 1;
-        const px = origin && toPixel(viewer.viewport!, origin[0] + badge.box[0] * scale, origin[1] + badge.box[1] * scale);
+        const px = pixelOf(badge.canvasId, badge.box[0], badge.box[1]);
         el.style.display = px ? '' : 'none';
         if (px) {
           el.style.left = `${px.x}px`;
           el.style.top = `${px.y}px`;
         }
       });
-    };
-    place();
-    viewer.addHandler('update-viewport', place);
-    viewer.addHandler('flip', place);
-    viewer.addHandler('rotate', place);
-    return () => {
-      viewer.removeHandler('update-viewport', place);
-      viewer.removeHandler('flip', place);
-      viewer.removeHandler('rotate', place);
-    };
-  }, [viewer, badges, store, windowId, wanted]);
+    },
+    [badges],
+  );
 
   if (!wanted || !viewer?.canvas) return null;
   return ReactDOM.createPortal(

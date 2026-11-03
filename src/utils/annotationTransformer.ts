@@ -19,7 +19,25 @@ import {
   expandAnnotations,
   isContentSearchResponse,
 } from './annotationNormalizer';
-import { DEFAULT_POINT_RADIUS, normalizeTargetSelector } from './annotationSelectors';
+import {
+  DEFAULT_POINT_RADIUS,
+  normalizeTargetSelector,
+  sanitizeAreaStyle,
+  type SelectorDisplayOptions,
+} from './annotationSelectors';
+
+/** Display options of the postprocessor: a point radius, or an options object. */
+export type PostprocessorOptions = number | SelectorDisplayOptions;
+
+/** Options with the radius clamped and the area style reduced to valid parts. */
+function resolveOptions(options: PostprocessorOptions | undefined): SelectorDisplayOptions {
+  const o = typeof options === 'number' ? { pointRadius: options } : (options ?? {});
+  const r = o.pointRadius;
+  return {
+    pointRadius: typeof r === 'number' && Number.isFinite(r) && r > 0 ? r : DEFAULT_POINT_RADIUS,
+    areaStyle: sanitizeAreaStyle(o.areaStyle),
+  };
+}
 
 /**
  * Transform all annotations in an annotation page:
@@ -30,12 +48,12 @@ import { DEFAULT_POINT_RADIUS, normalizeTargetSelector } from './annotationSelec
  *    `pixel:` fragments (see {@link normalizeTargetSelector}).
  *
  * @param annotationPage - IIIF Annotation Page / List object (mutated in place)
- * @param radius - Radius for point circles
+ * @param options - Radius for point circles, or display options
  * @returns Transformed annotation page
  */
 export function transformPointAnnotations(
   annotationPage: Record<string, unknown>,
-  radius: number = DEFAULT_POINT_RADIUS
+  options: PostprocessorOptions = DEFAULT_POINT_RADIUS
 ): Record<string, unknown> {
   // A IIIF Content Search response is also an AnnotationList/AnnotationPage, so the
   // adapters would read it — but it carries hits/pagination/highlighting we must
@@ -45,6 +63,7 @@ export function transformPointAnnotations(
 
   // Read whatever IIIF version this container is into the internal model
   // (version-agnostic: dispatched through the normalizer's adapter registry).
+  const display = resolveOptions(options);
   const items = normalizeAnnotationList(annotationPage);
 
   // Unknown/empty shape → leave the page untouched.
@@ -53,7 +72,7 @@ export function transformPointAnnotations(
   // Shared id management (merge same-id → expand multi-target), then the
   // display-only point→circle pass on the resulting single-target annotations.
   const expanded = expandAnnotations(items) as unknown as Record<string, unknown>[];
-  expanded.forEach((annotation) => normalizeTargetSelector(annotation, radius));
+  expanded.forEach((annotation) => normalizeTargetSelector(annotation, display));
 
   annotationPage.items = expanded;
   annotationPage.type = 'AnnotationPage';
@@ -102,7 +121,7 @@ function expandedCount(items: unknown[]): number {
 function transformCanvasPages(
   canvas: Record<string, unknown>,
   budget: { left: number },
-  radius: number
+  options: PostprocessorOptions
 ): Record<string, unknown> {
   const pages = canvas.annotations;
   if (!Array.isArray(pages)) return canvas;
@@ -113,7 +132,7 @@ function transformCanvasPages(
     const count = expandedCount(items);
     if (count > budget.left) return;
     budget.left -= count;
-    const next = transformPointAnnotations({ ...(page as Record<string, unknown>) }, radius);
+    const next = transformPointAnnotations({ ...(page as Record<string, unknown>) }, options);
     // Unrecognised items come back as the same (unchanged) list: keep the original page.
     if (next.items === items) return;
     out ??= pages.slice();
@@ -140,11 +159,11 @@ function transformCanvasPages(
  * are processed per manifest, and any error returns the original manifest.
  *
  * @param manifest - Presentation 3 manifest JSON
- * @param radius - Radius for point circles
+ * @param options - Radius for point circles, or display options
  */
 export function transformEmbeddedAnnotationPages<T = unknown>(
   manifest: T,
-  radius: number = DEFAULT_POINT_RADIUS
+  options: PostprocessorOptions = DEFAULT_POINT_RADIUS
 ): T {
   try {
     if (!isRecord(manifest) || !Array.isArray(manifest.items)) return manifest;
@@ -152,7 +171,7 @@ export function transformEmbeddedAnnotationPages<T = unknown>(
     let canvases: unknown[] | undefined;
     manifest.items.forEach((canvas, i) => {
       if (!isRecord(canvas) || canvas.type !== 'Canvas') return;
-      const next = transformCanvasPages(canvas, budget, radius);
+      const next = transformCanvasPages(canvas, budget, options);
       if (next === canvas) return;
       canvases ??= (manifest.items as unknown[]).slice();
       canvases[i] = next;
@@ -187,22 +206,23 @@ export function annotationPostprocessor(
 // key: annotations carry `annotationJson`, search `searchJson`, info `infoJson`,
 // manifests `manifestJson`. Search and info are never touched (Search would lose
 // its hits/pagination); manifests only get their embedded pages transformed.
-function applyPostprocessor(action: Record<string, unknown>, radius: number): void {
+function applyPostprocessor(action: Record<string, unknown>, options: PostprocessorOptions): void {
   if (action.annotationJson) {
-    transformPointAnnotations(action.annotationJson as Record<string, unknown>, radius);
+    transformPointAnnotations(action.annotationJson as Record<string, unknown>, options);
   } else if (action.manifestJson) {
-    action.manifestJson = transformEmbeddedAnnotationPages(action.manifestJson, radius);
+    action.manifestJson = transformEmbeddedAnnotationPages(action.manifestJson, options);
   }
 }
 
 /**
- * Create a customized postprocessor with specific radius
- * @param radius - Radius for point circles
+ * Create a customized postprocessor.
+ * @param options - Radius for point circles (number), or `{ pointRadius, areaStyle: { stroke, strokeWidth, fill } }`
  * @returns Postprocessor function
  */
-export function createAnnotationPostprocessor(radius: number = DEFAULT_POINT_RADIUS) {
+export function createAnnotationPostprocessor(options: PostprocessorOptions = DEFAULT_POINT_RADIUS) {
+  const resolved = resolveOptions(options);
   return (_url: string, action: Record<string, unknown>): void => {
-    applyPostprocessor(action, radius);
+    applyPostprocessor(action, resolved);
   };
 }
 

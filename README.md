@@ -234,6 +234,7 @@ import {
   imageComparisonPlugin,
   ...metadataFiltersPlugin,
   selectionHighlightPlugin,
+  pointMarkersPlugin,
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -247,7 +248,8 @@ Mirador.viewer({
   scientificAnnotationPlugin,   // Spectrum visualization, manifest links
   imageComparisonPlugin,        // Image comparison (optional)
   ...metadataFiltersPlugin,     // Metadata filters + hides filtered shapes on the canvas (optional; an array, spread it)
-  selectionHighlightPlugin      // Selection highlight pulse (optional)
+  selectionHighlightPlugin,     // Selection highlight pulse (optional)
+  pointMarkersPlugin            // Point annotations as visible, clickable markers (optional)
 ]);
 ```
 

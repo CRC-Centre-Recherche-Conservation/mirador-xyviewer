@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { AnnotationItem } from 'mirador';
-import { normalizeTargetSelector, parseXYWH } from './annotationSelectors';
+import {
+  createCircleSvgSelector,
+  isCssColour,
+  normalizeTargetSelector,
+  parseXYWH,
+  pointOf,
+  sanitizeAreaStyle,
+} from './annotationSelectors';
 import { transformPointAnnotations } from './annotationTransformer';
 import { normalizeAnnotationResources } from './annotationNormalizer';
 import v3Annotations from '../test/fixtures/annotations/v3-annotation-page.json';
@@ -21,8 +28,10 @@ const run = (selector: unknown): any => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const item = (a: unknown): any => new AnnotationItem(a as any);
 
+// Unstyled producer marker path, and the plugin's own (styled) form of it.
 const CIRCLE =
   '<svg xmlns="http://www.w3.org/2000/svg"><path d="M 10 88 A 12 12 0 1 1 10 112 A 12 12 0 1 1 10 88"/></svg>';
+const STYLED = createCircleSvgSelector(10, 100).value as string;
 
 describe('parseXYWH', () => {
   it('reads integers, decimals, pixel: and combined fragments', () => {
@@ -76,16 +85,16 @@ describe('normalizeTargetSelector', () => {
   it('prefers an existing SvgSelector in an array (no-op)', () => {
     const sel = [
       { type: 'PointSelector', x: 10, y: 100 },
-      { type: 'SvgSelector', value: CIRCLE },
+      { type: 'SvgSelector', value: STYLED },
     ];
     const a = run(sel);
     expect(a.target.selector).toEqual(sel);
-    expect(item(a).svgSelector.value).toBe(CIRCLE);
+    expect(item(a).svgSelector.value).toBe(STYLED);
   });
 
   it('does not circle a tiny xywh when an SvgSelector is present', () => {
     const sel = [
-      { type: 'SvgSelector', value: CIRCLE },
+      { type: 'SvgSelector', value: STYLED },
       { type: 'FragmentSelector', value: 'xywh=1,1,2,2' },
     ];
     expect(run(sel).target.selector).toEqual(sel);
@@ -172,16 +181,21 @@ describe('normalizeTargetSelector', () => {
     expect(target.selector).toEqual({ type: 'PointSelector', x: 1, y: 2 });
   });
 
-  it('leaves the real v3 page (point + circle array) unchanged, twice', () => {
+  it('keeps the real v3 page (point + circle array) stable, styling its circles once', () => {
     const page = JSON.parse(JSON.stringify(v3Annotations));
     const before = JSON.parse(JSON.stringify(page.items));
     transformPointAnnotations(page);
+    const once = JSON.parse(JSON.stringify(page.items));
     transformPointAnnotations(page);
+    expect(page.items).toEqual(once);
     const pointed = page.items.filter((i: { target: { selector?: unknown } }) => Array.isArray(i.target.selector));
     expect(pointed.length).toBeGreaterThan(0);
     for (const p of pointed) {
       const original = before.find((b: { id: string }) => b.id === p.id);
-      expect(p.target.selector).toEqual(original.target.selector);
+      expect(p.target.selector[0]).toEqual(original.target.selector[0]);
+      // Same circle as the producer's, now with the plugin's point style.
+      expect(p.target.selector[1].value).toContain('stroke="#1a73e8"');
+      expect(pointOf(p.target.selector)).toEqual(pointOf(original.target.selector));
     }
   });
 });
@@ -244,5 +258,107 @@ describe('normalizeTargetSelector hardening', () => {
     run({ type: 'SvgSelector', value: '<polygon '.repeat(40000) });
     run({ type: 'SvgSelector', value: `<svg><polygon points="${'1'.repeat(300000)}"/></svg>` });
     expect(Date.now() - t).toBeLessThan(1000);
+  });
+});
+
+describe('pointOf', () => {
+  const svg = (inner: string) => ({ type: 'SvgSelector', value: `<svg xmlns="http://www.w3.org/2000/svg">${inner}</svg>` });
+
+  it('reads a PointSelector (numbers or numeric strings)', () => {
+    expect(pointOf({ type: 'PointSelector', x: 10, y: 20 })).toEqual({ x: 10, y: 20, r: 12 });
+    expect(pointOf([{ type: 'PointSelector', x: '10', y: '20' }])).toEqual({ x: 10, y: 20, r: 12 });
+    expect(pointOf({ type: 'PointSelector', t: 3 })).toBeNull();
+  });
+
+  it('reads a tiny xywh but not a real region', () => {
+    expect(pointOf({ type: 'FragmentSelector', value: 'xywh=10,20,4,2' })).toEqual({ x: 12, y: 21, r: 12 });
+    expect(pointOf({ type: 'FragmentSelector', value: 'xywh=10,20,6,2' })).toBeNull();
+  });
+
+  it('reads the plugin marker path with its radius, styled or not', () => {
+    expect(pointOf(createCircleSvgSelector(10, 100, 20))).toEqual({ x: 10, y: 100, r: 20 });
+    expect(pointOf({ type: 'SvgSelector', value: CIRCLE })).toEqual({ x: 10, y: 100, r: 12 });
+  });
+
+  it('reads a lone M as the top of a default marker', () => {
+    expect(pointOf(svg('<path d="M 100 188"/>'))).toEqual({ x: 100, y: 200, r: 12 });
+  });
+
+  it('reads an unstyled single circle but not a styled one or a lone shape among others', () => {
+    expect(pointOf(svg('<circle cx="5" cy="6" r="7"/>'))).toEqual({ x: 5, y: 6, r: 7 });
+    expect(pointOf(svg('<circle cx="5" cy="6" r="7" fill="red"/>'))).toBeNull();
+    expect(pointOf(svg('<circle cx="5" cy="6" r="7" style="stroke:red"/>'))).toBeNull();
+    expect(pointOf(svg('<circle cx="5" cy="6" r="7"/><circle cx="1" cy="1" r="1"/>'))).toBeNull();
+    expect(pointOf(svg('<circle cx="5" cy="6" r="0"/>'))).toBeNull();
+  });
+
+  it('lets an SvgSelector decide: a polygon beside a PointSelector is an area', () => {
+    expect(pointOf([{ type: 'PointSelector', x: 1, y: 1 }, svg('<polygon points="0,0 10,0 10,10"/>')])).toBeNull();
+    expect(pointOf(svg('<path d="M 0 0 L 10 10 L 0 10 Z"/>'))).toBeNull();
+  });
+
+  it('returns null for nothing usable', () => {
+    for (const v of [undefined, null, 'x', 5, [], [null, 3]]) expect(pointOf(v)).toBeNull();
+  });
+});
+
+describe('point restyle (fallback without the marker plugin)', () => {
+  it('gives an unstyled circle the plugin point style, as a marker path', () => {
+    const a = run({ type: 'SvgSelector', value: '<svg><circle cx="5" cy="6" r="7"/></svg>' });
+    const value = a.target.selector.value as string;
+    expect(value).toContain('stroke="#1a73e8"');
+    expect(value).toContain('fill="rgba(26, 115, 232, 0.3)"');
+    expect(pointOf(a.target.selector)).toEqual({ x: 5, y: 6, r: 7 });
+  });
+
+  it('restyles an unstyled marker path and keeps a styled circle as the producer wrote it', () => {
+    expect(run({ type: 'SvgSelector', value: CIRCLE }).target.selector.value).toBe(STYLED);
+    const styled = '<svg><circle cx="5" cy="6" r="7" stroke="red"/></svg>';
+    expect(run({ type: 'SvgSelector', value: styled }).target.selector.value).toBe(styled);
+  });
+});
+
+describe('area style', () => {
+  const poly = '<svg><polygon points="0,0 10,0 10,10"/></svg>';
+
+  it('draws a closed polygon stroke-only by default', () => {
+    const out = run({ type: 'SvgSelector', value: poly }).target.selector.value;
+    expect(out).toContain('fill="none"');
+    expect(out).toContain('stroke="#1a73e8"');
+    expect(out).toContain('stroke-width="2"');
+  });
+
+  it('honours producer colours and the host area style', () => {
+    const a = ann({ type: 'SvgSelector', value: '<svg><polygon points="0,0 10,0 10,10" fill="#00ff00"/></svg>' });
+    normalizeTargetSelector(a, { areaStyle: { stroke: 'red', strokeWidth: 3, fill: 'rgba(0,0,0,0.1)' } });
+    expect((a.target.selector as { value: string }).value).toContain('fill="#00ff00"');
+    expect((a.target.selector as { value: string }).value).toContain('stroke="red"');
+    expect((a.target.selector as { value: string }).value).toContain('stroke-width="3"');
+    const b = ann({ type: 'SvgSelector', value: poly });
+    normalizeTargetSelector(b, { areaStyle: { fill: 'rgba(0,0,0,0.1)' } });
+    expect((b.target.selector as { value: string }).value).toContain('fill="rgba(0,0,0,0.1)"');
+  });
+
+  it('keeps the numeric radius argument working', () => {
+    const a = ann({ type: 'PointSelector', x: 1, y: 2 });
+    normalizeTargetSelector(a, 20);
+    expect(pointOf(a.target.selector)).toEqual({ x: 1, y: 2, r: 20 });
+  });
+});
+
+describe('colour validation', () => {
+  it('accepts plain CSS colours only', () => {
+    for (const c of ['#fff', '#1a73e8', 'rgb(1, 2, 3)', 'rgba(1,2,3,.5)', 'hsl(120 50% 50%)', 'hsla(120, 50%, 50%, 0.3)', 'red']) {
+      expect(isCssColour(c)).toBe(true);
+    }
+    for (const c of ['url(x)', 'red;x', 'red}', '{a', 'var(--x)', 'expression(1)', 'a b', '', 5, undefined, 'rgb(1,2,3);color:red']) {
+      expect(isCssColour(c)).toBe(false);
+    }
+  });
+
+  it('drops invalid parts of an area style', () => {
+    expect(sanitizeAreaStyle({ stroke: 'url(x)', fill: 'blue', strokeWidth: 500 })).toEqual({ fill: 'blue' });
+    expect(sanitizeAreaStyle({ strokeWidth: 3 })).toEqual({ strokeWidth: 3 });
+    expect(sanitizeAreaStyle('x')).toEqual({});
   });
 });
