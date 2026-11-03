@@ -18,8 +18,9 @@ vi.mock('mirador', () => ({
 }));
 vi.mock('react-plotly.js', () => ({ default: () => <div /> }));
 
-import { LinkedZonesOverlay, computeZoneBadges } from './LinkedZonesOverlay';
+import { LinkedZonesOverlay, computeZoneBadges, type ZoneBadge } from './LinkedZonesOverlay';
 import { ConnectedScientificAnnotationPlugin } from './ConnectedScientificAnnotationPlugin';
+import { canvasEmphasisStore } from '../state/canvasEmphasisStore';
 import { buildClassificationView } from '../utils/classificationModel';
 import { buildLinkRows, getLinkIndex } from '../utils/linkIndex';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
@@ -77,8 +78,10 @@ describe('computeZoneBadges', () => {
   const rows = () =>
     buildLinkRows(buildClassificationView(lapis, ['en']).related, { index, canvasId: CANVAS, canvasAnnotationIds: ids, prefs: ['en'] });
 
+  const all = { ownerId: lapis.id, rows: 'all' as const };
+
   it('numbers the zones like the rows of the list', () => {
-    const badges = computeZoneBadges({ ...base, hoveredIds: [lapis.id] });
+    const badges = computeZoneBadges({ ...base, emphasis: all });
     const here = rows().filter((r) => r.kind === 'here');
     expect(badges.length).toBeGreaterThan(0);
     expect(badges.map((b) => b.n)).toEqual(here.map((r) => r.n));
@@ -86,26 +89,26 @@ describe('computeZoneBadges', () => {
     for (const b of badges) expect(b.box[2]).toBeGreaterThan(0);
   });
 
-  it('falls back to the selected card, hover first', () => {
-    expect(computeZoneBadges({ ...base, hoveredIds: [], selectedId: lapis.id }).length).toBeGreaterThan(0);
-    const [, other] = characterizations.items as unknown as IIIFAnnotation[];
-    const hovered = computeZoneBadges({ ...base, hoveredIds: [other.id], selectedId: lapis.id });
-    const selected = computeZoneBadges({ ...base, hoveredIds: [], selectedId: lapis.id });
-    expect(hovered).not.toEqual(selected);
+  it('keeps only the requested rows', () => {
+    const [first] = computeZoneBadges({ ...base, emphasis: all });
+    const one = computeZoneBadges({ ...base, emphasis: { ownerId: lapis.id, rows: [first.n] } });
+    expect(one.map((b) => b.n)).toEqual([first.n]);
+    expect(computeZoneBadges({ ...base, emphasis: { ownerId: lapis.id, rows: [999] } })).toEqual([]);
   });
 
-  it('draws nothing when no card with links is active', () => {
-    expect(computeZoneBadges({ ...base, hoveredIds: [] })).toEqual([]);
+  it('draws nothing without emphasis or for a card without links', () => {
+    expect(computeZoneBadges({ ...base })).toEqual([]);
     const analysis = ids.find((id) => !characterizations.items.some((c) => (c as { id: string }).id === id))!;
-    expect(computeZoneBadges({ ...base, hoveredIds: [analysis], selectedId: analysis })).toEqual([]);
-    expect(computeZoneBadges({ ...base, canvasId: undefined, hoveredIds: [lapis.id] })).toEqual([]);
+    expect(computeZoneBadges({ ...base, emphasis: { ownerId: analysis, rows: 'all' } })).toEqual([]);
+    expect(computeZoneBadges({ ...base, emphasis: { ownerId: 'unknown', rows: 'all' } })).toEqual([]);
+    expect(computeZoneBadges({ ...base, canvasId: undefined, emphasis: all })).toEqual([]);
   });
 
   it('skips zones hidden by the filter but keeps the numbering', () => {
-    const all = computeZoneBadges({ ...base, hoveredIds: [lapis.id] });
-    const hidden = new Set([all[0].annotationId]);
-    const some = computeZoneBadges({ ...base, hoveredIds: [lapis.id], hiddenIds: hidden });
-    expect(some.map((b) => b.n)).toEqual(all.slice(1).map((b) => b.n));
+    const full = computeZoneBadges({ ...base, emphasis: all });
+    const hidden = new Set([full[0].annotationId]);
+    const some = computeZoneBadges({ ...base, emphasis: all, hiddenIds: hidden });
+    expect(some.map((b) => b.n)).toEqual(full.slice(1).map((b) => b.n));
   });
 });
 
@@ -126,15 +129,29 @@ describe('computeZoneBadges owner priority', () => {
   const res = normalizeAnnotationResources(st.annotations.c1);
   const input = { canvasId: 'c1', index: getLinkIndex(st, 'w'), canvasAnnotationIds: Object.keys(res), annotationResources: res, prefs: ['en'] };
 
-  it('keeps the selected card numbering while a row of its list is hovered', () => {
-    const fromList = computeZoneBadges({ ...input, hoveredIds: ['B'], selectedId: 'A' });
-    expect(fromList).toEqual(computeZoneBadges({ ...input, hoveredIds: [], selectedId: 'A' }));
-    expect(fromList.map((b) => [b.n, b.annotationId])).toEqual([[1, 'B'], [2, 'Z']]);
+  it('numbers the emphasised owner, whatever is hovered or selected', () => {
+    const fromA = computeZoneBadges({ ...input, emphasis: { ownerId: 'A', rows: 'all' } });
+    expect(fromA.map((b) => [b.n, b.annotationId])).toEqual([[1, 'B'], [2, 'Z']]);
+    const fromB = computeZoneBadges({ ...input, emphasis: { ownerId: 'B', rows: 'all' } });
+    expect(fromB.map((b) => [b.n, b.annotationId])).toEqual([[1, 'Z']]);
   });
 
-  it('still prefers a hovered card that is not a row of the selection', () => {
-    const badges = computeZoneBadges({ ...input, hoveredIds: ['B'], selectedId: 'Z' });
-    expect(badges.map((b) => [b.n, b.annotationId])).toEqual([[1, 'Z']]);
+  it('flags point zones so the badge goes beside the marker', () => {
+    const [b, z] = computeZoneBadges({ ...input, emphasis: { ownerId: 'A', rows: 'all' } });
+    expect(b.point).toMatchObject({ x: 52.5, y: 52.5 });
+    expect(z.point).toBeUndefined();
+  });
+
+  it('finds the owner through the link index after a move to another canvas', () => {
+    const { A, ...others } = res;
+    void A;
+    const badges = computeZoneBadges({
+      ...input,
+      canvasAnnotationIds: Object.keys(others),
+      annotationResources: others,
+      emphasis: { ownerId: 'A', rows: [2] },
+    });
+    expect(badges.map((x) => x.annotationId)).toEqual(['Z']);
   });
 });
 
@@ -171,7 +188,7 @@ describe('computeZoneBadges on a book view', () => {
       index: getLinkIndex(book, 'w'),
       canvasAnnotationIds: Object.keys(res),
       annotationResources: res,
-      hoveredIds: ['owner'],
+      emphasis: { ownerId: 'owner', rows: 'all' as const },
       prefs: ['en'],
     };
     const both = computeZoneBadges({ ...input, visibleCanvasIds: ['c1', 'c2'] });
@@ -217,7 +234,7 @@ describe('computeZoneBadges with a multi-target zone on the other canvas', () =>
       index: getLinkIndex(book, 'w'),
       canvasAnnotationIds: Object.keys(res),
       annotationResources: res,
-      hoveredIds: ['owner'],
+      emphasis: { ownerId: 'owner', rows: 'all' },
       prefs: ['en'],
     });
     expect(badges).toHaveLength(2);
@@ -231,7 +248,7 @@ describe('LinkedZonesOverlay', () => {
     { n: 1, annotationId: 'a', canvasId: 'c1', box: [10, 20, 30, 40] as [number, number, number, number] },
     { n: 2, annotationId: 'b', canvasId: 'c2', box: [5, 5, 10, 10] as [number, number, number, number] },
   ];
-  const mount = (b = badges) =>
+  const mount = (b: ZoneBadge[] = badges) =>
     render(
       <Provider store={store}>
         <LinkedZonesOverlay windowId="w" badges={b} />
@@ -246,8 +263,9 @@ describe('LinkedZonesOverlay', () => {
     expect(root.getAttribute('aria-hidden')).toBe('true');
     const els = [...root.querySelectorAll<HTMLElement>('.xyviewer-zone-badge')];
     expect(els.map((e) => e.textContent)).toEqual(['1', '2']);
-    expect([els[0].style.left, els[0].style.top]).toEqual(['20px', '40px']);
-    expect([els[1].style.left, els[1].style.top]).toEqual(['2010px', '10px']);
+    // Areas: centred on the top-left corner shifted outwards by half a badge.
+    expect([els[0].style.left, els[0].style.top]).toEqual(['9px', '29px']);
+    expect([els[1].style.left, els[1].style.top]).toEqual(['1999px', '-1px']);
     expect(root.style.pointerEvents).toBe('none');
   });
 
@@ -263,7 +281,7 @@ describe('LinkedZonesOverlay', () => {
     viewer.viewport.viewportToViewerElementCoordinates = (p) => ({ x: p.x * factor, y: p.y * factor });
     factor = 4;
     handlers['update-viewport'][0]();
-    expect(canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!.style.left).toBe('40px');
+    expect(canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!.style.left).toBe('29px');
     unmount();
     expect(handlers['update-viewport']).toHaveLength(0);
     expect(handlers.flip).toHaveLength(0);
@@ -276,11 +294,11 @@ describe('LinkedZonesOverlay', () => {
     osd.refs.w = { current: viewer };
     mount();
     const first = () => canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
-    expect(first().style.left).toBe('20px');
+    expect(first().style.left).toBe('9px');
     viewer.viewport.getFlip = () => true;
     handlers.flip[0]();
-    expect(first().style.left).toBe('980px');
-    expect(first().style.top).toBe('40px');
+    expect(first().style.left).toBe('969px');
+    expect(first().style.top).toBe('29px');
   });
 
   it('builds the point from the real prototype when constructor is Object (OpenSeadragon 5)', () => {
@@ -299,6 +317,27 @@ describe('LinkedZonesOverlay', () => {
     mount();
     const badge = canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
     expect(badge.style.display).not.toBe('none');
+  });
+
+  it('puts a point badge at the top-right of the marker, clear of it', () => {
+    const { viewer, canvas } = fakeViewer();
+    osd.refs.w = { current: viewer };
+    // Point at (100, 100), r 12; 2 px per canvas px, so the marker is capped at 48 px (r 24).
+    mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [88, 88, 24, 24], point: { x: 100, y: 100, r: 12 } }]);
+    const el = canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
+    const radius = 24;
+    const d = radius + 11 + 2;
+    expect([el.style.left, el.style.top]).toEqual([`${200 + d}px`, `${200 - d}px`]);
+  });
+
+  it('keeps clear of Mirador’s own circle when no marker size applies', () => {
+    const { viewer, canvas } = fakeViewer();
+    osd.refs.w = { current: viewer };
+    viewer.viewport.viewportToViewerElementCoordinates = (p) => ({ x: p.x * 10, y: p.y * 10 });
+    // At 10 px per canvas px the plain circle (240 px across) is larger than any marker.
+    mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [88, 88, 24, 24], point: { x: 100, y: 100, r: 12 } }]);
+    const el = canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
+    expect(parseFloat(el.style.left)).toBeGreaterThanOrEqual(1000 + 120 + 11);
   });
 
   it('hides a badge whose canvas is not in the current world instead of throwing', () => {
@@ -371,8 +410,11 @@ describe('through the annotation panel', () => {
     osd.refs.w1 = { current: viewer };
   });
 
-  it('shows the list numbers on the canvas for the hovered card', () => {
-    render(panel({ hoveredAnnotationIds: [lapis.id], selectedAnnotationId: lapis.id }));
+  afterEach(() => canvasEmphasisStore.clear('w1'));
+
+  it('shows the list numbers on the canvas for the emphasised card', () => {
+    render(panel({ selectedAnnotationId: lapis.id }));
+    act(() => canvasEmphasisStore.hover('w1', lapis.id, 'all'));
     const canvasBadges = [...document.querySelectorAll('.xyviewer-zone-badge')].map((e) => e.textContent);
     const listed = screen
       .getAllByRole('button', { name: /^Select linked annotation \d+ of/ })
@@ -381,8 +423,8 @@ describe('through the annotation panel', () => {
     expect(canvasBadges).toEqual(listed);
   });
 
-  it('shows no badge when nothing is hovered or selected', () => {
-    render(panel({}));
+  it('shows no badge from hover or selection alone', () => {
+    render(panel({ hoveredAnnotationIds: [lapis.id], selectedAnnotationId: lapis.id }));
     expect(document.querySelector('.xyviewer-zone-badge')).toBeNull();
   });
 });

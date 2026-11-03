@@ -12,6 +12,8 @@ export interface LinkTarget {
   /** Id to select, as listed on its canvas. */
   annotationId: string;
   canvasId?: string;
+  /** Row number the link was followed from, to keep its badge beside the landed zone. */
+  n?: number;
 }
 
 export interface LinkContextValue {

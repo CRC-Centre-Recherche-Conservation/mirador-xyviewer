@@ -1,8 +1,9 @@
 /**
  * LinkedZonesOverlay
  *
- * Numbered badges on the canvas for the zones a classification links to, shown while its card is
- * hovered or selected. The numbers are the row numbers of LinkedAnnotationList (both come from
+ * Numbered badges on the canvas for the zones a classification links to, shown only at
+ * navigation moments (canvasEmphasisStore). They sit beside the zone: top-right of a point
+ * marker, outside the top-left corner of an area. The numbers are the row numbers of LinkedAnnotationList (both come from
  * buildLinkRows). Badges are positioned from the target selectors, never redraw the zones, and
  * are rendered into the OpenSeadragon canvas of the window: decorative (aria-hidden), the list
  * carries the information.
@@ -13,7 +14,9 @@ import ReactDOM from 'react-dom';
 import type { IIIFAnnotation } from '../types/iiif';
 import { buildClassificationView, classificationKind } from '../utils/classificationModel';
 import { baseAnnotationId, buildLinkRows, listedIdsByBase, type LinkIndex } from '../utils/linkIndex';
+import { pointOf, type PointShape } from '../utils/annotationSelectors';
 import { annotationBounds, type Box } from './viewportFraming';
+import { DEFAULT_POINT_MARKER_CONFIG, markerSize, type PointMarkerConfig } from './pointMarkers';
 import { useViewerPlacement } from './viewerPlacement';
 
 /** Badge diameter in screen pixels (independent of the zoom). */
@@ -27,6 +30,8 @@ export interface ZoneBadge {
   canvasId: string;
   /** Zone bounds in canvas pixels. */
   box: Box;
+  /** Set when the zone is a point annotation (drawn as a marker): the badge goes beside it. */
+  point?: PointShape;
 }
 
 export interface ZoneBadgeInput {
@@ -40,61 +45,62 @@ export interface ZoneBadgeInput {
   annotationResources: Record<string, IIIFAnnotation>;
   /** Ids hidden by the metadata filter (their zone is not drawn). */
   hiddenIds?: Set<string>;
-  hoveredIds: string[];
-  selectedId?: string | null;
+  /** What the panel emphasises; nothing is numbered without it. */
+  emphasis?: { ownerId: string; rows: 'all' | readonly number[] };
   prefs: string[];
 }
 
 /**
- * Badges for the linked zones of the hovered card, else of the selected one. Only zones on a
- * visible canvas are numbered; the numbers still follow the full list (zones elsewhere keep a gap).
+ * Badges for the linked zones of the emphasised classification (see canvasEmphasisStore), all
+ * rows or the listed ones. Only zones on a visible canvas are numbered; the numbers still follow
+ * the full list (zones elsewhere keep a gap).
  */
 export function computeZoneBadges(input: ZoneBadgeInput): ZoneBadge[] {
-  const { canvasId, index, canvasAnnotationIds, annotationResources, hiddenIds, prefs } = input;
-  if (!canvasId) return [];
+  const { canvasId, index, canvasAnnotationIds, annotationResources, hiddenIds, prefs, emphasis } = input;
+  if (!canvasId || !emphasis) return [];
   const visible = new Set(input.visibleCanvasIds?.length ? input.visibleCanvasIds : [canvasId]);
 
-  const rowsOf = (owner: IIIFAnnotation) => {
-    const view = buildClassificationView(owner, prefs);
-    if (view.related.length === 0) return undefined;
-    return buildLinkRows(view.related, { index, canvasId, canvasAnnotationIds, prefs, hiddenIds });
-  };
-  const ownerOf = (id: string | null | undefined) => {
-    const owner = id ? annotationResources[id] : undefined;
-    return owner && classificationKind(owner.motivation) ? owner : undefined;
-  };
+  // After a cross-canvas move the owner is no longer on this canvas: the link index still has it.
+  const owner = annotationResources[emphasis.ownerId] ?? index.entries.get(baseAnnotationId(emphasis.ownerId))?.resource;
+  if (!owner || !classificationKind(owner.motivation)) return [];
+  const view = buildClassificationView(owner, prefs);
+  if (view.related.length === 0) return [];
+  const rows = buildLinkRows(view.related, { index, canvasId, canvasAnnotationIds, prefs, hiddenIds });
 
-  // Hovering a row of the selected card's list must not hand the numbering to that row's target.
-  const selected = ownerOf(input.selectedId);
-  const selectedRows = selected ? rowsOf(selected) : undefined;
-  const listed = new Set((selectedRows ?? []).map((r) => r.targetId));
-  const onlyListRows = input.hoveredIds.length > 0 && input.hoveredIds.every((h) => listed.has(baseAnnotationId(h)));
-  const candidates = onlyListRows ? [input.selectedId] : [...input.hoveredIds, input.selectedId];
-
-  for (const id of candidates) {
-    const owner = ownerOf(id);
-    if (!owner) continue;
-    const rows = owner === selected ? selectedRows : rowsOf(owner);
-    if (!rows) continue;
-
-    const listedHere = listedIdsByBase(canvasAnnotationIds);
-    const badges: ZoneBadge[] = [];
-    for (const row of rows) {
-      if (row.hiddenByFilter || !row.annotationId) continue;
-      if (row.kind !== 'here' && !(row.kind === 'other' && row.canvasId && visible.has(row.canvasId))) continue;
-      const entry = index.entries.get(row.targetId);
-      const zoneCanvas = row.kind === 'here' ? canvasId : row.canvasId!;
-      const ids = row.kind === 'here' ? (listedHere.get(row.targetId) ?? [row.annotationId]) : entry?.ids ?? [row.annotationId];
-      for (const zoneId of ids) {
-        if (hiddenIds?.has(zoneId)) continue;
-        const resource = (row.kind === 'here' ? annotationResources[zoneId] : undefined) ?? entry?.resources[zoneId] ?? entry?.resource;
-        const box = annotationBounds(resource);
-        if (box) badges.push({ n: row.n, annotationId: zoneId, canvasId: zoneCanvas, box });
-      }
+  const listedHere = listedIdsByBase(canvasAnnotationIds);
+  const badges: ZoneBadge[] = [];
+  for (const row of rows) {
+    if (emphasis.rows !== 'all' && !emphasis.rows.includes(row.n)) continue;
+    if (row.hiddenByFilter || !row.annotationId) continue;
+    if (row.kind !== 'here' && !(row.kind === 'other' && row.canvasId && visible.has(row.canvasId))) continue;
+    const entry = index.entries.get(row.targetId);
+    const zoneCanvas = row.kind === 'here' ? canvasId : row.canvasId!;
+    const ids = row.kind === 'here' ? (listedHere.get(row.targetId) ?? [row.annotationId]) : entry?.ids ?? [row.annotationId];
+    for (const zoneId of ids) {
+      if (hiddenIds?.has(zoneId)) continue;
+      const resource = (row.kind === 'here' ? annotationResources[zoneId] : undefined) ?? entry?.resources[zoneId] ?? entry?.resource;
+      const box = annotationBounds(resource);
+      if (!box) continue;
+      const point = pointOfAnnotation(resource);
+      badges.push({ n: row.n, annotationId: zoneId, canvasId: zoneCanvas, box, ...(point && { point }) });
     }
-    return badges;
   }
-  return [];
+  return badges;
+}
+
+/** Point of a normalized annotation's target (a marker, not an area), null for an area. */
+function pointOfAnnotation(resource: IIIFAnnotation | undefined): PointShape | null {
+  const target = resource?.target;
+  if (!target) return null;
+  if (typeof target === 'string') {
+    const frag = target.split('#')[1];
+    return frag ? pointOf({ type: 'FragmentSelector', value: frag }) : null;
+  }
+  try {
+    return pointOf((target as { selector?: unknown }).selector);
+  } catch {
+    return null;
+  }
 }
 
 const STYLE = `
@@ -108,31 +114,45 @@ font:700 12px/${BADGE_SIZE - 4}px sans-serif;text-align:center;pointer-events:no
 export interface LinkedZonesOverlayProps {
   windowId?: string;
   badges: ZoneBadge[];
+  /** Marker sizes, to clear a point marker; the defaults apply when the host sets none. */
+  pointConfig?: PointMarkerConfig;
 }
 
-export const LinkedZonesOverlay: React.FC<LinkedZonesOverlayProps> = ({ windowId, badges }) => {
+/** Gap between a marker and its badge. */
+const MARKER_GAP = 2;
+
+export const LinkedZonesOverlay: React.FC<LinkedZonesOverlayProps> = ({ windowId, badges, pointConfig = DEFAULT_POINT_MARKER_CONFIG }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const wanted = badges.length > 0 && !!windowId;
 
   const viewer = useViewerPlacement(
     windowId,
     wanted,
-    ({ pixelOf }) => {
+    ({ pixelOf, pxPerCanvasPx }) => {
       const container = containerRef.current;
       if (!container) return;
       const children = container.children;
       badges.forEach((badge, i) => {
         const el = children[i] as HTMLElement | undefined;
         if (!el) return;
-        const px = pixelOf(badge.canvasId, badge.box[0], badge.box[1]);
+        const { point } = badge;
+        const px = point ? pixelOf(badge.canvasId, point.x, point.y) : pixelOf(badge.canvasId, badge.box[0], badge.box[1]);
         el.style.display = px ? '' : 'none';
-        if (px) {
-          el.style.left = `${px.x}px`;
-          el.style.top = `${px.y}px`;
+        if (!px) return;
+        let dx = -BADGE_SIZE / 2;
+        let dy = -BADGE_SIZE / 2;
+        if (point) {
+          // Marker radius in its largest (hovered) state; Mirador's own circle when no marker plugin.
+          const scale = pxPerCanvasPx(badge.canvasId);
+          const radius = Math.max(markerSize(point.r, scale, pointConfig, 'hovered'), scale ? 2 * point.r * scale : 0) / 2;
+          dx = dy = radius + BADGE_SIZE / 2 + MARKER_GAP;
+          dy = -dy;
         }
+        el.style.left = `${px.x + dx}px`;
+        el.style.top = `${px.y + dy}px`;
       });
     },
-    [badges],
+    [badges, pointConfig],
   );
 
   if (!wanted || !viewer?.canvas) return null;

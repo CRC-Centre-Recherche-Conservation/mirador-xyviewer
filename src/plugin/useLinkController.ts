@@ -11,6 +11,7 @@ import { OSDReferences, getCurrentCanvasWorld, setCanvas, updateViewport } from 
 import type { IIIFAnnotation } from '../types/iiif';
 import type { LinkContextValue, LinkTarget } from '../components/LinkContext';
 import { linkNavigationStore } from '../state/linkNavigationStore';
+import { canvasEmphasisStore } from '../state/canvasEmphasisStore';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import { annotationTitle } from '../utils/annotationTitle';
 import { baseAnnotationId, hoverGroup, linkedIdsOnCanvas, type LinkIndex } from '../utils/linkIndex';
@@ -197,6 +198,8 @@ export function useLinkController(params: LinkControllerParams): {
     const dest = { annotationId: to.annotationId, canvasId: to.canvasId ?? p.canvasId };
     if (ownerId && baseAnnotationId(ownerId) !== baseAnnotationId(dest.annotationId)) {
       linkNavigationStore.push(p.windowId, { annotationId: ownerId, canvasId: p.canvasId }, dest);
+      // Row n's badge stays beside the landed zone while "Back to..." is offered.
+      if (to.n !== undefined) canvasEmphasisStore.follow(p.windowId, ownerId, to.n);
     }
     navigate(dest);
   }, [navigate]);
@@ -211,6 +214,7 @@ export function useLinkController(params: LinkControllerParams): {
 
   const showAll = useCallback((ownerId: string) => {
     const p = latest.current;
+    canvasEmphasisStore.showTimed(p.windowId, ownerId);
     const ids = [ownerId, ...linkedIdsOnCanvas(p.index, ownerId, p.canvasAnnotationIds)];
     const boxes = ids.map((id) => annotationBounds(p.annotationResources[id])).filter((b): b is Box => !!b);
     if (boxes.length > 0) frame(boxes, false);

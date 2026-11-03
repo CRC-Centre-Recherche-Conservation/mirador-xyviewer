@@ -8,17 +8,32 @@ import { createStore } from 'redux';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { ConnectedScientificAnnotationPlugin } from './ConnectedScientificAnnotationPlugin';
 import { linkNavigationStore } from '../state/linkNavigationStore';
+import { SHOW_ALL_BADGES_MS, canvasEmphasisStore } from '../state/canvasEmphasisStore';
 import { cancelPendingNavigation } from './useLinkController';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
 import type { IIIFAnnotation } from '../types/iiif';
 import characterizations from '../test/fixtures/annotations/manuspectrum-characterizations-page.json';
 import analyses from '../test/fixtures/annotations/manuspectrum-analyses-page.json';
 
-const osd = vi.hoisted(() => ({ maxZoom: undefined as number | undefined }));
+const osd = vi.hoisted(() => ({ maxZoom: undefined as number | undefined, canvas: undefined as HTMLElement | undefined, ref: undefined as unknown }));
 
 vi.mock('mirador', () => ({
   OSDReferences: {
-    get: () => (osd.maxZoom === undefined ? undefined : { current: { viewport: { getMaxZoom: () => osd.maxZoom } } }),
+    get: () => {
+      if (osd.canvas) {
+        // One viewer object per canvas: a new one on every read would loop the placement hook.
+        osd.ref ??= {
+          current: {
+            canvas: osd.canvas,
+            viewport: { getMaxZoom: () => osd.maxZoom, viewportToViewerElementCoordinates: (p: unknown) => p },
+            addHandler: () => {},
+            removeHandler: () => {},
+          },
+        };
+        return osd.ref;
+      }
+      return osd.maxZoom === undefined ? undefined : { current: { viewport: { getMaxZoom: () => osd.maxZoom } } };
+    },
   },
   SanitizedHtml: ({ htmlString }: { htmlString: string }) => <span>{htmlString}</span>,
   addWindow: vi.fn(),
@@ -66,8 +81,8 @@ interface TestState {
   annotations: Record<string, Record<string, { json: unknown }>>;
 }
 
-function setup(opts: { analysesOn?: string; config?: Record<string, unknown>; ignoreSetCanvas?: boolean; lateLoad?: boolean } = {}) {
-  const { analysesOn = CANVAS, config = {}, ignoreSetCanvas = false, lateLoad = false } = opts;
+function setup(opts: { hovered?: string[]; analysesOn?: string; config?: Record<string, unknown>; ignoreSetCanvas?: boolean; lateLoad?: boolean } = {}) {
+  const { hovered = [], analysesOn = CANVAS, config = {}, ignoreSetCanvas = false, lateLoad = false } = opts;
   let withheld: TestState['annotations'][string] | undefined;
   const actions: Array<{ type: string; [k: string]: unknown }> = [];
   const initial: TestState = {
@@ -119,6 +134,7 @@ function setup(opts: { analysesOn?: string; config?: Record<string, unknown>; ig
             selectAnnotation: (windowId: string, annotationId: string) =>
               store.dispatch({ type: 'test/SELECT', windowId, annotationId }),
             deselectAnnotation: () => store.dispatch({ type: 'test/DESELECT' }),
+            hoveredAnnotationIds: hovered,
             hoverAnnotation,
           } as never
         }
@@ -142,8 +158,12 @@ const settle = (ms = 60) => act(() => void vi.advanceTimersByTime(ms));
 beforeEach(() => {
   vi.useFakeTimers();
   linkNavigationStore.clear('w1');
+  canvasEmphasisStore.clear('w1');
 });
 afterEach(() => {
+  canvasEmphasisStore.clear('w1');
+  osd.canvas = undefined;
+  osd.ref = undefined;
   vi.useRealTimers();
 });
 
@@ -357,5 +377,107 @@ describe('links to another canvas', () => {
       expect((store.getState() as TestState).windows.w1.canvasId).toBe(CANVAS);
       expect(card('lapis lazuli, lead white').contains(document.activeElement)).toBe(true);
     });
+  });
+});
+
+describe('numbered badges appear only at navigation moments', () => {
+  const badgeNumbers = () => [...document.querySelectorAll('.xyviewer-zone-badge')].map((e) => e.textContent);
+  const rowButtons = () => screen.getAllByRole('button', { name: /Select linked annotation/ });
+  const lapisCard = () => card('lapis lazuli, lead white');
+  const allNumbers = ['1', '2', '3', '4', '5'];
+
+  beforeEach(() => {
+    osd.canvas = document.body.appendChild(document.createElement('div'));
+  });
+
+  it('never from canvas hover, nor from a selection alone', () => {
+    setup({ hovered: [lapis.id, firstAnalysis.id] });
+    expect(badgeNumbers()).toEqual([]);
+    fireEvent.click(lapisCard());
+    settle();
+    expect(rowButtons()).toHaveLength(5);
+    expect(badgeNumbers()).toEqual([]);
+  });
+
+  it('T1: a row numbers only its own zone, until the pointer or focus leaves it', () => {
+    setup();
+    fireEvent.click(lapisCard());
+    fireEvent.mouseEnter(lapisCard());
+    expect(badgeNumbers()).toEqual(allNumbers);
+    fireEvent.mouseEnter(rowButtons()[1]);
+    expect(badgeNumbers()).toEqual(['2']);
+    // Back into the card: its badges return (T2); out of it: none.
+    fireEvent.mouseLeave(rowButtons()[1], { relatedTarget: lapisCard() });
+    expect(badgeNumbers()).toEqual(allNumbers);
+    fireEvent.mouseLeave(lapisCard());
+    expect(badgeNumbers()).toEqual([]);
+
+    fireEvent.focus(rowButtons()[2]);
+    expect(badgeNumbers()).toEqual(['3']);
+    fireEvent.blur(rowButtons()[2], { relatedTarget: document.body });
+    fireEvent.blur(lapisCard(), { relatedTarget: document.body });
+    expect(badgeNumbers()).toEqual([]);
+  });
+
+  it('T2: the card itself numbers all its zones on pointer or focus, and ends on leave or blur', () => {
+    setup();
+    fireEvent.mouseEnter(lapisCard());
+    expect(badgeNumbers()).toEqual(allNumbers);
+    fireEvent.mouseLeave(lapisCard());
+    expect(badgeNumbers()).toEqual([]);
+    fireEvent.focus(lapisCard());
+    expect(badgeNumbers()).toEqual(allNumbers);
+    fireEvent.blur(lapisCard(), { relatedTarget: document.body });
+    expect(badgeNumbers()).toEqual([]);
+  });
+
+  it('a plain annotation or one without links numbers nothing', () => {
+    setup();
+    fireEvent.mouseEnter(card(analysisTitle));
+    expect(badgeNumbers()).toEqual([]);
+    expect(canvasEmphasisStore.get('w1')).toBeUndefined();
+  });
+
+  it('T3: "Show all" keeps all badges 4 s after the pointer left, or until the next emphasis change', () => {
+    setup();
+    fireEvent.click(lapisCard());
+    fireEvent.mouseEnter(lapisCard());
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    fireEvent.mouseLeave(lapisCard());
+    expect(badgeNumbers()).toEqual(allNumbers);
+    settle(SHOW_ALL_BADGES_MS - 100);
+    expect(badgeNumbers()).toEqual(allNumbers);
+    settle(200);
+    expect(badgeNumbers()).toEqual([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(badgeNumbers()).toEqual(allNumbers);
+    fireEvent.mouseEnter(rowButtons()[0]);
+    expect(badgeNumbers()).toEqual(['1']);
+  });
+
+  it('T4: the followed row keeps its badge while "Back to..." is offered', () => {
+    setup();
+    fireEvent.click(lapisCard());
+    fireEvent.mouseEnter(rowButtons()[1]);
+    fireEvent.click(rowButtons()[1]);
+    const back = screen.getByRole('button', { name: /^Back to/ });
+    expect(back).toBeInTheDocument();
+    expect(badgeNumbers()).toEqual(['2']);
+    fireEvent.click(back);
+    expect(screen.queryByRole('button', { name: /^Back to/ })).toBeNull();
+    // The followed badge is gone; "Back" returns focus to the origin card, which is T2.
+    expect(canvasEmphasisStore.get('w1')?.source).toBe('hover');
+    expect(badgeNumbers()).toEqual(allNumbers);
+  });
+
+  it('T4 ends when the reader selects something else', () => {
+    setup();
+    fireEvent.click(lapisCard());
+    fireEvent.click(rowButtons()[0]);
+    expect(badgeNumbers()).toEqual(['1']);
+    fireEvent.click(card((uncited.label as { en: string[] }).en[0]));
+    expect(screen.queryByRole('button', { name: /^Back to/ })).toBeNull();
+    expect(badgeNumbers()).toEqual([]);
   });
 });

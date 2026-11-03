@@ -13,6 +13,7 @@ import type { SpecificResourceBody } from '../types/iiif';
 import type { AnnotationBodyLabels } from '../types/mirador';
 import { fillTemplate, resolveLabels } from '../utils/annotationLabels';
 import { EMPTY_LINK_INDEX, buildLinkRows, type LinkRow } from '../utils/linkIndex';
+import { canvasEmphasisStore } from '../state/canvasEmphasisStore';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import { useLinkContext, type LinkContextValue } from './LinkContext';
 
@@ -75,6 +76,8 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
   if (rows.length === 0) return null;
 
   const restoreHover = () => ctx.hover(ownerId ? ctx.groupOf(ownerId) : []);
+  // A row numbers only its own zone; leaving it inside the card gives the card's badges back.
+  const emphasize = ctx.windowId && ownerId ? canvasEmphasisStore : undefined;
   const canFrame = !!ownerId && rows.some((r) => r.kind === 'here');
   const locationOf = (row: LinkRow): string =>
     row.kind === 'here'
@@ -122,16 +125,29 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
             .filter(Boolean)
             .join(', ');
           const hoverIds = row.kind === 'here' && row.annotationId ? [row.annotationId] : null;
+          const enter = () => emphasize?.hover(ctx.windowId!, ownerId!, [row.n]);
+          const leave = () => emphasize?.release(ctx.windowId!, { ownerId: ownerId!, rows: 'all' });
           const interactive = {
-            onMouseEnter: () => hoverIds && ctx.hover(hoverIds),
+            'data-xyviewer-link-row': '',
+            onMouseEnter: () => {
+              enter();
+              if (hoverIds) ctx.hover(hoverIds);
+            },
             onFocus: (e: React.FocusEvent) => {
+              enter();
               if (!hoverIds) return;
               // The card's own focus handler would light the whole group instead.
               e.stopPropagation();
               ctx.hover(hoverIds);
             },
-            onMouseLeave: () => hoverIds && restoreHover(),
-            onBlur: () => hoverIds && restoreHover(),
+            onMouseLeave: () => {
+              leave();
+              if (hoverIds) restoreHover();
+            },
+            onBlur: () => {
+              leave();
+              if (hoverIds) restoreHover();
+            },
           };
 
           const body = (
@@ -188,7 +204,7 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
                     // Inside a selectable card: do not toggle it.
                     e.stopPropagation();
                     if (!disabled && row.annotationId) {
-                      ctx.follow(ownerId, { annotationId: row.annotationId, canvasId: row.canvasId });
+                      ctx.follow(ownerId, { annotationId: row.annotationId, canvasId: row.canvasId, n: row.n });
                     }
                   }}
                   sx={{
