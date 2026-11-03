@@ -105,3 +105,51 @@ describe('MetadataDisplay hiddenSeeAlsoIds', () => {
     expect(screen.getByText('Other')).toBeTruthy();
   });
 });
+
+describe('MetadataDisplay homepage and rendering', () => {
+  const home = { id: 'https://h.example/report', type: 'Text', label: { en: ['Report'] } };
+  const rend = { id: 'https://h.example/raw', type: 'Dataset', label: { en: ['Raw file'] } };
+  const see = { id: 'https://h.example/see', label: { en: ['See'] } };
+
+  it('lists homepage and rendering links with safe attributes', () => {
+    render(<MetadataDisplay homepage={[home]} rendering={rend} />);
+    const report = screen.getByRole('link', { name: 'Report' });
+    expect(report).toHaveAttribute('href', 'https://h.example/report');
+    expect(report).toHaveAttribute('target', '_blank');
+    expect(report).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByRole('link', { name: 'Raw file' })).toHaveAttribute('href', 'https://h.example/raw');
+  });
+
+  it('orders homepage, rendering, then seeAlso', () => {
+    render(<MetadataDisplay seeAlso={see} rendering={rend} homepage={home} />);
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['Report', 'Raw file', 'See']);
+  });
+
+  it('dedupes by URL across lists, first wins', () => {
+    render(
+      <MetadataDisplay
+        homepage={{ id: 'https://h.example/raw', label: { en: ['From homepage'] } }}
+        rendering={rend}
+        seeAlso={[rend, see]}
+      />,
+    );
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['From homepage', 'See']);
+  });
+
+  it('drops invalid URLs and renders nothing when only those remain', () => {
+    const { container } = render(<MetadataDisplay homepage={{ id: 'javascript:alert(1)' }} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('applies hiddenSeeAlsoIds to homepage and rendering', () => {
+    render(
+      <MetadataDisplay
+        homepage={home}
+        rendering={rend}
+        hiddenSeeAlsoIds={new Set(['https://h.example/raw'])}
+      />,
+    );
+    expect(screen.queryByText('Raw file')).toBeNull();
+    expect(screen.getByText('Report')).toBeTruthy();
+  });
+});

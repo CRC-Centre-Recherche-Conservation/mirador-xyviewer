@@ -61,7 +61,7 @@ import { asPropertyGroupOf } from '../utils/termFacets';
 /** Evaluates its render function in its own render so an enclosing boundary catches parent-built expressions. */
 const InsideBoundary: React.FC<{ children: () => React.ReactNode }> = ({ children }) => <>{children()}</>;
 
-/** Metadata block; the raw file offered by the shown body's reading replaces its plain seeAlso link. */
+/** Metadata block; the raw file offered by the shown body's reading replaces its plain link. */
 const AnnotationMetadata: React.FC<
   Omit<React.ComponentProps<typeof MetadataDisplay>, 'hiddenSeeAlsoIds' | 'compact'> & { body?: unknown }
 > = ({ body, ...rest }) => {
@@ -585,6 +585,8 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     const metadata = resource?.metadata;
     const annotationId = resource?.id;
     const seeAlso = resource?.seeAlso;
+    const homepage = resource?.homepage;
+    const rendering = resource?.rendering;
 
     return (
       <Box
@@ -701,6 +703,8 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
                     metadata={metadata}
                     annotationId={showAnnotationId === 'inline' ? annotationId : undefined}
                     seeAlso={seeAlso}
+                    homepage={homepage}
+                    rendering={rendering}
                     body={body}
                   />
                   {citedBy}

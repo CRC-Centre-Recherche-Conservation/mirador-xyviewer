@@ -59,6 +59,8 @@ both use the `http://iiif.io/api/presentation/2/context.json` context.
 | `target`                 | `target`         | `on` (string `<canvas>#xywh=…` or `oa:SpecificResource`)     |
 | `label` / `metadata`     | LocalizedString  | plain string or `{ "@value", "@language" }` (single/array)   |
 | `seeAlso`                | `seeAlso`        | `seeAlso` (`@id` may be a URL string **or** a `{ url, url_label }` object — both preserved) |
+| `homepage`               | `homepage`       | `related` (entries converted like `seeAlso`)                 |
+| `rendering`              | `rendering`      | `rendering`                                                  |
 
 ### Body-type mapping (`resource.@type` → internal `type`)
 
@@ -75,7 +77,7 @@ Only **open text** dataset formats are plotted (`text/csv`, `text/plain`,
 `text/tab-separated-values`). Proprietary/binary payloads (e.g. `application/octet-stream`)
 are **intentionally not plotted**: such a body is still recognized as a `Dataset`, but the
 panel shows a short "format not supported for plotting" notice with a link to the resource
-itself (its `seeAlso` links render just above). This is by design — see the open-format note
+itself (its `homepage`, `rendering` and `seeAlso` links render just above). This is by design — see the open-format note
 under [Body Types](#body-types).
 
 ### Minimal v2 annotation list
@@ -196,7 +198,11 @@ section and scrolls to its card.
 |-------|------|-------------|
 | `label` | LocalizedString | Display name |
 | `metadata` | array | Key-value metadata entries |
-| `seeAlso` | array | Related resources |
+| `seeAlso` | array | Machine-readable descriptions |
+| `homepage` | array | Web pages for people (reports, DOIs) |
+| `rendering` | array | Alternative representations (e.g. a downloadable raw file) |
+
+The card lists `homepage`, `rendering` and `seeAlso` entries together under "Linked resources", in that order. Entries without a valid `http(s)` URL are dropped, a URL repeated across lists appears once, and a raw file already offered as the body's download is not repeated.
 
 ### Minimal Annotation
 

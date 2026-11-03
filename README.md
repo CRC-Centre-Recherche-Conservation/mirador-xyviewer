@@ -45,7 +45,7 @@ Notes: Mirador always defines `language` (default `'en'`), so a host that never 
 behaves as English even for a French browser; set it explicitly. The metadata filter
 selection resets when the language changes, because filter keys are language-specific.
 Exported components used outside Mirador fall back to the browser language and accept
-a `LanguageProvider` to override it. Fallback UI strings such as the `seeAlso` link
+a `LanguageProvider` to override it. Fallback UI strings such as the linked-resource (`homepage`, `rendering`, `seeAlso`) link
 label are English and overridable via props (`fallbackLinkLabel`, `seeAlsoHeading`).
 
 ## Plugin options

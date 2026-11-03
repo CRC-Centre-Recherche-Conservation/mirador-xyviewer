@@ -362,6 +362,38 @@ describe('normalizeAnnotationList — seeAlso', () => {
   });
 });
 
+describe('normalizeAnnotationList — homepage and rendering', () => {
+  it('v2 related → homepage and rendering → rendering, converted like seeAlso', () => {
+    const [ann] = normalizeAnnotationList({
+      resources: [
+        {
+          '@id': 'a',
+          '@type': 'oa:Annotation',
+          on: 'c#xywh=0,0,1,1',
+          resource: { chars: 'x' },
+          related: { '@id': 'https://x/report', '@type': 'dctypes:Text', format: 'text/html', label: 'Report' },
+          rendering: [{ '@id': 'https://x/raw', format: 'application/octet-stream', label: 'Raw' }],
+        },
+      ],
+    });
+    expect(ann.homepage).toEqual({ id: 'https://x/report', type: 'dctypes:Text', format: 'text/html', label: { none: ['Report'] } });
+    expect(ann.rendering).toEqual([{ id: 'https://x/raw', format: 'application/octet-stream', label: { none: ['Raw'] } }]);
+    expect(ann.seeAlso).toBeUndefined();
+  });
+
+  it('v3 homepage and rendering pass through unchanged', () => {
+    const homepage = [{ id: 'https://x/report', type: 'Text', format: 'text/html', label: { en: ['R'] } }];
+    const rendering = [{ id: 'https://x/raw', type: 'Dataset', label: { en: ['Raw'] } }];
+    const [ann] = normalizeAnnotationList({
+      '@context': 'http://iiif.io/api/presentation/3/context.json',
+      type: 'AnnotationPage',
+      items: [{ id: 'a', type: 'Annotation', body: { type: 'TextualBody', value: 'x' }, target: 'c', homepage, rendering }],
+    });
+    expect(ann.homepage).toEqual(homepage);
+    expect(ann.rendering).toEqual(rendering);
+  });
+});
+
 describe('normalizeAnnotationList — localized values resolvable downstream', () => {
   it('handles {@value,@language} label and metadata', () => {
     const result = normalizeAnnotationList({

@@ -76,6 +76,7 @@ This guide explains the plugin architecture and how to extend mirador-xyviewer.
 | `on` object with `selector` (`oa:Choice`, arrays) | `selector` = `[default, ...item]` flattened; one selector stays an object, several become an array |
 | `FragmentSelector` / `SvgSelector` without a string `value` | selector dropped (Mirador calls `value.match` unguarded) |
 | `seeAlso`, `metadata`, `label` (`@value` / `@language`) | v3 equivalents (`LocalizedString` maps) |
+| `related`, `rendering` | `homepage`, `rendering` (entries converted like `seeAlso`) |
 
 Presentation 3 annotations keep every property the normalizer does not model (`bodyValue`, `created`, `creator`, `rights`, `stylesheet`, ...); the normalized keys are written last and win. Selectors on v3 targets go through the same selector mapper.
 

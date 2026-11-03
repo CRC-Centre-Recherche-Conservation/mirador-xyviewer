@@ -20,18 +20,53 @@ export interface MetadataDisplayProps {
   annotationId?: string;
   /** SeeAlso references */
   seeAlso?: SeeAlsoEntry | SeeAlsoEntry[];
+  /** Web pages for people (IIIF `homepage`), listed first. */
+  homepage?: SeeAlsoEntry | SeeAlsoEntry[];
+  /** Alternative representations such as a downloadable file (IIIF `rendering`), listed after `homepage`. */
+  rendering?: SeeAlsoEntry | SeeAlsoEntry[];
   /** Compact mode - shows metadata inline */
   compact?: boolean;
   /** Link text when a seeAlso entry has no label or type (default 'Linked resource'). */
   fallbackLinkLabel?: string;
-  /** Heading above the seeAlso list (default 'Linked resources'). */
+  /** Heading above the linked-resources list (homepage, rendering, seeAlso) (default 'Linked resources'). */
   seeAlsoHeading?: string;
-  /** seeAlso entries with these ids are not listed (already offered elsewhere, e.g. an authenticated download). */
+  /** Entries of any link list with these ids are not listed (already offered elsewhere, e.g. an authenticated download). */
   hiddenSeeAlsoIds?: ReadonlySet<string>;
 }
 
 /** Upper bound on rendered values per entry (hostile or huge arrays). */
 const MAX_METADATA_VALUES = 50;
+
+/** Plain URL of a link entry, or '' when it has none. */
+function entryUrl(item: SeeAlsoEntry): string {
+  if (typeof item?.id === 'string') return item.id;
+  if (item?.id && typeof item.id === 'object' && item.id.url) return item.id.url;
+  return '';
+}
+
+/** homepage, rendering, seeAlso merged in that order: valid URLs only, first occurrence of a URL wins, hidden ids dropped. */
+function collectLinks(
+  lists: Array<SeeAlsoEntry | SeeAlsoEntry[] | undefined>,
+  hidden?: ReadonlySet<string>
+): Array<{ item: SeeAlsoEntry; url: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ item: SeeAlsoEntry; url: string }> = [];
+  for (const list of lists) {
+    for (const item of list ? (Array.isArray(list) ? list : [list]) : []) {
+      if (!item || typeof item !== 'object') continue;
+      const url = entryUrl(item);
+      if (!url || !isValidUrl(url)) {
+        console.warn('Linked resource entry has no valid URL.', item);
+        continue;
+      }
+      if (hidden?.size && hidden.has(url)) continue;
+      if (seen.has(url)) continue;
+      seen.add(url);
+      out.push({ item, url });
+    }
+  }
+  return out;
+}
 
 /**
  * Extract URL from a value string that may contain text and URL
@@ -56,6 +91,8 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   metadata,
   annotationId,
   seeAlso,
+  homepage,
+  rendering,
   compact: _compact = false,
   fallbackLinkLabel = 'Linked resource',
   seeAlsoHeading = 'Linked resources',
@@ -65,12 +102,9 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   const prefs = useLanguagePreferences();
   const labelText = getLocalizedString(label, prefs);
 
-  // Normalize seeAlso to array
-  const seeAlsoList = (seeAlso ? (Array.isArray(seeAlso) ? seeAlso : [seeAlso]) : []).filter(
-    (item) => !(hiddenSeeAlsoIds?.size && typeof item?.id === 'string' && hiddenSeeAlsoIds.has(item.id))
-  );
+  const links = collectLinks([homepage, rendering, seeAlso], hiddenSeeAlsoIds);
 
-  if (!labelText && (!metadata || metadata.length === 0) && !annotationId && seeAlsoList.length === 0) {
+  if (!labelText && (!metadata || metadata.length === 0) && !annotationId && links.length === 0) {
     return null;
   }
 
@@ -181,8 +215,8 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
         </Box>
       )}
 
-      {/* SeeAlso references */}
-      {seeAlsoList.length > 0 && (
+      {/* Linked resources: homepage, rendering, seeAlso */}
+      {links.length > 0 && (
         <Box sx={{ mt: 1 }}>
           <Typography
             variant="caption"
@@ -191,31 +225,16 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
           >
             {seeAlsoHeading} :
           </Typography>
-          {seeAlsoList.map((item, index) => {
-            // 1. Extract the URL
-            let url = '';
-            if (typeof item.id === 'string') {
-              url = item.id; // id is a plain URL
-            } else if (typeof item.id === 'object' && item.id.url) {
-              url = item.id.url; // id is an object with a url property
-            }
-
-            // 2. Pick the link text
-            let displayLabel: string;
-            if (typeof item.id === 'object' && item.id.url_label) {
-              displayLabel = item.id.url_label; // url_label wins when present
-            } else {
-              displayLabel = getLocalizedString(item.label, prefs) || item.type || fallbackLinkLabel;
-            }
-
-            // 3. Skip entries without a valid URL
-            if (!url || !isValidUrl(url)) {
-              console.warn(`seeAlso entry at index ${index} has no valid URL.`, item);
-              return null;
-            }
+          {links.map(({ item, url }) => {
+            // url_label wins when present
+            const displayLabel =
+              (typeof item.id === 'object' && item.id.url_label) ||
+              getLocalizedString(item.label, prefs) ||
+              item.type ||
+              fallbackLinkLabel;
 
             return (
-              <Box key={url || index} sx={{ ml: 1, mb: 0.25 }}>
+              <Box key={url} sx={{ ml: 1, mb: 0.25 }}>
                 <Link
                   href={url}
                   target="_blank"

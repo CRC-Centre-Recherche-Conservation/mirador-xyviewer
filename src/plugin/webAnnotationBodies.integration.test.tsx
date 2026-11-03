@@ -122,6 +122,22 @@ describe('connected plugin with Web Annotation bodies', () => {
     expect(screen.getByRole('group', { name: 'Linked annotations' })).toBeInTheDocument();
   });
 
+  it('lists homepage and rendering links of an annotation that has no seeAlso', () => {
+    const C = 'https://iiif.example.org/anno/c';
+    const withLinks = {
+      id: C,
+      type: 'Annotation',
+      body: { type: 'Choice', items: [{ type: 'TextualBody', value: 'Spectrum', language: 'en' }] },
+      target: 'c1',
+      homepage: [{ id: 'https://x.example.org/report/1', type: 'Text', format: 'text/html', label: { en: ['Report 1'] } }],
+      rendering: [{ id: 'https://x.example.org/raw/1', type: 'Dataset', label: { en: ['Raw file'] } }],
+    } as unknown as IIIFAnnotation;
+    setup([C], {}, [withLinks]);
+    expect(screen.getByText('Linked resources :')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Report 1' })).toHaveAttribute('href', 'https://x.example.org/report/1');
+    expect(screen.getByRole('link', { name: 'Raw file' })).toHaveAttribute('href', 'https://x.example.org/raw/1');
+  });
+
   it('renders chips and the Choice item instead of the default list', () => {
     setup([A, B]);
     expect(screen.queryByTestId('default')).toBeNull();

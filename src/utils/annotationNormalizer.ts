@@ -76,6 +76,10 @@ export interface AnnotationAdapter {
   label(a: Record<string, unknown>): unknown;
   metadata(a: Record<string, unknown>): unknown;
   seeAlso(a: Record<string, unknown>): unknown;
+  /** Optional: human-readable pages (v3 `homepage`). Absent when the format already carries `homepage` natively. */
+  homepage?(a: Record<string, unknown>): unknown;
+  /** Optional: alternative representations (v3 `rendering`). */
+  rendering?(a: Record<string, unknown>): unknown;
   /** Optional: properties the normalizer does not model, copied onto the output as-is. */
   extraProperties?(a: Record<string, unknown>): Record<string, unknown>;
 }
@@ -141,6 +145,8 @@ const presentation2Adapter: AnnotationAdapter = {
   label: (a) => a.label,
   metadata: (a) => a.metadata,
   seeAlso: (a) => a.seeAlso,
+  homepage: (a) => a.related,
+  rendering: (a) => a.rendering,
 };
 
 /** Ordered registry — first match wins. Add a version by appending an adapter. */
@@ -640,6 +646,12 @@ export function normalizeAnnotationList(json: unknown): AnnotationV3[] {
         ? seeAlsoRaw.map(mapSeeAlso)
         : mapSeeAlso(seeAlsoRaw);
       annotation.seeAlso = mapped;
+    }
+
+    for (const key of ['homepage', 'rendering'] as const) {
+      const value = adapter[key]?.(raw);
+      if (value === undefined || value === null) continue;
+      annotation[key] = Array.isArray(value) ? value.map(mapSeeAlso) : mapSeeAlso(value);
     }
 
     return [annotation];
