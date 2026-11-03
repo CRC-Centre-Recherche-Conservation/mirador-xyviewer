@@ -14,9 +14,8 @@ import { connect, ReactReduxContext } from 'react-redux';
 import { addWindow as miradorAddWindow, SanitizedHtml } from 'mirador';
 import { Box, Button, Typography, MenuList, MenuItem, ListItemText, Chip, Snackbar } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { AnnotationBodyRenderer, pickChoiceItem } from '../components/AnnotationBodyRenderer';
-import { rawSourceIds } from '../utils/xyReading';
-import { useLanguagePreferences } from '../utils/LanguageContext';
+import { AnnotationBodyRenderer } from '../components/AnnotationBodyRenderer';
+import { bodyResourceIds } from '../utils/xyReading';
 import { getLocalizedString, resolvePreferredLanguages } from '../utils/localization';
 import { MetadataDisplay } from '../components/MetadataDisplay';
 import { LanguageProvider } from '../utils/LanguageContext';
@@ -61,12 +60,11 @@ import { asPropertyGroupOf } from '../utils/termFacets';
 /** Evaluates its render function in its own render so an enclosing boundary catches parent-built expressions. */
 const InsideBoundary: React.FC<{ children: () => React.ReactNode }> = ({ children }) => <>{children()}</>;
 
-/** Metadata block; the raw file offered by the shown body's reading replaces its plain link. */
+/** Metadata block; links to a resource the bodies already present (a body's file or its raw source) are not repeated. */
 const AnnotationMetadata: React.FC<
   Omit<React.ComponentProps<typeof MetadataDisplay>, 'hiddenSeeAlsoIds' | 'compact'> & { body?: unknown }
 > = ({ body, ...rest }) => {
-  const prefs = useLanguagePreferences();
-  const hidden = React.useMemo(() => rawSourceIds(body, (c) => pickChoiceItem(c, prefs)), [body, prefs]);
+  const hidden = React.useMemo(() => bodyResourceIds(body), [body]);
   return <MetadataDisplay {...rest} hiddenSeeAlsoIds={hidden} compact />;
 };
 

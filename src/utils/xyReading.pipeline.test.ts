@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { transformEmbeddedAnnotationPages } from './annotationTransformer';
 import { normalizeAnnotationList } from './annotationNormalizer';
-import { parseXyReading, rawSourceIds } from './xyReading';
+import { parseXyReading, bodyResourceIds } from './xyReading';
 import { parseDataset } from '../services/datasetParser';
 import { datasetCacheKey } from '../services/datasetFetcher';
 import v2 from '../test/fixtures/annotations/v2-annotation-page.json';
@@ -79,13 +79,21 @@ describe('xyReading through the annotation pipeline', () => {
     expect(a.xReversed).toBeFalsy();
   });
 
-  it('collects raw-file ids from bodies, including Choice items', () => {
+  it('collects body ids and raw-file ids, through nested Choice/Composite', () => {
     const r = { type: 'XYReading', derivedFrom: { id: 'https://h.example/raw', type: 'Dataset' } };
-    const ids = rawSourceIds([{ type: 'Dataset', xyReading: r }, { type: 'Choice', items: [{ xyReading: { ...r, derivedFrom: { id: 'https://h.example/raw2', type: 'Dataset' } } }] }]);
-    expect([...ids].sort()).toEqual(['https://h.example/raw', 'https://h.example/raw2']);
-    expect(rawSourceIds(undefined).size).toBe(0);
-    // Only the Choice item that is shown counts.
-    const choice = { type: 'Choice', items: [{ xyReading: r }, { xyReading: { ...r, derivedFrom: { id: 'https://h.example/raw2', type: 'Dataset' } } }] };
-    expect([...rawSourceIds(choice, (c) => c.items[1])]).toEqual(['https://h.example/raw2']);
+    const ids = bodyResourceIds([
+      { id: 'https://h.example/a', type: 'Dataset', xyReading: r },
+      { type: 'Choice', items: [{ id: 'https://h.example/b' }, { type: 'Composite', items: [{ id: 'https://h.example/c' }] }] },
+      { id: 'urn:x:1' },
+      { id: 'ftp://h.example/f' },
+    ]);
+    expect([...ids].sort()).toEqual(['https://h.example/a', 'https://h.example/b', 'https://h.example/c', 'https://h.example/raw']);
+    expect(bodyResourceIds(undefined).size).toBe(0);
+  });
+
+  it('stops walking nested items past the depth cap', () => {
+    let deep: unknown = { id: 'https://h.example/deep' };
+    for (let i = 0; i < 8; i++) deep = { type: 'Choice', items: [deep] };
+    expect(bodyResourceIds(deep).size).toBe(0);
   });
 });

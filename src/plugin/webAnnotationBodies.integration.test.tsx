@@ -127,15 +127,19 @@ describe('connected plugin with Web Annotation bodies', () => {
     const withLinks = {
       id: C,
       type: 'Annotation',
-      body: { type: 'Choice', items: [{ type: 'TextualBody', value: 'Spectrum', language: 'en' }] },
+      body: { type: 'Choice', items: [{ id: 'https://x.example.org/raw/dup', type: 'TextualBody', value: 'Spectrum', language: 'en' }] },
       target: 'c1',
       homepage: [{ id: 'https://x.example.org/report/1', type: 'Text', format: 'text/html', label: { en: ['Report 1'] } }],
-      rendering: [{ id: 'https://x.example.org/raw/1', type: 'Dataset', label: { en: ['Raw file'] } }],
+      rendering: [
+        { id: 'https://x.example.org/raw/1', type: 'Dataset', label: { en: ['Raw file'] } },
+        { id: 'https://x.example.org/raw/dup', type: 'Dataset', label: { en: ['Duplicate of body'] } },
+      ],
     } as unknown as IIIFAnnotation;
     setup([C], {}, [withLinks]);
     expect(screen.getByText('Linked resources :')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Report 1' })).toHaveAttribute('href', 'https://x.example.org/report/1');
     expect(screen.getByRole('link', { name: 'Raw file' })).toHaveAttribute('href', 'https://x.example.org/raw/1');
+    expect(screen.queryByRole('link', { name: 'Duplicate of body' })).toBeNull();
   });
 
   it('renders chips and the Choice item instead of the default list', () => {

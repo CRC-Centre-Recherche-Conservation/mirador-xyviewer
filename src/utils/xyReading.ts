@@ -210,20 +210,22 @@ export function parseXyReading(value: unknown): XyReading | null {
 }
 
 /**
- * Ids of the raw files (`derivedFrom`) declared by the readings of an annotation's bodies.
- * These are offered as an authenticated download, so a plain link to the same resource is
- * redundant. For a Choice, `pick` selects the item actually shown (all items when omitted).
+ * http(s) ids of the resources an annotation's bodies already present: each body's own `id`
+ * and the raw file (`derivedFrom`) of its reading. Plain links to them are redundant. Walks
+ * every item of Choice/Composite/List/Independents, since the reader can switch between them.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function rawSourceIds(body: unknown, pick?: (choice: any) => unknown): Set<string> {
+export function bodyResourceIds(body: unknown): Set<string> {
   const ids = new Set<string>();
+  const add = (id: unknown): void => {
+    if (typeof id === 'string' && /^https?:\/\//i.test(id)) ids.add(id);
+  };
   const visit = (b: unknown, depth: number): void => {
-    if (!b || typeof b !== 'object' || depth > 3) return;
+    if (!b || typeof b !== 'object' || depth > 6) return;
     if (Array.isArray(b)) return b.forEach((x) => visit(x, depth + 1));
-    const o = b as { type?: unknown; xyReading?: unknown; items?: unknown };
-    const id = parseXyReading(o.xyReading)?.derivedFrom?.id;
-    if (id && /^https?:\/\//i.test(id)) ids.add(id);
-    if (o.items) visit(pick && o.type === 'Choice' ? pick(o) : o.items, depth + 1);
+    const o = b as { id?: unknown; xyReading?: unknown; items?: unknown };
+    add(o.id);
+    add(parseXyReading(o.xyReading)?.derivedFrom?.id);
+    if (o.items) visit(o.items, depth + 1);
   };
   visit(body, 0);
   return ids;
