@@ -28,6 +28,9 @@ export {
   TextualBody,
   SpecificResourceBody,
   EvidenceLinkBody,
+  ClassificationCard,
+  TermChip,
+  AnnotationCardMenu,
   SpectrumPlot,
   AnnotationBodyRenderer,
   MetadataDisplay,
@@ -44,6 +47,10 @@ export type {
   TextualBodyProps,
   SpecificResourceBodyProps,
   EvidenceLinkBodyProps,
+  ClassificationCardProps,
+  TermChipProps,
+  TermChipAction,
+  AnnotationCardMenuProps,
   SpectrumPlotProps,
   SpectrumPlotLabels,
   AnnotationBodyRendererProps,
@@ -84,6 +91,9 @@ export type {
   TextualBody as TextualBodyType,
   SpecificResourceBody as SpecificResourceBodyType,
   ChoiceBody as ChoiceBodyType,
+  CompositeBody as CompositeBodyType,
+  ListBody as ListBodyType,
+  IndependentsBody as IndependentsBodyType,
   AnnotationBody,
   IIIFAnnotation,
   // Dataset types
@@ -100,6 +110,7 @@ export type {
   MiradorPlugin,
   MiradorWindowConfig,
   MiradorInstance,
+  ScientificAnnotationsConfig,
 } from './types';
 
 // Type guards
@@ -109,6 +120,9 @@ export {
   isTextualBody,
   isSpecificResourceBody,
   isChoiceBody,
+  isCompositeBody,
+  isListBody,
+  isIndependentsBody,
   isLinkingBody,
   srSourceId,
   srLabel,

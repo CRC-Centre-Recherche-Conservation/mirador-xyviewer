@@ -163,7 +163,7 @@ describe('linking bodies', () => {
         {...props}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Evidence/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Select linked annotation/ }));
     expect(select).toHaveBeenCalledWith('w1', 'https://iiif.example.org/anno/1');
   });
 
@@ -193,13 +193,13 @@ describe('linking bodies', () => {
         {...props}
       />,
     );
-    const button = screen.getByRole('button', { name: /Evidence/ });
+    const button = screen.getByRole('button', { name: /Select linked annotation/ });
     expect(button).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(button);
     expect(select).not.toHaveBeenCalled();
   });
 
-  it('does not toggle the parent list item and supports a custom label', () => {
+  it('does not toggle the parent list item and supports a custom caption', () => {
     const parent = vi.fn();
     render(
       <ul>
@@ -209,13 +209,14 @@ describe('linking bodies', () => {
             windowId="w1"
             selectAnnotation={vi.fn()}
             canvasAnnotationIds={['https://iiif.example.org/anno/1']}
-            labels={{ evidence: 'Preuve' }}
+            labels={{ linkedAnnotations: 'Preuve' }}
             {...props}
           />
         </li>
       </ul>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Preuve/ }));
+    expect(screen.getByRole('group', { name: 'Preuve' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Select linked annotation/ }));
     expect(parent).not.toHaveBeenCalled();
   });
 });

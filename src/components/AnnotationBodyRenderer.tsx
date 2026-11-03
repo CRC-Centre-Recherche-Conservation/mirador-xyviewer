@@ -36,23 +36,18 @@ import { ManifestBody } from './ManifestBody';
 import { DatasetBody } from './DatasetBody';
 import { TextualBody } from './TextualBody';
 import { SpecificResourceBody } from './SpecificResourceBody';
-import { EvidenceLinkBody } from './EvidenceLinkBody';
+import { LinkedAnnotationList } from './LinkedAnnotationList';
 import { pickLanguageKey } from '../utils/localization';
 import { useLanguagePreferences } from '../utils/LanguageContext';
 import type { SpectrumData, DatasetRequestOptions } from '../types/dataset';
+import type { AnnotationBodyLabels } from '../types/mirador';
 
-/** User-facing strings, overridable by the host. */
-export interface AnnotationBodyLabels {
-  /** Linking button (default "Evidence"). */
-  evidence?: string;
-  /** Tooltip of a linking button whose target is not on the canvas. */
-  evidenceUnavailable?: string;
-  /** Caption per SpecificResource purpose (default: the purpose itself). */
-  purposes?: Record<string, string>;
-}
+export type { AnnotationBodyLabels };
 
 /** Selection wiring for linking bodies. */
 interface LinkingProps {
+  /** Id of the annotation these bodies belong to (origin of followed links). */
+  annotationId?: string;
   windowId?: string;
   selectAnnotation?: (windowId: string, annotationId: string) => void;
   canvasAnnotationIds?: Iterable<string>;
@@ -169,6 +164,7 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
   requestOptions,
   onAuthRequired,
   ruleSet,
+  annotationId,
   windowId,
   selectAnnotation,
   canvasAnnotationIds,
@@ -203,6 +199,7 @@ export const AnnotationBodyRenderer: React.FC<AnnotationBodyRendererProps> = ({
               requestOptions={requestOptions}
               onAuthRequired={onAuthRequired}
               ruleSet={ruleSet}
+              annotationId={annotationId}
               windowId={windowId}
               selectAnnotation={selectAnnotation}
               canvasAnnotationIds={canvasAnnotationIds}
@@ -240,13 +237,13 @@ const SegmentView: React.FC<SegmentViewProps> = ({ segment, depth = 0, ...props 
 
   if (segment.kind === 'links') {
     return (
-      <EvidenceLinkBody
+      <LinkedAnnotationList
         bodies={segment.bodies}
+        ownerId={props.annotationId}
+        labels={props.labels}
         windowId={props.windowId}
         selectAnnotation={props.selectAnnotation}
         canvasAnnotationIds={props.canvasAnnotationIds}
-        label={props.labels?.evidence}
-        unavailableLabel={props.labels?.evidenceUnavailable}
       />
     );
   }

@@ -1,0 +1,498 @@
+{
+ "@context": "http://iiif.io/api/presentation/3/context.json",
+ "id": "https://manuspectrum.test/iiif/v3/characterization-collection/219d83e6-50f9-4a85-9a2b-ccec52836171/page-5",
+ "type": "AnnotationPage",
+ "label": {
+  "en": [
+   "Identified materials of Paris. Bibliothèque Mazarine, Ms 416, f. 009 - vue 2"
+  ],
+  "fr": [
+   "Matériaux identifiés de Paris. Bibliothèque Mazarine, Ms 416, f. 009 - vue 2"
+  ]
+ },
+ "partOf": [
+  {
+   "id": "https://manuspectrum.test/iiif/v3/characterization-collection/219d83e6-50f9-4a85-9a2b-ccec52836171",
+   "type": "AnnotationCollection",
+   "label": {
+    "en": [
+     "Identified materials of Paris. Bibliothèque Mazarine, Ms 416"
+    ],
+    "fr": [
+     "Matériaux identifiés de Paris. Bibliothèque Mazarine, Ms 416"
+    ]
+   }
+  }
+ ],
+ "prev": {
+  "id": "https://manuspectrum.test/iiif/v3/characterization-collection/219d83e6-50f9-4a85-9a2b-ccec52836171/page-4",
+  "type": "AnnotationPage"
+ },
+ "next": {
+  "id": "https://manuspectrum.test/iiif/v3/characterization-collection/219d83e6-50f9-4a85-9a2b-ccec52836171/page-12",
+  "type": "AnnotationPage"
+ },
+ "items": [
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/139239ab-6255-4dde-b0aa-228728c2315e/d609ff92-43f0-4701-8994-f8cad7337b97",
+   "type": "Annotation",
+   "motivation": "classifying",
+   "label": {
+    "en": [
+     "lapis lazuli, lead white"
+    ],
+    "fr": [
+     "lapis-lazuli, blanc de plomb"
+    ]
+   },
+   "body": [
+    {
+     "type": "TextualBody",
+     "purpose": "describing",
+     "format": "text/plain",
+     "language": "en",
+     "value": "lapis lazuli (Highly reliable), lead white (Reliable). Colour: Blue. Layer: Colored layer. Elements: Lead (Major), Potassium (Minor), Sulfur (Minor), Silicon (Minor), Aluminium (Trace), Calcium (Trace), Iron (Trace)."
+    },
+    {
+     "type": "TextualBody",
+     "purpose": "describing",
+     "format": "text/plain",
+     "language": "fr",
+     "value": "lapis-lazuli (Très fiable), blanc de plomb (Fiable). Couleur : Bleu. Couche : Couche colorée. Éléments : Plomb (Majeur), Potassium (Mineur), Soufre (Mineur), Silicium (Mineur), Aluminium (Trace), Calcium (Trace), Fer (Trace)."
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "classifying",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/6063f3af-bd04-45e4-b30c-2240ae73d2ff",
+     "label": {
+      "en": [
+       "lapis lazuli"
+      ],
+      "fr": [
+       "lapis-lazuli"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "classifying",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/d9659bf2-00c4-4b06-ab8d-41e7b84f79f8",
+     "label": {
+      "fr": [
+       "blanc de plomb"
+      ],
+      "en": [
+       "lead white"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "assessing",
+     "source": "https://manuspectrum.test/plugins/controlled-list-manager/item/50eef352-c091-46c7-87d8-93ca5a31c527",
+     "label": {
+      "en": [
+       "Highly reliable"
+      ],
+      "fr": [
+       "Très fiable"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "assessing",
+     "source": "https://manuspectrum.test/plugins/controlled-list-manager/item/439e0195-44c6-4a43-b535-b4e03ab7d30f",
+     "label": {
+      "fr": [
+       "Fiable"
+      ],
+      "en": [
+       "Reliable"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/d549884f-ed29-4a28-87c8-07311d9a14ad",
+     "label": {
+      "fr": [
+       "Bleu"
+      ],
+      "en": [
+       "Blue"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/40a69b4b-2477-4c60-b301-4fc97cb6bcc8",
+     "label": {
+      "en": [
+       "Colored layer"
+      ],
+      "fr": [
+       "Couche colorée"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-NRPKN8GG-H",
+     "label": {
+      "en": [
+       "Lead"
+      ],
+      "fr": [
+       "Plomb"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-LGJQJQQ9-N",
+     "label": {
+      "en": [
+       "Potassium"
+      ],
+      "fr": [
+       "Potassium"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-NK1JKPQC-4",
+     "label": {
+      "fr": [
+       "Soufre"
+      ],
+      "en": [
+       "Sulfur"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-Q69H14CX-1",
+     "label": {
+      "fr": [
+       "Silicium"
+      ],
+      "en": [
+       "Silicon"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-X55C5RJ1-N",
+     "label": {
+      "en": [
+       "Aluminium"
+      ],
+      "fr": [
+       "Aluminium"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-SX8VX34H-4",
+     "label": {
+      "en": [
+       "Calcium"
+      ],
+      "fr": [
+       "Calcium"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-NQ0K580N-5",
+     "label": {
+      "fr": [
+       "Fer"
+      ],
+      "en": [
+       "Iron"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/56002aed-7f27-48d6-a443-34f904fcf45e/6ebfc1f5-478e-40e8-9289-b843a60df490",
+      "type": "Annotation"
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/571b82ce-5f2f-44dd-9369-8572965f03bc/a5b71add-1474-490d-a15c-7da9a58db0f8",
+      "type": "Annotation"
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/70479a6e-cb2e-4433-b866-8e7391efc0ec/42a08540-e848-45cc-b4f2-1e2941348454",
+      "type": "Annotation"
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/937b5046-653a-42d9-94f8-bda1a8cc8826/fe0f8734-969a-4074-b7f8-cc96620a803c",
+      "type": "Annotation"
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/dff01f4f-3da2-4364-aeaf-f73b3eb13059/42f40a01-fe8b-4f43-96b9-e7e15372c8de",
+      "type": "Annotation"
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": {
+     "type": "FragmentSelector",
+     "conformsTo": "http://www.w3.org/TR/media-frags/",
+     "value": "xywh=992,940,120,219"
+    }
+   },
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/139239ab-6255-4dde-b0aa-228728c2315e",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "lapis lazuli, lead white"
+      ],
+      "fr": [
+       "lapis-lazuli, blanc de plomb"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "https://manuspectrum.test/iiif/v3/annotation/cd10ad5c-32b0-421b-90d3-d064e1ed7175/f3b89bdc-909f-49dc-bcd8-50ac221d8ed1",
+   "type": "Annotation",
+   "motivation": "classifying",
+   "label": {
+    "en": [
+     "red lead"
+    ],
+    "fr": [
+     "oxyde de plomb"
+    ]
+   },
+   "body": [
+    {
+     "type": "TextualBody",
+     "purpose": "describing",
+     "format": "text/plain",
+     "language": "en",
+     "value": "red lead (Highly reliable). Colour: Orange. Layer: Colored layer. Elements: Lead (Major), Calcium (Trace), Iron (Trace), Potassium (Trace)."
+    },
+    {
+     "type": "TextualBody",
+     "purpose": "describing",
+     "format": "text/plain",
+     "language": "fr",
+     "value": "oxyde de plomb (Très fiable). Couleur : Orange. Couche : Couche colorée. Éléments : Plomb (Majeur), Calcium (Trace), Fer (Trace), Potassium (Trace)."
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "classifying",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/74b5dffb-8030-4ab9-8442-8c02f02b85d5",
+     "label": {
+      "fr": [
+       "oxyde de plomb"
+      ],
+      "en": [
+       "red lead"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "assessing",
+     "source": "https://manuspectrum.test/plugins/controlled-list-manager/item/50eef352-c091-46c7-87d8-93ca5a31c527",
+     "label": {
+      "en": [
+       "Highly reliable"
+      ],
+      "fr": [
+       "Très fiable"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/65911707-7503-4511-a7f8-50d7950e8178",
+     "label": {
+      "en": [
+       "Orange"
+      ],
+      "fr": [
+       "Orange"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/40a69b4b-2477-4c60-b301-4fc97cb6bcc8",
+     "label": {
+      "en": [
+       "Colored layer"
+      ],
+      "fr": [
+       "Couche colorée"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-NRPKN8GG-H",
+     "label": {
+      "en": [
+       "Lead"
+      ],
+      "fr": [
+       "Plomb"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-SX8VX34H-4",
+     "label": {
+      "en": [
+       "Calcium"
+      ],
+      "fr": [
+       "Calcium"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-NQ0K580N-5",
+     "label": {
+      "fr": [
+       "Fer"
+      ],
+      "en": [
+       "Iron"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "describing",
+     "source": "http://data.loterre.fr/ark:/67375/8HQ-LGJQJQQ9-N",
+     "label": {
+      "en": [
+       "Potassium"
+      ],
+      "fr": [
+       "Potassium"
+      ]
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/51c3fb3b-6d07-4bf4-9f98-4a37fcfa8a93/4f2fe47e-6c21-4588-87fe-fec2d585954f",
+      "type": "Annotation"
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/76d5d7fe-0b56-4bc8-8281-1092b75ada62/9cc940c5-3efd-4291-b60f-8fbfad6fbd0f",
+      "type": "Annotation"
+     }
+    },
+    {
+     "type": "SpecificResource",
+     "purpose": "linking",
+     "source": {
+      "id": "https://manuspectrum.test/iiif/v3/annotation/f74f9e8a-94d8-4952-9b00-9b5508e00b7d/ad9e6469-80e2-41ca-a2f3-15858903ad35",
+      "type": "Annotation"
+     }
+    }
+   ],
+   "target": {
+    "type": "SpecificResource",
+    "source": {
+     "id": "https://arca.irht.cnrs.fr/iiif/81855/canvas/canvas-1372508",
+     "type": "Canvas",
+     "partOf": [
+      {
+       "id": "https://manuspectrum.test/manifest/98477b06-9db3-4b6d-85d1-2a0a814c0c15",
+       "type": "Manifest"
+      }
+     ]
+    },
+    "selector": {
+     "type": "FragmentSelector",
+     "conformsTo": "http://www.w3.org/TR/media-frags/",
+     "value": "xywh=1409,451,942,444"
+    }
+   },
+   "seeAlso": [
+    {
+     "id": "https://manuspectrum.test/report/cd10ad5c-32b0-421b-90d3-d064e1ed7175",
+     "type": "Text",
+     "format": "text/html",
+     "label": {
+      "en": [
+       "red lead"
+      ],
+      "fr": [
+       "oxyde de plomb"
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

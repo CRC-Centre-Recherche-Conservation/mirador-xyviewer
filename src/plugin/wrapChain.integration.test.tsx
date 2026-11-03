@@ -62,7 +62,7 @@ describe.each(orders)('wrap order %s, %s, %s', (...order) => {
       { id: 'b', metadata: [{ label: { en: ['kind'] }, value: { en: ['two'] } }] },
     ];
     filtersStore.initializeFromAnnotations('w', 'c1', annos as never, true, ['en']);
-    filtersStore.toggleValue('w', 'c1', 'kind', 'two');
+    filtersStore.toggleValue('w', 'c1', 'meta:kind', 'two');
     filtersStore.updateHiddenAnnotations('w', 'c1', annos as never);
     const plugins = order.map((k) => all[k]); // stable: PluginProvider re-maps on a new array
     const viewer = { canvas: document.createElement('div') };

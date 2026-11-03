@@ -33,3 +33,20 @@ export { MetadataFiltersPanel } from './MetadataFiltersPanel';
 
 export { ErrorBoundary, ErrorNotice, DEFAULT_ERROR_NOTICE } from './ErrorBoundary';
 export type { ErrorBoundaryProps } from './ErrorBoundary';
+
+export { ClassificationCard } from './ClassificationCard';
+export type { ClassificationCardProps } from './ClassificationCard';
+
+export { TermChip } from './TermChip';
+export type { TermChipProps, TermChipAction } from './TermChip';
+export { TermActionsContext, useTermActions } from './TermActionsContext';
+export type { TermActionsValue, TermFacetRef } from './TermActionsContext';
+
+export { AnnotationCardMenu } from './AnnotationCardMenu';
+export type { AnnotationCardMenuProps } from './AnnotationCardMenu';
+
+export { LinkedAnnotationList } from './LinkedAnnotationList';
+export type { LinkedAnnotationListProps } from './LinkedAnnotationList';
+
+export { CitedBy } from './CitedBy';
+export type { CitedByProps } from './CitedBy';

@@ -244,7 +244,7 @@ function markerBounds(d: string): [number, number, number, number] | null {
  * any other path, polygon, polyline, circle, ellipse or rect gets the box of all
  * its (signed, decimal) coordinates.
  */
-function svgBounds(svg: string): [number, number, number, number] | null {
+export function svgBounds(svg: string): [number, number, number, number] | null {
   if (svg.length > MAX_SVG_LENGTH) return null;
   const attr = svgAttr;
   const num = (tag: string, name: string): number => parseFloat(attr(tag, name) ?? '') || 0;

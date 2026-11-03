@@ -20,14 +20,14 @@ import {
 } from '../test/fixtures/miradorState';
 
 describe('extractAnnotationsWithMetadata', () => {
-  it('maps resources to {id, metadata}', () => {
+  it('maps resources to {id, metadata, body}', () => {
     const result = extractAnnotationsWithMetadata({
       [datasetAnnotation.id]: datasetAnnotation,
       [textualAnnotation.id]: textualAnnotation,
     });
     expect(result).toEqual([
-      { id: 'anno-dataset', metadata: datasetAnnotation.metadata },
-      { id: 'anno-text', metadata: undefined },
+      { id: 'anno-dataset', metadata: datasetAnnotation.metadata, body: datasetAnnotation.body },
+      { id: 'anno-text', metadata: undefined, body: textualAnnotation.body },
     ]);
   });
 });
@@ -50,7 +50,7 @@ describe('mapStateToProps', () => {
 
     // v2 metadata is normalized to the v3 LocalizedString-map shape and extracted.
     expect(extractAnnotationsWithMetadata(props.annotationResources!)).toEqual([
-      { id: 'anno-dataset', metadata: datasetAnnotation.metadata },
+      { id: 'anno-dataset', metadata: datasetAnnotation.metadata, body: datasetAnnotation.body },
     ]);
   });
 
@@ -64,6 +64,19 @@ describe('mapStateToProps', () => {
     expect(props.canvasId).toBeUndefined();
     expect(props.annotationResources).toEqual({});
     expect(props.filtersEnabled).toBe(true); // undefined !== false
+  });
+});
+
+describe('mapStateToProps propertyGroupOf', () => {
+  it('passes a function through and drops other values', () => {
+    const fn = () => 'G';
+    const run = (propertyGroupOf: unknown) =>
+      mapStateToProps(
+        { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { propertyGroupOf } } } as never,
+        { windowId: 'window-1' },
+      ).propertyGroupOf;
+    expect(run(fn)).toBe(fn);
+    expect(run('x')).toBeUndefined();
   });
 });
 
@@ -96,5 +109,17 @@ describe('plugin export', () => {
         'AnnotationsOverlay',
       ]);
     }
+  });
+});
+
+describe('mapStateToProps extendFiltersToLinked', () => {
+  it('defaults to true and only false turns it off', () => {
+    const run = (extendFiltersToLinked: unknown) =>
+      mapStateToProps(
+        { ...miradorState, config: { ...miradorState.config, scientificAnnotations: { extendFiltersToLinked } } } as never,
+        { windowId: 'window-1' },
+      ).extendFiltersToLinked;
+    expect(run(undefined)).toBe(true);
+    expect(run(false)).toBe(false);
   });
 });

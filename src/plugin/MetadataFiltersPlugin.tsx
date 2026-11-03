@@ -1,6 +1,6 @@
 /**
  * MetadataFiltersPlugin
- * Mirador plugin for filtering annotations by metadata
+ * Mirador plugin for filtering annotations by their body terms and metadata
  */
 
 import React, { useState, useCallback, useMemo, forwardRef, useEffect, useRef } from 'react';
@@ -12,12 +12,14 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MetadataFiltersPanel } from '../components/MetadataFiltersPanel';
-import { filtersStore } from '../state/filtersStore';
+import { filtersStore, hasFacets, type FilterableAnnotation } from '../state/filtersStore';
+import { resolveLabels, sanitizeLabels } from '../utils/annotationLabels';
 import { resolvePreferredLanguages } from '../utils/localization';
 import { normalizeAnnotationResources } from '../utils/annotationNormalizer';
-import type { MiradorState, MiradorPlugin } from '../types/mirador';
-import type { IIIFAnnotation, LocalizedString } from '../types/iiif';
+import type { MiradorState, MiradorPlugin, AnnotationBodyLabels } from '../types/mirador';
+import type { IIIFAnnotation } from '../types/iiif';
 import { containPlugin } from './containPlugin';
+import { asPropertyGroupOf } from '../utils/termFacets';
 import { metadataFilterOverlayPlugin } from './MetadataFilterOverlayPlugin';
 
 /** Plugin component props */
@@ -34,28 +36,31 @@ interface MetadataFiltersPluginProps {
   annotationResources: Record<string, IIIFAnnotation>;
   /** Mirador config language (reader's language for IIIF language maps) */
   language?: string;
+  /** UI string overrides from `config.scientificAnnotations.labels` */
+  labels?: AnnotationBodyLabels;
+  /** `config.scientificAnnotations.hiddenFilterGroups` */
+  hiddenFilterGroups?: string[];
+  /** `config.scientificAnnotations.extendFiltersToLinked` (default true) */
+  extendFiltersToLinked?: boolean;
+  /** `config.scientificAnnotations.propertyGroupOf` */
+  propertyGroupOf?: (uri: string) => string | undefined;
 }
 
 /** Default window size */
 const DEFAULT_WIDTH = 320;
-const DEFAULT_HEIGHT = 400;
+const DEFAULT_HEIGHT = 480;
 
 /**
- * Extract metadata from annotation resources for filtering
+ * What the filters read from the annotation resources: metadata and bodies.
  * @internal Exposed for tests; not part of the public API.
  */
 export function extractAnnotationsWithMetadata(
   annotationResources: Record<string, IIIFAnnotation>
-): Array<{
-  id: string;
-  metadata?: Array<{
-    label: LocalizedString;
-    value: LocalizedString;
-  }>;
-}> {
+): FilterableAnnotation[] {
   return Object.values(annotationResources).map(annotation => ({
     id: annotation.id,
     metadata: annotation.metadata,
+    body: annotation.body,
   }));
 }
 
@@ -71,25 +76,35 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
       filtersEnabled = true,
       annotationResources,
       language,
+      labels,
+      hiddenFilterGroups,
+      extendFiltersToLinked,
+      propertyGroupOf,
     },
     ref
   ) {
+    const text = useMemo(() => resolveLabels(labels), [labels]);
     const [isOpen, setIsOpen] = useState(false);
     const [hiddenCount, setHiddenCount] = useState(0);
+    const [hasFilterable, setHasFilterable] = useState(false);
     const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
     const buttonRef = useRef<HTMLButtonElement>(null);
     const viewerRef = useRef<HTMLDivElement>(null);
 
-    // Extract annotations with metadata
+    // Extract annotations with metadata and bodies
     const annotationsWithMetadata = useMemo(
       () => extractAnnotationsWithMetadata(annotationResources),
       [annotationResources]
     );
 
-    // Check if there are any annotations with metadata
-    const hasMetadata = useMemo(
-      () => annotationsWithMetadata.some(a => a.metadata && a.metadata.length > 0),
+    // Anything to filter on (metadata or controlled body terms) is worth building the groups for.
+    const mayFilter = useMemo(
+      () => annotationsWithMetadata.some(hasFacets),
       [annotationsWithMetadata]
+    );
+    const filterOptions = useMemo(
+      () => ({ labels, hiddenGroups: hiddenFilterGroups, propertyGroupOf, extendToLinked: extendFiltersToLinked !== false }),
+      [labels, hiddenFilterGroups, propertyGroupOf, extendFiltersToLinked]
     );
 
     // Reader's language preferences; filter keys depend on them
@@ -102,15 +117,19 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
       );
     }, [windowId, canvasId]);
 
-    // Initialize filters when we have metadata (handles lazy loading). The store skips
-    // work when already initialized with the same prefs, and rebuilds (resetting the
-    // selection) when the language changed.
+    // Initialize filters when there is something to filter (handles lazy loading). The store
+    // skips work when already initialized with the same prefs and options, and rebuilds
+    // (resetting the selection) when the language or the options changed.
     useEffect(() => {
-      if (windowId && canvasId && hasMetadata) {
-        filtersStore.initializeFromAnnotations(windowId, canvasId, annotationsWithMetadata, false, prefs);
+      if (windowId && canvasId && mayFilter) {
+        filtersStore.initializeFromAnnotations(windowId, canvasId, annotationsWithMetadata, false, prefs, filterOptions);
         setHiddenCount(filtersStore.getHiddenAnnotationIds(windowId, canvasId).size);
+        // Host-hidden groups can leave nothing to filter on.
+        setHasFilterable(filtersStore.getGroups(windowId, canvasId).length > 0);
+      } else {
+        setHasFilterable(false);
       }
-    }, [windowId, canvasId, hasMetadata, annotationsWithMetadata, prefs]);
+    }, [windowId, canvasId, mayFilter, annotationsWithMetadata, prefs, filterOptions]);
 
     // Subscribe to filter changes
     useEffect(() => {
@@ -169,7 +188,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
     }
 
     // Show button even without metadata (grayed out)
-    const buttonDisabled = !hasMetadata;
+    const buttonDisabled = !hasFilterable;
 
     // Get initial position when opening
     const initialPosition = isOpen ? getInitialPosition() : { x: 0, y: 0 };
@@ -190,7 +209,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
         />
 
         {/* Filter button */}
-        <Tooltip title={buttonDisabled ? "No metadata available" : "Filter annotations by metadata"}>
+        <Tooltip title={buttonDisabled ? text.filtersEmpty : text.filterButton}>
           {/* The span (needed so the tooltip works on a disabled button) carries the
               absolute positioning, so the tooltip anchors to the button's real spot. */}
           <span style={{ position: 'absolute', bottom: 160, right: 20, zIndex: 999 }}>
@@ -304,7 +323,7 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
                   </Box>
                 )}
                 {hasActiveFilters && (
-                  <Tooltip title="Reset all filters">
+                  <Tooltip title={text.resetFilters}>
                     <IconButton
                       size="small"
                       onClick={handleResetAll}
@@ -326,9 +345,11 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
               {/* Filter content */}
               <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <MetadataFiltersPanel
+                  key={canvasId}
                   windowId={windowId}
                   canvasId={canvasId}
                   annotations={annotationsWithMetadata}
+                  labels={labels}
                   onFiltersChange={handleFiltersChange}
                   onClose={handleCloseFilters}
                   embedded
@@ -366,6 +387,20 @@ export const MetadataFiltersPluginComponent = forwardRef<HTMLDivElement, Metadat
   }
 );
 
+
+const hiddenCache = new WeakMap<object, string[]>();
+
+/** The host's group names as a stable array (strings only). */
+function hiddenGroups(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  let list = hiddenCache.get(raw);
+  if (!list) {
+    list = raw.filter((g): g is string => typeof g === 'string' && g !== '');
+    hiddenCache.set(raw, list);
+  }
+  return list;
+}
+
 /**
  * Map Mirador state to props
  * @internal Exposed for tests; not part of the public API.
@@ -390,6 +425,10 @@ export function mapStateToProps(
     filtersEnabled,
     annotationResources,
     language: state.config?.language,
+    labels: sanitizeLabels(state.config?.scientificAnnotations?.labels),
+    hiddenFilterGroups: hiddenGroups(state.config?.scientificAnnotations?.hiddenFilterGroups),
+    extendFiltersToLinked: state.config?.scientificAnnotations?.extendFiltersToLinked !== false,
+    propertyGroupOf: asPropertyGroupOf(state.config?.scientificAnnotations?.propertyGroupOf),
   };
 }
 
