@@ -49,7 +49,7 @@ describe('SelectionHighlightPlugin', () => {
 
     it('should parse SVG selector and extract bounds', () => {
       // SVG path for a circle at (100, 200) with radius 12
-      const svgValue = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M 100 188 A 12 12 0 1 1 100 212 A 12 12 0 1 1 100 188" fill="rgba(26, 115, 232, 0.3)" stroke="#1a73e8" stroke-width="2"/></svg>';
+      const svgValue = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M 100 188 A 12 12 0 1 1 100 212 A 12 12 0 1 1 100 188" fill="none" stroke="#1a73e8" stroke-width="2"/></svg>';
 
       const resource: AnnotationResource = {
         id: 'anno-1',

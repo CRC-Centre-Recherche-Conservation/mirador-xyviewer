@@ -32,7 +32,7 @@ import { TermActionsContext, type TermActionsValue, type TermFacetRef } from '..
 import type { Term } from '../utils/classificationModel';
 import { linkNavigationStore } from '../state/linkNavigationStore';
 import { canvasEmphasisStore } from '../state/canvasEmphasisStore';
-import { resolvePointMarkerConfig } from './pointMarkers';
+import { DEFAULT_PLUGIN_CONFIG, resolvePointMarkerConfig } from './pointMarkers';
 import { CitedBy } from '../components/CitedBy';
 import { LinkContext } from '../components/LinkContext';
 import { EMPTY_LINK_INDEX, baseAnnotationId, getLinkIndex, type LinkIndex } from '../utils/linkIndex';
@@ -977,6 +977,7 @@ export const scientificAnnotationPlugin: MiradorPlugin = containPlugin({
   }>,
   mapStateToProps: mapStateToProps as MiradorPlugin['mapStateToProps'],
   mapDispatchToProps: mapDispatchToProps as unknown as MiradorPlugin['mapDispatchToProps'],
+  config: DEFAULT_PLUGIN_CONFIG,
 });
 
 /** @internal Exposed for tests; not part of the public API. */

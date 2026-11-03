@@ -252,6 +252,8 @@ export interface MiradorPlugin {
   mapDispatchToProps?: Record<string, (...args: unknown[]) => AnyAction>;
   mapStateToProps?: (state: MiradorState, ownProps: unknown) => Record<string, unknown>;
   reducers?: Record<string, (state: unknown, action: AnyAction) => unknown>;
+  /** Defaults Mirador merges under the host config (the host wins). */
+  config?: Record<string, unknown>;
 }
 
 /** Companion window props */

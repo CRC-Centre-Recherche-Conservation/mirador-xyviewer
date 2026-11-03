@@ -253,6 +253,8 @@ Mirador.viewer({
 ]);
 ```
 
+Annotations are all visible at the start: the plugins set `window.highlightAllAnnotations` and `window.forceDrawAnnotations` to `true` by default, so only the metadata filters hide annotations and the hover/selection highlight shows which one is meant. Your own `window` config wins; set either to `false` to get Mirador's usual behaviour (see [docs/MIRADOR-CONFIGURATION.md](docs/MIRADOR-CONFIGURATION.md#default-window-settings)).
+
 `annotationPostprocessor` also covers annotation pages embedded in a manifest. If you inject manifests yourself with `receiveManifest` (which skips request postprocessors), pass the JSON through `transformEmbeddedAnnotationPages(json)` first.
 
 `annotationPostprocessor` converts IIIF Presentation 2 annotations to the W3C model, so their motivations reach Mirador without the `oa:` prefix (`oa:commenting` becomes `commenting`; `sc:painting` is kept). If you restrict `annotations.filteredMotivations`, list the bare names.

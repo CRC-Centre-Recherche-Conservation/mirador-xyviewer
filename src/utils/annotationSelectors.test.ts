@@ -329,7 +329,7 @@ describe('point restyle (fallback without the marker plugin)', () => {
     const a = run({ type: 'SvgSelector', value: '<svg><circle cx="5" cy="6" r="7"/></svg>' });
     const value = a.target.selector.value as string;
     expect(value).toContain('stroke="#1a73e8"');
-    expect(value).toContain('fill="rgba(26, 115, 232, 0.3)"');
+    expect(value).toContain('fill="none"');
     expect(pointOf(a.target.selector)).toEqual({ x: 5, y: 6, r: 7 });
   });
 

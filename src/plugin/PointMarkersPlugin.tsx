@@ -19,6 +19,7 @@ import { storeLookup, withAnnotations, type OverlayAnnotationList } from './over
 import { PointMarkersOverlay, type MarkerColors } from './PointMarkersOverlay';
 import {
   computePointMarkers,
+  DEFAULT_PLUGIN_CONFIG,
   resolvePointMarkerConfig,
   splitPointResources,
   type PointMarker,
@@ -165,6 +166,7 @@ export const pointMarkersPlugin: MiradorPlugin = containPlugin({
     TargetComponent: React.ComponentType<unknown>;
   }>,
   mapStateToProps: mapStateToProps as unknown as MiradorPlugin['mapStateToProps'],
+  config: DEFAULT_PLUGIN_CONFIG,
 });
 
 export default pointMarkersPlugin;

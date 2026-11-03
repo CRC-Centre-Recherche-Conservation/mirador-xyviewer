@@ -16,7 +16,7 @@ import { buildClassificationView, classificationKind } from '../utils/classifica
 import { baseAnnotationId, buildLinkRows, listedIdsByBase, type LinkIndex } from '../utils/linkIndex';
 import { pointOf, type PointShape } from '../utils/annotationSelectors';
 import { annotationBounds, type Box } from './viewportFraming';
-import { DEFAULT_POINT_MARKER_CONFIG, markerSize, type PointMarkerConfig } from './pointMarkers';
+import { DEFAULT_POINT_MARKER_CONFIG, markerFootprint, markerSize, type PointMarkerConfig } from './pointMarkers';
 import { useViewerPlacement } from './viewerPlacement';
 
 /** Badge diameter in screen pixels (independent of the zoom). */
@@ -144,7 +144,7 @@ export const LinkedZonesOverlay: React.FC<LinkedZonesOverlayProps> = ({ windowId
         if (point) {
           // Marker radius in its largest (hovered) state; Mirador's own circle when no marker plugin.
           const scale = pxPerCanvasPx(badge.canvasId);
-          const radius = Math.max(markerSize(point.r, scale, pointConfig, 'hovered'), scale ? Math.min(pointConfig.maxSize, 2 * point.r * scale) : 0) / 2;
+          const radius = Math.max(markerFootprint(markerSize(point.r, scale, pointConfig, 'hovered'), 'hovered'), scale ? Math.min(pointConfig.maxSize, 2 * point.r * scale) : 0) / 2;
           dx = dy = radius + BADGE_SIZE / 2 + MARKER_GAP;
           dy = -dy;
         }

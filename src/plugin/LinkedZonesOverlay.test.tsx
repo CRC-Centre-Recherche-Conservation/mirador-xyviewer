@@ -322,10 +322,10 @@ describe('LinkedZonesOverlay', () => {
   it('puts a point badge at the top-right of the marker, clear of it', () => {
     const { viewer, canvas } = fakeViewer();
     osd.refs.w = { current: viewer };
-    // Point at (100, 100), r 12; 2 px per canvas px, so the marker is capped at 48 px (r 24).
+    // Point at (100, 100), r 12; 2 px per canvas px, so the hole is capped at 48 px; hovered footprint 58 px (r 29).
     mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [88, 88, 24, 24], point: { x: 100, y: 100, r: 12 } }]);
     const el = canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
-    const radius = 24;
+    const radius = 29;
     const d = radius + 11 + 2;
     expect([el.style.left, el.style.top]).toEqual([`${200 + d}px`, `${200 - d}px`]);
   });
@@ -334,13 +334,13 @@ describe('LinkedZonesOverlay', () => {
     const { viewer, canvas } = fakeViewer();
     osd.refs.w = { current: viewer };
     viewer.viewport.viewportToViewerElementCoordinates = (p) => ({ x: p.x * 10, y: p.y * 10 });
-    // 10 px per canvas px: the plain circle would be 240 px across; the offset stays within maxSize (48 px).
+    // 10 px per canvas px: the plain circle would be 240 px across; the offset stays within the hovered footprint of maxSize (58 px).
     mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [88, 88, 24, 24], point: { x: 100, y: 100, r: 12 } }]);
     const el = canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
-    expect(parseFloat(el.style.left)).toBe(1000 + 24 + 11 + 2);
+    expect(parseFloat(el.style.left)).toBe(1000 + 29 + 11 + 2);
     cleanup();
     mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [0, 0, 1, 1], point: { x: 100, y: 100, r: 1e9 } }]);
-    expect(parseFloat(canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!.style.left)).toBe(1000 + 24 + 11 + 2);
+    expect(parseFloat(canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!.style.left)).toBe(1000 + 29 + 11 + 2);
   });
 
   it('hides a badge whose canvas is not in the current world instead of throwing', () => {

@@ -52,7 +52,7 @@ export function parseXYWH(value: string): { x: number; y: number; w: number; h: 
 export function createCircleSvgSelector(x: number, y: number, radius: number = DEFAULT_POINT_RADIUS): Selector {
   return {
     type: 'SvgSelector',
-    value: `<svg xmlns="http://www.w3.org/2000/svg"><path d="M ${x} ${y - radius} A ${radius} ${radius} 0 1 1 ${x} ${y + radius} A ${radius} ${radius} 0 1 1 ${x} ${y - radius}" fill="rgba(26, 115, 232, 0.3)" stroke="${DEFAULT_STROKE}" stroke-width="${DEFAULT_STROKE_WIDTH}"/></svg>`,
+    value: `<svg xmlns="http://www.w3.org/2000/svg"><path d="M ${x} ${y - radius} A ${radius} ${radius} 0 1 1 ${x} ${y + radius} A ${radius} ${radius} 0 1 1 ${x} ${y - radius}" fill="none" stroke="${DEFAULT_STROKE}" stroke-width="${DEFAULT_STROKE_WIDTH}"/></svg>`,
   };
 }
 

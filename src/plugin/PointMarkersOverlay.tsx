@@ -11,18 +11,43 @@
 
 import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { markerKey, markerSize, type MarkerState, type PointMarker, type PointMarkerConfig } from './pointMarkers';
+import { markerFootprint, markerKey, markerSize, type MarkerState, type PointMarker, type PointMarkerConfig } from './pointMarkers';
 import { panByPixels, useViewerPlacement } from './viewerPlacement';
 
 /** Marker colours per state. */
 export type MarkerColors = Record<MarkerState, string>;
 
-const RING: Record<MarkerState, number> = { default: 2, hovered: 3, selected: 3 };
 const Z: Record<MarkerState, number> = { default: 0, hovered: 2, selected: 1 };
 
+/** Hollow ring (hole = `--xyviewer-d`, colour = `--xyviewer-c`); reticle on hovered, double ring on selected. */
 const STYLE = `
-.xyviewer-point-marker__dot{display:block;box-sizing:border-box;border-radius:50%;width:var(--xyviewer-d);height:var(--xyviewer-d);border-style:solid;border-color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.65)}
-@media (prefers-reduced-motion:no-preference){.xyviewer-point-marker__dot{transition:width .12s,height .12s,background-color .12s,border-width .12s}}
+[data-xyviewer-point-marker]{--xyviewer-ring:2px;--xyviewer-dark:rgba(0,0,0,.6);--xyviewer-light:rgba(255,255,255,.9);--xyviewer-tick:0px;--xyviewer-tick-start:2px}
+[data-xyviewer-point-marker="hovered"]{--xyviewer-ring:3px;--xyviewer-tick:6px}
+[data-xyviewer-point-marker="selected"]{--xyviewer-ring:3px;--xyviewer-tick:6px;--xyviewer-tick-start:7px}
+
+.xyviewer-point-marker__dot{position:relative;display:block;box-sizing:border-box;border-radius:50%;background:transparent;
+  width:calc(var(--xyviewer-d) + 2px + 2*var(--xyviewer-ring));height:calc(var(--xyviewer-d) + 2px + 2*var(--xyviewer-ring));
+  border:var(--xyviewer-ring) solid var(--xyviewer-c);
+  box-shadow:0 0 0 1px var(--xyviewer-dark),inset 0 0 0 1px var(--xyviewer-light)}
+.xyviewer-point-marker__dot::before,.xyviewer-point-marker__dot::after{content:'';position:absolute;display:none;pointer-events:none}
+
+[data-xyviewer-point-marker="hovered"] .xyviewer-point-marker__dot::before,
+[data-xyviewer-point-marker="selected"] .xyviewer-point-marker__dot::before{display:block;
+  inset:calc(-1*(var(--xyviewer-tick-start) + var(--xyviewer-tick) + 1px));
+  background:
+    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) center 1px/2px var(--xyviewer-tick) no-repeat,
+    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) center calc(100% - 1px)/2px var(--xyviewer-tick) no-repeat,
+    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) 1px center/var(--xyviewer-tick) 2px no-repeat,
+    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) calc(100% - 1px) center/var(--xyviewer-tick) 2px no-repeat,
+    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) center 0/4px calc(var(--xyviewer-tick) + 2px) no-repeat,
+    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) center 100%/4px calc(var(--xyviewer-tick) + 2px) no-repeat,
+    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) 0 center/calc(var(--xyviewer-tick) + 2px) 4px no-repeat,
+    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) 100% center/calc(var(--xyviewer-tick) + 2px) 4px no-repeat}
+
+[data-xyviewer-point-marker="selected"] .xyviewer-point-marker__dot::after{display:block;inset:-5px;border-radius:50%;
+  border:1px solid var(--xyviewer-c);box-shadow:0 0 0 1px var(--xyviewer-dark),inset 0 0 0 1px var(--xyviewer-dark)}
+
+@media (prefers-reduced-motion:no-preference){.xyviewer-point-marker__dot{transition:width .12s,height .12s,border-width .12s,border-color .12s}}
 `;
 
 /** Movement (px) before a press on a marker becomes a pan instead of a click. */
@@ -143,12 +168,10 @@ const MarkerDot: React.FC<MarkerDotProps> = ({ marker, color, title, hoveredIds,
         cursor: 'pointer',
         touchAction: 'none',
         zIndex: Z[marker.state],
+        ['--xyviewer-c' as string]: color,
       }}
     >
-      <span
-        className="xyviewer-point-marker__dot"
-        style={{ background: color, borderWidth: RING[marker.state], opacity: marker.invisible ? 0 : 1 }}
-      />
+      <span className="xyviewer-point-marker__dot" style={{ opacity: marker.invisible ? 0 : 1 }} />
     </div>
   );
 };
@@ -198,7 +221,7 @@ export const PointMarkersOverlay: React.FC<PointMarkersOverlayProps> = ({
         el.style.display = px ? 'flex' : 'none';
         if (!px) continue;
         const d = markerSize(m.point.r, pxPerCanvasPx(m.canvasId), config, m.state);
-        const hit = Math.max(config.hitSize, d);
+        const hit = Math.max(config.hitSize, markerFootprint(d, m.state));
         el.style.left = `${px.x - hit / 2}px`;
         el.style.top = `${px.y - hit / 2}px`;
         el.style.width = `${hit}px`;
