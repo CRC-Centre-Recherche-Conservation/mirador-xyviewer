@@ -49,7 +49,7 @@ describe('SelectionHighlightPlugin', () => {
 
     it('should parse SVG selector and extract bounds', () => {
       // SVG path for a circle at (100, 200) with radius 12
-      const svgValue = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M 100 188 A 12 12 0 1 1 100 212 A 12 12 0 1 1 100 188" fill="rgba(26, 115, 232, 0.3)" stroke="#1a73e8" stroke-width="2"/></svg>';
+      const svgValue = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M 100 188 A 12 12 0 1 1 100 212 A 12 12 0 1 1 100 188" fill="none" stroke="#1a73e8" stroke-width="2"/></svg>';
 
       const resource: AnnotationResource = {
         id: 'anno-1',
@@ -83,6 +83,8 @@ describe('SelectionHighlightPlugin', () => {
       // Should use DEFAULT_POINT_RADIUS = 12
       expect(bounds![2]).toBe(24); // width = 12 * 2
       expect(bounds![3]).toBe(24); // height = 12 * 2
+      // Centred on the move itself, not 12 px below it.
+      expect([bounds![0], bounds![1]]).toEqual([88, 176]);
     });
 
     it('reads a polygon path with negative and decimal coordinates', () => {

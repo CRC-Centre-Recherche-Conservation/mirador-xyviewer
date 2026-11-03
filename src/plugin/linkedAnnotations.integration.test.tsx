@@ -14,11 +14,25 @@ import type { IIIFAnnotation } from '../types/iiif';
 import characterizations from '../test/fixtures/annotations/manuspectrum-characterizations-page.json';
 import analyses from '../test/fixtures/annotations/manuspectrum-analyses-page.json';
 
-const osd = vi.hoisted(() => ({ maxZoom: undefined as number | undefined }));
+const osd = vi.hoisted(() => ({ maxZoom: undefined as number | undefined, canvas: undefined as HTMLElement | undefined, ref: undefined as unknown }));
 
 vi.mock('mirador', () => ({
   OSDReferences: {
-    get: () => (osd.maxZoom === undefined ? undefined : { current: { viewport: { getMaxZoom: () => osd.maxZoom } } }),
+    get: () => {
+      if (osd.canvas) {
+        // One viewer object per canvas: a new one on every read would loop the placement hook.
+        osd.ref ??= {
+          current: {
+            canvas: osd.canvas,
+            viewport: { getMaxZoom: () => osd.maxZoom, viewportToViewerElementCoordinates: (p: unknown) => p },
+            addHandler: () => {},
+            removeHandler: () => {},
+          },
+        };
+        return osd.ref;
+      }
+      return osd.maxZoom === undefined ? undefined : { current: { viewport: { getMaxZoom: () => osd.maxZoom } } };
+    },
   },
   SanitizedHtml: ({ htmlString }: { htmlString: string }) => <span>{htmlString}</span>,
   addWindow: vi.fn(),
@@ -66,8 +80,8 @@ interface TestState {
   annotations: Record<string, Record<string, { json: unknown }>>;
 }
 
-function setup(opts: { analysesOn?: string; config?: Record<string, unknown>; ignoreSetCanvas?: boolean; lateLoad?: boolean } = {}) {
-  const { analysesOn = CANVAS, config = {}, ignoreSetCanvas = false, lateLoad = false } = opts;
+function setup(opts: { hovered?: string[]; analysesOn?: string; config?: Record<string, unknown>; ignoreSetCanvas?: boolean; lateLoad?: boolean } = {}) {
+  const { hovered = [], analysesOn = CANVAS, config = {}, ignoreSetCanvas = false, lateLoad = false } = opts;
   let withheld: TestState['annotations'][string] | undefined;
   const actions: Array<{ type: string; [k: string]: unknown }> = [];
   const initial: TestState = {
@@ -119,6 +133,7 @@ function setup(opts: { analysesOn?: string; config?: Record<string, unknown>; ig
             selectAnnotation: (windowId: string, annotationId: string) =>
               store.dispatch({ type: 'test/SELECT', windowId, annotationId }),
             deselectAnnotation: () => store.dispatch({ type: 'test/DESELECT' }),
+            hoveredAnnotationIds: hovered,
             hoverAnnotation,
           } as never
         }
@@ -144,6 +159,8 @@ beforeEach(() => {
   linkNavigationStore.clear('w1');
 });
 afterEach(() => {
+  osd.canvas = undefined;
+  osd.ref = undefined;
   vi.useRealTimers();
 });
 

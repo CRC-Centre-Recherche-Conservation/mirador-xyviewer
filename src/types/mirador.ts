@@ -179,6 +179,19 @@ export interface ScientificAnnotationsConfig {
   hiddenFilterGroups?: string[];
   /** Whether a characterization keeps the annotations it cites when a body filter applies (default true). */
   extendFiltersToLinked?: boolean;
+  /**
+   * Canvas markers of point annotations (`pointMarkersPlugin`); sizes are screen pixels, colours
+   * plain CSS colours (default: the theme's `palette.annotations.*.strokeStyle`). Invalid values
+   * fall back to the defaults.
+   */
+  pointMarkers?: {
+    minSize?: number;
+    hoverSize?: number;
+    maxSize?: number;
+    hitSize?: number;
+    maxMarkers?: number;
+    colors?: { default?: string; hovered?: string; selected?: string };
+  };
 }
 
 /** Mirador config */
@@ -239,6 +252,8 @@ export interface MiradorPlugin {
   mapDispatchToProps?: Record<string, (...args: unknown[]) => AnyAction>;
   mapStateToProps?: (state: MiradorState, ownProps: unknown) => Record<string, unknown>;
   reducers?: Record<string, (state: unknown, action: AnyAction) => unknown>;
+  /** Defaults Mirador merges under the host config (the host wins). */
+  config?: Record<string, unknown>;
 }
 
 /** Companion window props */

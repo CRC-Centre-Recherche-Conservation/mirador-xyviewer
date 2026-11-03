@@ -10,7 +10,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
 import type { MiradorPlugin } from '../types/mirador';
-import { MAX_SVG_LENGTH, extractNumbers, parsePoint, parseXYWH, svgAttr } from '../utils/annotationSelectors';
+import { MAX_SVG_LENGTH, extractNumbers, markerBounds, parsePoint, parseXYWH, svgAttr } from '../utils/annotationSelectors';
 import { containPlugin } from './containPlugin';
 
 /** Default point radius (matches annotationTransformer.ts) */
@@ -95,6 +95,8 @@ interface TargetProps {
   selectedAnnotationId?: string | null;
   viewer?: OSDViewer | null;
   canvasWorld?: CanvasWorld;
+  /** Full lists, set by plugins that take annotations out of `annotations`. */
+  unsplitAnnotations?: AnnotationList[];
 }
 
 interface PluginWrapperProps {
@@ -217,28 +219,6 @@ function pathPoints(d: string): Point[] {
   return points;
 }
 
-const N = String.raw`([-+]?(?:\d+(?:\.\d*)?|\.\d+))`;
-const SEP = String.raw`[\s,]+`;
-/** The plugin's own marker: `M x y A r r 0 1 1 x y+2r A r r 0 1 1 x y` (two equal arcs back to the start). */
-const MARKER_PATH = new RegExp(
-  String.raw`^\s*M\s*${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*$`
-);
-
-const LONE_MOVE = new RegExp(String.raw`^\s*M\s*${N}${SEP}${N}\s*$`);
-
-/** Circle marker [x, y, w, h] when `d` is exactly the plugin's marker path (or a lone `M x y`, read as a point). */
-function markerBounds(d: string): [number, number, number, number] | null {
-  const lone = d.length < 100 ? d.match(LONE_MOVE) : null;
-  if (lone) return [Number(lone[1]) - DEFAULT_POINT_RADIUS, Number(lone[2]), DEFAULT_POINT_RADIUS * 2, DEFAULT_POINT_RADIUS * 2];
-  const m = d.length < 300 ? d.match(MARKER_PATH) : null;
-  if (!m) return null;
-  const [x, y, rx, ry, x1, y1, rx2, ry2, x2, y2] = m.slice(1).map(Number);
-  const r = rx;
-  const same = ry === r && rx2 === r && ry2 === r && x1 === x && x2 === x && y2 === y && y1 === y + 2 * r;
-  // The path starts at (x, y - r): add the radius back to get the centre.
-  return same && r > 0 ? [x - r, y, r * 2, r * 2] : null;
-}
-
 /**
  * Bounds of an SVG selector value. The plugin's circle marker is read as a point;
  * any other path, polygon, polyline, circle, ellipse or rect gets the box of all
@@ -253,6 +233,11 @@ export function svgBounds(svg: string): [number, number, number, number] | null 
   if (shapes.length === 1 && shapes[0][1].toLowerCase() === 'path') {
     const marker = markerBounds(attr(shapes[0][0], 'd') ?? '');
     if (marker) return marker;
+    // A lone move is not a point annotation, but the pulse still needs somewhere to go.
+    const lone = (attr(shapes[0][0], 'd') ?? '').match(/^\s*M\s*([-+]?[\d.]+)[\s,]+([-+]?[\d.]+)\s*$/);
+    if (lone && Number.isFinite(Number(lone[1])) && Number.isFinite(Number(lone[2]))) {
+      return [Number(lone[1]) - DEFAULT_POINT_RADIUS, Number(lone[2]) - DEFAULT_POINT_RADIUS, DEFAULT_POINT_RADIUS * 2, DEFAULT_POINT_RADIUS * 2];
+    }
   }
 
   const points: Point[] = [];
@@ -492,7 +477,9 @@ const SelectionHighlightPluginComponent: React.FC<PluginWrapperProps> = ({
   TargetComponent,
   children,
 }) => {
-  const { annotations = [], searchAnnotations = [], selectedAnnotationId, viewer } = targetProps;
+  const { annotations: shownAnnotations = [], searchAnnotations = [], selectedAnnotationId, viewer, unsplitAnnotations } = targetProps;
+  // Markers take points out of `annotations` (see PointMarkersPlugin): the pulse still needs them.
+  const annotations = unsplitAnnotations ?? shownAnnotations;
 
   const [pulseTarget, setPulseTarget] = useState<{
     bounds: [number, number, number, number];

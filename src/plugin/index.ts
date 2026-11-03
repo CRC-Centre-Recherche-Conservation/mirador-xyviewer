@@ -31,3 +31,8 @@ export {
   searchResultFocusPlugin,
   ConnectedSearchResultFocusPlugin,
 } from './SearchResultFocusPlugin';
+
+export {
+  pointMarkersPlugin,
+  ConnectedPointMarkersPlugin,
+} from './PointMarkersPlugin';

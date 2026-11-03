@@ -493,6 +493,36 @@ describe('annotationTransformer', () => {
 
       expect(action.annotationJson.items[0].target.selector.value).toContain('A 25 25');
     });
+
+    const page = () => ({
+      annotationJson: {
+        type: 'AnnotationPage',
+        items: [
+          { id: 'pt', target: { selector: { type: 'FragmentSelector', value: 'xywh=100,200,1,1' } } },
+          { id: 'poly', target: { selector: { type: 'SvgSelector', value: '<svg><polygon points="0,0 10,0 10,10"/></svg>' } } },
+        ],
+      },
+    });
+
+    it('accepts an options object with the point radius and the area style', () => {
+      const action = page();
+      createAnnotationPostprocessor({ pointRadius: 30, areaStyle: { stroke: 'red', strokeWidth: 4, fill: 'rgba(255,0,0,0.2)' } })('u', action);
+      const [pt, poly] = action.annotationJson.items as TransformedPage[];
+      expect(pt.target.selector.value).toContain('A 30 30');
+      expect(poly.target.selector.value).toContain('stroke="red"');
+      expect(poly.target.selector.value).toContain('stroke-width="4"');
+      expect(poly.target.selector.value).toContain('fill="rgba(255,0,0,0.2)"');
+    });
+
+    it('draws areas stroke-only by default and drops invalid options', () => {
+      const action = page();
+      createAnnotationPostprocessor({ pointRadius: -3, areaStyle: { stroke: 'url(x)', fill: 'red;x', strokeWidth: 1000 } })('u', action);
+      const [pt, poly] = action.annotationJson.items as TransformedPage[];
+      expect(pt.target.selector.value).toContain('A 12 12');
+      expect(poly.target.selector.value).toContain('fill="none"');
+      expect(poly.target.selector.value).toContain('stroke="#1a73e8"');
+      expect(poly.target.selector.value).toContain('stroke-width="2"');
+    });
   });
 
   // A IIIF Content Search response is structurally an AnnotationList/AnnotationPage,

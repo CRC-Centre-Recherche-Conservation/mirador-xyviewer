@@ -9,11 +9,18 @@
 export const DEFAULT_POINT_RADIUS = 12;
 
 /** Threshold to consider an annotation as a point */
-const POINT_SIZE_THRESHOLD = 5;
+export const POINT_SIZE_THRESHOLD = 5;
 
-/** Same look as the circle markers, reused for rebuilt polygons */
-const SHAPE_STYLE = 'stroke="#1a73e8" stroke-width="2"';
-const FILL = 'fill="rgba(26, 115, 232, 0.3)"';
+/** Default colours of the plugin's shapes (circle markers and rebuilt polygons) */
+const DEFAULT_STROKE = '#1a73e8';
+const DEFAULT_STROKE_WIDTH = 2;
+
+/** Display style of closed areas; areas are stroke-only unless the producer styled them. */
+export interface AreaStyle {
+  stroke?: string;
+  strokeWidth?: number;
+  fill?: string;
+}
 
 type Selector = Record<string, unknown>;
 
@@ -45,7 +52,7 @@ export function parseXYWH(value: string): { x: number; y: number; w: number; h: 
 export function createCircleSvgSelector(x: number, y: number, radius: number = DEFAULT_POINT_RADIUS): Selector {
   return {
     type: 'SvgSelector',
-    value: `<svg xmlns="http://www.w3.org/2000/svg"><path d="M ${x} ${y - radius} A ${radius} ${radius} 0 1 1 ${x} ${y + radius} A ${radius} ${radius} 0 1 1 ${x} ${y - radius}" ${FILL} ${SHAPE_STYLE}/></svg>`,
+    value: `<svg xmlns="http://www.w3.org/2000/svg"><path d="M ${x} ${y - radius} A ${radius} ${radius} 0 1 1 ${x} ${y + radius} A ${radius} ${radius} 0 1 1 ${x} ${y - radius}" fill="none" stroke="${DEFAULT_STROKE}" stroke-width="${DEFAULT_STROKE_WIDTH}"/></svg>`,
   };
 }
 
@@ -70,12 +77,108 @@ export function svgAttr(tag: string, name: string): string | undefined {
 
 const POLY_TAG = /<(polygon|polyline)\b[^<>]*>/gi;
 const ANY_SHAPE = /<(?:path|circle|ellipse|rect|line|polygon|polyline)\b/gi;
-const COLOR = /^(?:#[0-9a-f]{3,8}|rgba?\(\s*[\d.%\s,]+\)|[a-z]+)$/i;
+const N = String.raw`([-+]?(?:\d+(?:\.\d*)?|\.\d+))`;
+const SEP = String.raw`[\s,]+`;
+/** The plugin's own marker: `M x y A r r 0 1 1 x y+2r A r r 0 1 1 x y` (two equal arcs back to the start). */
+const MARKER_PATH = new RegExp(
+  String.raw`^\s*M\s*${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*$`
+);
+
+/** Circle marker [x, y, w, h] when `d` is exactly the plugin's marker path. */
+export function markerBounds(d: string): [number, number, number, number] | null {
+  const m = d.length < 300 ? d.match(MARKER_PATH) : null;
+  if (!m) return null;
+  const [x, y, rx, ry, x1, y1, rx2, ry2, x2, y2] = m.slice(1).map(Number);
+  const r = rx;
+  const same = ry === r && rx2 === r && ry2 === r && x1 === x && x2 === x && y2 === y && y1 === y + 2 * r;
+  // The path starts at (x, y - r): add the radius back to get the centre.
+  return same && r > 0 ? [x - r, y, r * 2, r * 2] : null;
+}
+
+/** A point read from selectors: centre and radius in canvas pixels. */
+export interface PointShape {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/** Point described by one SVG value: the plugin's marker path, or a single small circle. */
+function svgPoint(svg: string): (PointShape & { styled: boolean; circle: boolean }) | null {
+  if (svg.length > MAX_SVG_LENGTH || svg.includes('<!') || /transform\s*=/i.test(svg)) return null;
+  const shapes = [...svg.matchAll(ANY_SHAPE)];
+  if (shapes.length !== 1) return null;
+  const tag = svg.slice(shapes[0].index).match(/^<[^<>]*>/)?.[0] ?? '';
+  const styled = ['fill', 'stroke', 'style', 'class'].some((a) => svgAttr(tag, a) !== undefined);
+  if (shapes[0][0].toLowerCase() === '<path') {
+    const box = markerBounds(svgAttr(tag, 'd') ?? '');
+    return box ? { x: box[0] + box[2] / 2, y: box[1] + box[3] / 2, r: box[2] / 2, styled, circle: false } : null;
+  }
+  if (shapes[0][0].toLowerCase() !== '<circle') return null;
+  const [x, y, r] = ['cx', 'cy', 'r'].map((n) => Number(svgAttr(tag, n)));
+  // Bigger than a marker is a region the producer drew, not a point.
+  const ok = [x, y, r].every(Number.isFinite) && svgAttr(tag, 'r')?.trim() !== '' && r > 0 && r <= DEFAULT_POINT_RADIUS;
+  return ok ? { x, y, r, styled, circle: true } : null;
+}
+
+const asList = (selectors: unknown): Selector[] => ([selectors ?? []].flat() as unknown[]).filter(isObject);
+
+/**
+ * Point described by a target's selectors, else null. Decided from the selectors alone: a
+ * PointSelector, a tiny `xywh`, the plugin's marker path or an unstyled
+ * single circle no bigger than a marker. An SvgSelector decides on its own (a polygon next to a PointSelector is an area).
+ */
+export function pointOf(selectors: unknown): PointShape | null {
+  const list = asList(selectors);
+  const svg = list.find((s) => s.type === 'SvgSelector');
+  if (svg) {
+    const p = typeof svg.value === 'string' ? svgPoint(svg.value) : null;
+    // Only a plain circle or the marker path: a styled circle is an area the producer drew.
+    return p && !(p.circle && p.styled) ? { x: p.x, y: p.y, r: p.r } : null;
+  }
+  for (const s of list) {
+    const p = parsePoint(s);
+    if (p) return { ...p, r: DEFAULT_POINT_RADIUS };
+  }
+  for (const s of list) {
+    if (s.type !== 'FragmentSelector' || typeof s.value !== 'string') continue;
+    const c = parseXYWH(s.value);
+    if (c && c.w <= POINT_SIZE_THRESHOLD && c.h <= POINT_SIZE_THRESHOLD) {
+      return { x: c.x + c.w / 2, y: c.y + c.h / 2, r: DEFAULT_POINT_RADIUS };
+    }
+  }
+  return null;
+}
+
+const COLOR = /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([\d.%\s,/a-z-]+\)|[a-z]+)$/i;
+
+/** True for a plain CSS colour token (hex, rgb(a), hsl(a), keyword): nothing that could carry `url(`, `;` or `{`. */
+export function isCssColour(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 64 && COLOR.test(value.trim()) && !/url|var|expression/i.test(value);
+}
 
 /** Producer colour when it is a plain colour token, else the plugin default. */
 function colour(tag: string, name: string, fallback: string): string {
   const v = svgAttr(tag, name)?.trim();
-  return v && COLOR.test(v) ? v : fallback;
+  return v && isCssColour(v) ? v : fallback;
+}
+
+/** Valid parts of a host area style (colour tokens, width in (0, 100]); anything else is dropped. */
+export function sanitizeAreaStyle(style: unknown): AreaStyle {
+  if (!isObject(style)) return {};
+  const out: AreaStyle = {};
+  if (isCssColour(style.stroke)) out.stroke = style.stroke.trim();
+  if (isCssColour(style.fill)) out.fill = style.fill.trim();
+  const w = style.strokeWidth;
+  if (typeof w === 'number' && Number.isFinite(w) && w > 0 && w <= 100) out.strokeWidth = w;
+  return out;
+}
+
+/** Display options of the selector pass. */
+export interface SelectorDisplayOptions {
+  /** Radius of circles made from points. */
+  pointRadius?: number;
+  /** Look of closed areas without producer colours. */
+  areaStyle?: AreaStyle;
 }
 
 /**
@@ -84,7 +187,7 @@ function colour(tag: string, name: string, fallback: string): string {
  * malformed, or undefined when the SVG must stay untouched (no polygon/polyline,
  * or other shapes alongside that a rebuild would lose).
  */
-function rebuildPolygons(svg: string): string | null | undefined {
+function rebuildPolygons(svg: string, area: AreaStyle = {}): string | null | undefined {
   // Comments, CDATA and declarations (`<!`) can hide or fake shapes: leave such SVGs untouched.
   if (svg.includes('<!')) return undefined;
   const tags = [...svg.matchAll(POLY_TAG)];
@@ -106,18 +209,18 @@ function rebuildPolygons(svg: string): string | null | undefined {
     closedOnly &&= closed;
   }
 
-  // Look comes from the first shape's plain colour tokens (an outline-only
-  // `fill="none"` stays outline-only); anything else gets the plugin default.
+  // Look comes from the first shape's plain colour tokens; anything else gets the
+  // plugin default (stroke only, so areas never hide the points under them).
   const first = tags[0][0];
-  const fill = colour(first, 'fill', closedOnly ? 'rgba(26, 115, 232, 0.3)' : 'none');
-  const stroke = colour(first, 'stroke', '#1a73e8');
+  const fill = colour(first, 'fill', closedOnly ? (area.fill ?? 'none') : 'none');
+  const stroke = colour(first, 'stroke', area.stroke ?? DEFAULT_STROKE);
   const width = Number(svgAttr(first, 'stroke-width'));
-  const strokeWidth = Number.isFinite(width) && width > 0 && width <= 100 ? width : 2;
+  const strokeWidth = Number.isFinite(width) && width > 0 && width <= 100 ? width : (area.strokeWidth ?? DEFAULT_STROKE_WIDTH);
   return `<svg xmlns="http://www.w3.org/2000/svg"><path d="${subpaths.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/></svg>`;
 }
 
 /** Selector list → display-ready list (a new array only when something changed). */
-function normalizeSelectorList(list: unknown[], radius: number): { out: unknown[]; changed: boolean } {
+function normalizeSelectorList(list: unknown[], radius: number, area?: AreaStyle): { out: unknown[]; changed: boolean } {
   let changed = false;
   const out: unknown[] = [];
 
@@ -127,9 +230,15 @@ function normalizeSelectorList(list: unknown[], radius: number): { out: unknown[
       continue;
     }
     if (sel.type === 'SvgSelector' && typeof sel.value === 'string') {
-      const rebuilt = rebuildPolygons(sel.value);
-      if (rebuilt === undefined) out.push(sel);
-      else {
+      const rebuilt = rebuildPolygons(sel.value, area);
+      if (rebuilt === undefined) {
+        // Unstyled small producer circle / marker path: Mirador would stroke it black at 1 px.
+        const p = svgPoint(sel.value);
+        if (p && !p.styled) {
+          out.push(createCircleSvgSelector(p.x, p.y, p.r));
+          changed = true;
+        } else out.push(sel);
+      } else {
         changed = true;
         if (rebuilt !== null) out.push({ ...sel, value: rebuilt });
       }
@@ -176,12 +285,17 @@ function normalizeSelectorList(list: unknown[], radius: number): { out: unknown[
  * annotation's target, only when something changes). A single selector stays an
  * object, several stay an array.
  */
-export function normalizeTargetSelector(annotation: Record<string, unknown>, radius: number = DEFAULT_POINT_RADIUS): void {
+export function normalizeTargetSelector(
+  annotation: Record<string, unknown>,
+  options: number | SelectorDisplayOptions = DEFAULT_POINT_RADIUS,
+): void {
+  const opts: SelectorDisplayOptions = typeof options === 'number' ? { pointRadius: options } : options;
+  const radius = opts.pointRadius ?? DEFAULT_POINT_RADIUS;
   const target = annotation.target;
   if (!isObject(target) || target.selector === undefined || target.selector === null) return;
 
   const list = Array.isArray(target.selector) ? target.selector : [target.selector];
-  const { out, changed } = normalizeSelectorList(list, radius);
+  const { out, changed } = normalizeSelectorList(list, radius, opts.areaStyle);
   if (!changed) return;
 
   // Replace the target (never mutate it): it may still be shared with Mirador's store.

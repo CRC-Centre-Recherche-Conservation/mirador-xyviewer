@@ -31,12 +31,12 @@ import { filtersStore, facetGroupKey } from '../state/filtersStore';
 import { TermActionsContext, type TermActionsValue, type TermFacetRef } from '../components/TermActionsContext';
 import type { Term } from '../utils/classificationModel';
 import { linkNavigationStore } from '../state/linkNavigationStore';
+import { DEFAULT_PLUGIN_CONFIG } from './pointMarkers';
 import { CitedBy } from '../components/CitedBy';
 import { LinkContext } from '../components/LinkContext';
 import { EMPTY_LINK_INDEX, baseAnnotationId, getLinkIndex, type LinkIndex } from '../utils/linkIndex';
 import { fillTemplate } from '../utils/annotationLabels';
 import { cancelPendingNavigation, useLinkController } from './useLinkController';
-import { LinkedZonesOverlay, computeZoneBadges } from './LinkedZonesOverlay';
 import { normalizeAnnotationResources, normalizeAnnotationPages } from '../utils/annotationNormalizer';
 import type { AnnotationPageGroup } from '../utils/annotationNormalizer';
 import { AnnotationPageSection } from '../components/AnnotationPageSection';
@@ -320,23 +320,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
     prefs,
   });
 
-  // Numbered badges on the linked zones of the hovered or selected card (same numbers as its list).
-  const zoneBadges = useMemo(
-    () =>
-      computeZoneBadges({
-        canvasId,
-        visibleCanvasIds,
-        index: linkIndex,
-        canvasAnnotationIds,
-        annotationResources,
-        hiddenIds: hiddenAnnotationIds,
-        hoveredIds: hoveredAnnotationIds,
-        selectedId: selectedAnnotationId,
-        prefs,
-      }),
-    [canvasId, visibleCanvasIds, linkIndex, canvasAnnotationIds, annotationResources, hiddenAnnotationIds, hoveredAnnotationIds, selectedAnnotationId, prefs],
-  );
-
   // Hover lights the zone and its linked zones; leaving clears it (debounced).
   const handleAnnotationHover = useCallback((annotationId: string | null) => {
     linkContext.hover(annotationId ? linkContext.groupOf(annotationId) : []);
@@ -614,9 +597,12 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         aria-expanded={classificationKind(resource?.motivation) ? isSelected : undefined}
         aria-current={isSelected || undefined}
         tabIndex={0}
-        onFocus={() => handleAnnotationHover(annotation.id)}
+        onFocus={() => {
+          handleAnnotationHover(annotation.id);
+        }}
         onBlur={(e: React.FocusEvent<HTMLElement>) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) handleAnnotationHover(null);
+          if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+          handleAnnotationHover(null);
         }}
         // Keep MenuList roving focus / typeahead away from the body and its dialog.
         onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
@@ -629,8 +615,12 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
             handleAnnotationClick(annotation.id);
           }
         }}
-        onMouseEnter={() => handleAnnotationHover(annotation.id)}
-        onMouseLeave={() => handleAnnotationHover(null)}
+        onMouseEnter={() => {
+          handleAnnotationHover(annotation.id);
+        }}
+        onMouseLeave={() => {
+          handleAnnotationHover(null);
+        }}
         sx={{
           position: 'relative',
           scrollMarginTop: sections ? 36 : undefined,
@@ -778,7 +768,6 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
           : visibleAnnotations.map(renderCard)}
       </MenuList>
       {failureNotice}
-      <LinkedZonesOverlay windowId={windowId} badges={zoneBadges} />
      </TermActionsContext.Provider>
      </LinkContext.Provider>
     </LanguageProvider>
@@ -940,6 +929,7 @@ export const scientificAnnotationPlugin: MiradorPlugin = containPlugin({
   }>,
   mapStateToProps: mapStateToProps as MiradorPlugin['mapStateToProps'],
   mapDispatchToProps: mapDispatchToProps as unknown as MiradorPlugin['mapDispatchToProps'],
+  config: DEFAULT_PLUGIN_CONFIG,
 });
 
 /** @internal Exposed for tests; not part of the public API. */

@@ -17,7 +17,7 @@
  */
 
 // Main plugin export
-export { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin } from './plugin';
+export { scientificAnnotationPlugin, imageComparisonPlugin, metadataFiltersPlugin, selectionHighlightPlugin, searchResultFocusPlugin, pointMarkersPlugin } from './plugin';
 export { scientificAnnotationPlugin as default } from './plugin';
 
 // Individual components for custom use
@@ -161,6 +161,7 @@ export {
   CONTENT_STATE_MAX_BYTES,
   CONTENT_STATE_MAX_TARGETS,
 } from './utils';
+export type { PostprocessorOptions, SelectorDisplayOptions, AreaStyle } from './utils';
 export type {
   ContentStateInput,
   ContentStateRegion,
