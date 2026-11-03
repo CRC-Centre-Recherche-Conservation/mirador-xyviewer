@@ -104,6 +104,35 @@ describe.each([
   });
 });
 
+describe('Mirador drawing rules', () => {
+  const mountPoint = (props: Record<string, unknown>) => {
+    const viewer = fakeViewer();
+    OSDReferences.set('w', { current: viewer });
+    const lists = [{ id: 'l', resources: [item('p', createCircleSvgSelector(30, 40, 7))] }];
+    render(
+      <Provider store={store as never}>
+        <PluginProvider plugins={[pointMarkersPlugin]}>
+          <Wrapped windowId="w" viewer={viewer} annotations={lists} {...props} />
+        </PluginProvider>
+      </Provider>,
+    );
+    return viewer;
+  };
+
+  it('without highlightAllAnnotations a resting point is an invisible hit area', async () => {
+    const viewer = mountPoint({});
+    await waitFor(() => expect(viewer.canvas.querySelectorAll('[data-xyviewer-point-marker="default"]')).toHaveLength(1));
+    const dot = viewer.canvas.querySelector('[data-xyviewer-point-marker] span') as HTMLElement;
+    expect(dot.style.opacity).toBe('0');
+  });
+
+  it('renders no marker when Mirador does not draw annotations, even a selected one', async () => {
+    const viewer = mountPoint({ drawAnnotations: false, selectedAnnotationId: 'p', highlightAllAnnotations: true });
+    await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    expect(viewer.canvas.querySelector('[data-xyviewer-point-marker]')).toBeNull();
+  });
+});
+
 describe('mapStateToProps', () => {
   it('reads the host config and language', () => {
     const cfg = { minSize: 20 };

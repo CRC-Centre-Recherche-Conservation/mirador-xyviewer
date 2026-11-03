@@ -161,6 +161,7 @@ export {
   CONTENT_STATE_MAX_BYTES,
   CONTENT_STATE_MAX_TARGETS,
 } from './utils';
+export type { PostprocessorOptions, SelectorDisplayOptions, AreaStyle } from './utils';
 export type {
   ContentStateInput,
   ContentStateRegion,

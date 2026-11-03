@@ -359,7 +359,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
       canvasEmphasisStore.hover(windowId, annotationId, 'all');
     }
   }, [windowId, annotationResources]);
-  const releaseCard = useCallback(() => canvasEmphasisStore.release(windowId), [windowId]);
+  const releaseCard = useCallback((annotationId: string) => canvasEmphasisStore.release(windowId, annotationId), [windowId]);
 
   // Term chips: filter by a term, highlight its annotations (same facet as the filter panel).
   const textLabels = useMemo(() => resolveLabels(labels), [labels]);
@@ -414,11 +414,11 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
   useEffect(() => {
     linkNavigationStore.reconcile(windowId, selectedAnnotationId, shownCanvasIds);
   }, [windowId, selectedAnnotationId, shownCanvasIds]);
-  // The followed row's badge lasts as long as "Back to..." does.
-  const moveCurrent = !!nav.current && nav.stack.length > 0;
+  // The followed row's badge lasts as long as its move is the current one ("Back to..." is offered).
+  const current = nav.stack.length > 0 ? nav.current : undefined;
   useEffect(() => {
-    if (!moveCurrent) canvasEmphasisStore.endFollow(windowId);
-  }, [windowId, moveCurrent, emphasis]);
+    if (emphasis?.source === 'follow' && emphasis.move !== current) canvasEmphasisStore.endFollow(windowId);
+  }, [windowId, current, emphasis]);
   const reduxStore = useContext(ReactReduxContext)?.store;
   useEffect(
     () => () => {
@@ -646,7 +646,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         onBlur={(e: React.FocusEvent<HTMLElement>) => {
           if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
           handleAnnotationHover(null);
-          releaseCard();
+          releaseCard(annotation.id);
         }}
         // Keep MenuList roving focus / typeahead away from the body and its dialog.
         onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
@@ -665,7 +665,7 @@ const ScientificAnnotationPluginComponent: React.FC<PluginWrapperProps> = ({
         }}
         onMouseLeave={() => {
           handleAnnotationHover(null);
-          releaseCard();
+          releaseCard(annotation.id);
         }}
         sx={{
           position: 'relative',

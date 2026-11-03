@@ -30,6 +30,9 @@ function fakeViewer() {
       getFlip: () => false,
       getContainerSize: () => new Pt(1000, 500),
       viewportToViewerElementCoordinates: (p: Pt) => new Pt(p.x * 2 + shift, p.y * 2),
+      deltaPointsFromPixels: (p: Pt) => new Pt(p.x / 2, p.y / 2),
+      panBy: vi.fn(),
+      applyConstraints: vi.fn(),
     },
     addHandler: (e: string, h: () => void) => (handlers[e] ??= []).push(h),
     removeHandler: (e: string, h: () => void) => {
@@ -176,5 +179,82 @@ describe('PointMarkersOverlay', () => {
     const css = canvas.querySelector('style')!.textContent!;
     expect(css).toMatch(/@media \(prefers-reduced-motion:no-preference\)\{\.xyviewer-point-marker__dot\{transition/);
     expect(css).not.toMatch(/(^|\})\.xyviewer-point-marker__dot\{[^}]*transition/);
+  });
+
+  it('keeps resting markers transparent but present as hit areas', () => {
+    const { viewer, canvas } = fakeViewer();
+    osd.refs.w = { current: viewer };
+    mount([{ ...marker('a'), invisible: true }, marker('b')]);
+    const [a, b] = dots(canvas);
+    const opacity = (el: HTMLElement) => (el.querySelector('span') as HTMLElement).style.opacity;
+    expect([opacity(a), opacity(b)]).toEqual(['0', '1']);
+    expect(a.style.pointerEvents).toBe('auto');
+    expect(a.style.width).toBe('20px');
+  });
+
+  it('places by key, so a repeated id on two canvases cannot swap markers', () => {
+    const { viewer, canvas } = fakeViewer();
+    osd.refs.w = { current: viewer };
+    mount([marker('a', 'default', 'c2', 100, 100), marker('a', 'default', 'c1', 10, 20)]);
+    const [second, first] = dots(canvas);
+    expect(second.style.left).toBe(`${(1000 + 100) * 2 - 10}px`);
+    expect(first.style.left).toBe('10px');
+  });
+
+  describe('pan and click', () => {
+    const ptr = (el: HTMLElement, type: string, x: number, y: number) =>
+      act(() => void el.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button: 0 })));
+
+    it('a drag that starts on a marker pans the image and does not select', () => {
+      const { viewer, canvas } = fakeViewer();
+      osd.refs.w = { current: viewer };
+      const { selectAnnotation } = mount([marker('a')]);
+      const [a] = dots(canvas);
+      const seen: string[] = [];
+      for (const t of ['pointerdown', 'pointermove', 'pointerup', 'click']) canvas.addEventListener(t, () => seen.push(t));
+      ptr(a, 'pointerdown', 100, 100);
+      ptr(a, 'pointermove', 102, 100);
+      expect(viewer.viewport.panBy).not.toHaveBeenCalled();
+      ptr(a, 'pointermove', 110, 120);
+      expect(viewer.viewport.panBy).toHaveBeenLastCalledWith(expect.objectContaining({ x: -5, y: -10 }), true);
+      ptr(a, 'pointerup', 110, 120);
+      fireEvent.click(a);
+      expect(viewer.viewport.applyConstraints).toHaveBeenCalled();
+      expect(selectAnnotation).not.toHaveBeenCalled();
+      expect(seen).toEqual([]);
+      // The next plain click selects again.
+      ptr(a, 'pointerdown', 100, 100);
+      ptr(a, 'pointerup', 100, 100);
+      fireEvent.click(a);
+      expect(selectAnnotation).toHaveBeenCalledWith('w', 'a');
+      expect(viewer.viewport.panBy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('hover held against a stale Mirador canvas hover', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('re-asserts its hover on pointer move, throttled', () => {
+      vi.useFakeTimers();
+      const { viewer, canvas } = fakeViewer();
+      osd.refs.w = { current: viewer };
+      const { hoverAnnotation, view, props } = mount([marker('a')], { hoveredAnnotationIds: [] });
+      const [a] = dots(canvas);
+      fireEvent.pointerEnter(a);
+      // Mirador's debounced handler cleared the hover after our enter.
+      vi.advanceTimersByTime(60);
+      fireEvent.pointerMove(a);
+      expect(hoverAnnotation).toHaveBeenCalledTimes(2);
+      fireEvent.pointerMove(a);
+      expect(hoverAnnotation).toHaveBeenCalledTimes(2);
+      vi.advanceTimersByTime(60);
+      fireEvent.pointerMove(a);
+      expect(hoverAnnotation).toHaveBeenCalledTimes(3);
+      // Hover already ours: nothing to re-assert.
+      view.rerender(<PointMarkersOverlay {...props} hoveredAnnotationIds={['a']} />);
+      vi.advanceTimersByTime(60);
+      fireEvent.pointerMove(a);
+      expect(hoverAnnotation).toHaveBeenCalledTimes(3);
+    });
   });
 });

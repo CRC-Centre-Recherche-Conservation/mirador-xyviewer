@@ -83,6 +83,8 @@ describe('SelectionHighlightPlugin', () => {
       // Should use DEFAULT_POINT_RADIUS = 12
       expect(bounds![2]).toBe(24); // width = 12 * 2
       expect(bounds![3]).toBe(24); // height = 12 * 2
+      // Centred on the move itself, not 12 px below it.
+      expect([bounds![0], bounds![1]]).toEqual([88, 176]);
     });
 
     it('reads a polygon path with negative and decimal coordinates', () => {

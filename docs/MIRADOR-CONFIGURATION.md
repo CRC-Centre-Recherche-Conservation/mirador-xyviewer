@@ -235,10 +235,11 @@ Mirador draws a point as a 1 px circle a few screen pixels wide, which is hard t
 
 - Diameter: the point's size on screen, kept between `minSize` and `maxSize`; a transparent hit area of at least `hitSize`.
 - Hovered (from the canvas, a card, a row or a chip) and selected markers grow to at least `hoverSize` and take the theme's hovered / selected colour; a click selects, or deselects when already selected.
-- Markers follow `highlightAllAnnotations` (when off, only hovered and selected ones show) and the metadata filter (the selected one stays).
+- Markers follow Mirador's drawing rules. With `highlightAllAnnotations` off (the default) resting markers are invisible but keep their hit area, so hovering a point on the canvas reveals it and a click selects it, as for Mirador's own shapes. Nothing is drawn while Mirador draws no annotations (annotations panel closed and `forceDrawAnnotations` off), not even the selected marker. The metadata filter hides markers too (the selected one stays).
+- A drag that starts on a marker pans the image; a click without movement selects the marker and never the area under it.
 - Markers are `aria-hidden`: the annotation cards and rows remain the accessible surface.
 
-A point is recognised from its selectors only: a `PointSelector`, a tiny `xywh` (5 px or less), an unstyled single `<circle>`, or the plugin's own circle path.
+A point is recognised from its selectors only: a `PointSelector`, a tiny `xywh` (5 px or less), an unstyled single `<circle>` of radius 12 or less, or the plugin's own circle path. A larger circle, or a lone `M x y` path, is a region the producer drew and is left alone.
 
 ```javascript
 scientificAnnotations: {

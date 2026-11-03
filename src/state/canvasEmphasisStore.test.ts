@@ -15,22 +15,36 @@ describe('canvasEmphasisStore', () => {
     expect(s).toMatchObject({ ownerId: 'a', rows: 'all', source: 'hover' });
     store.hover('w1', 'a', 'all');
     expect(store.get('w1')).toBe(s);
-    store.release('w1');
+    store.release('w1', 'a');
     expect(store.get('w1')).toBeUndefined();
   });
 
   it('release falls back to the card badges after leaving a row', () => {
     store.hover('w1', 'a', [2]);
-    store.release('w1', { ownerId: 'a', rows: 'all' });
+    store.release('w1', 'a', { ownerId: 'a', rows: 'all' });
     expect(store.get('w1')).toMatchObject({ rows: 'all', source: 'hover' });
+  });
+
+  it('release by another card leaves the emphasis of the focused one', () => {
+    store.hover('w1', 'a', 'all');
+    store.release('w1', 'b');
+    expect(store.get('w1')).toMatchObject({ ownerId: 'a', source: 'hover' });
+    store.release('w1', 'a');
+    expect(store.get('w1')).toBeUndefined();
+  });
+
+  it('follow keeps the move it belongs to', () => {
+    const move = {};
+    store.follow('w1', 'a', 3, move);
+    expect(store.get('w1')?.move).toBe(move);
   });
 
   it('release leaves timed and follow emphasis alone', () => {
     store.showTimed('w1', 'a');
-    store.release('w1');
+    store.release('w1', 'a');
     expect(store.get('w1')?.source).toBe('timed');
     store.follow('w1', 'a', 3);
-    store.release('w1');
+    store.release('w1', 'a');
     expect(store.get('w1')).toMatchObject({ source: 'follow', rows: [3] });
     store.endFollow('w1');
     expect(store.get('w1')).toBeUndefined();

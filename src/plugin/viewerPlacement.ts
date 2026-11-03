@@ -3,7 +3,7 @@
  * canvas pixels to viewer element pixels and re-places on every viewport change.
  */
 
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ReactReduxContext } from 'react-redux';
 import { OSDReferences, getCurrentCanvasWorld } from 'mirador';
 
@@ -17,6 +17,9 @@ export interface OSDViewportLike {
   getCenter?: (current?: boolean) => OSDPointLike;
   getFlip?: () => boolean;
   getContainerSize?: () => OSDPointLike;
+  deltaPointsFromPixels?: (delta: OSDPointLike, current?: boolean) => OSDPointLike;
+  panBy?: (delta: OSDPointLike, immediately?: boolean) => void;
+  applyConstraints?: () => void;
 }
 
 export interface OSDViewerLike {
@@ -59,6 +62,20 @@ export function toPixel(viewport: OSDViewportLike, x: number, y: number): OSDPoi
   }
 }
 
+/** Pans the viewport as if the image were dragged by (dx, dy) screen pixels (OpenSeadragon's own drag-to-pan). */
+export function panByPixels(viewport: OSDViewportLike, dx: number, dy: number): void {
+  try {
+    if (!viewport.deltaPointsFromPixels || !viewport.panBy) return;
+    const flip = viewport.getFlip?.() ? -1 : 1;
+    const center = viewport.getCenter?.(true);
+    const delta = { x: -dx * flip, y: -dy };
+    const point = center ? Object.assign(Object.create(Object.getPrototypeOf(center)), delta) : delta;
+    viewport.panBy(viewport.deltaPointsFromPixels(point), true);
+  } catch {
+    // A viewer that cannot pan is left alone.
+  }
+}
+
 /** Conversions handed to a `place` callback. */
 export interface Placement {
   /** Viewer element pixel of a canvas pixel, undefined when the canvas is not in the world. */
@@ -96,7 +113,8 @@ export function useViewerPlacement(
     return () => cancelAnimationFrame(id);
   }, [active, windowId, viewer]);
 
-  useEffect(() => {
+  // Layout effect: the first placement lands before paint (no flash at the origin).
+  useLayoutEffect(() => {
     if (!active || !viewer?.viewport || !windowId) return undefined;
     const viewport = viewer.viewport;
     const run = () => {

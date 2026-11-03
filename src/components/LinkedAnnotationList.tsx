@@ -126,7 +126,7 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
             .join(', ');
           const hoverIds = row.kind === 'here' && row.annotationId ? [row.annotationId] : null;
           const enter = () => emphasize?.hover(ctx.windowId!, ownerId!, [row.n]);
-          const leave = () => emphasize?.release(ctx.windowId!, { ownerId: ownerId!, rows: 'all' });
+          const leave = () => emphasize?.release(ctx.windowId!, ownerId!, { ownerId: ownerId!, rows: 'all' });
           const interactive = {
             'data-xyviewer-link-row': '',
             onMouseEnter: () => {

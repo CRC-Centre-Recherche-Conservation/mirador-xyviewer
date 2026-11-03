@@ -43,6 +43,13 @@ describe('splitPointResources', () => {
     expect(lists[0].resources).toHaveLength(3);
   });
 
+  it('reports a repeated id on a canvas once and still removes every copy', () => {
+    const copy = item('pt', C1, createCircleSvgSelector(30, 40, 7));
+    const { areas, points } = splitPointResources([{ resources: [pt, area] }, { resources: [copy] }]);
+    expect(points).toHaveLength(1);
+    expect(areas.map((l) => l.resources!.length)).toEqual([1, 0]);
+  });
+
   it('reads a string target with a tiny xywh', () => {
     expect(splitPointResources([{ resources: [plain] }]).points[0].point).toMatchObject({ x: 3.5, y: 3.5 });
   });
@@ -90,10 +97,24 @@ describe('computePointMarkers', () => {
     expect(m.find((x) => x.id === 'a')!.state).toBe('selected');
   });
 
-  it('shows only hovered and selected markers when highlightAll is off', () => {
+  it('keeps resting markers as invisible hit areas when highlightAll is off', () => {
     const m = computePointMarkers({ ...base, points, highlightAll: false, hovered: ['a'], selected: 'c' });
-    expect(m.map((x) => [x.id, x.state]).sort()).toEqual([['a', 'hovered'], ['c', 'selected']]);
-    expect(computePointMarkers({ ...base, points, highlightAll: false })).toEqual([]);
+    expect(m.map((x) => [x.id, x.state, !!x.invisible]).sort()).toEqual([
+      ['a', 'hovered', false],
+      ['b', 'default', true],
+      ['c', 'selected', false],
+    ]);
+    expect(computePointMarkers({ ...base, points, highlightAll: true }).some((x) => x.invisible)).toBe(false);
+  });
+
+  it('renders nothing when Mirador does not draw annotations, selected included', () => {
+    expect(computePointMarkers({ ...base, points, drawAnnotations: false, hovered: ['a'], selected: 'b' })).toEqual([]);
+    expect(computePointMarkers({ ...base, points, drawAnnotations: true })).toHaveLength(3);
+  });
+
+  it('lists a repeated id once per canvas', () => {
+    const dup = [point('a'), point('a'), point('a', C2)];
+    expect(computePointMarkers({ ...base, points: dup }).map((x) => [x.id, x.canvasId])).toEqual([['a', C1], ['a', C2]]);
   });
 
   it('hides filtered points but keeps the selected one', () => {

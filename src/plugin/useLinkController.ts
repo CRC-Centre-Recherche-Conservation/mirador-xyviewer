@@ -198,8 +198,10 @@ export function useLinkController(params: LinkControllerParams): {
     const dest = { annotationId: to.annotationId, canvasId: to.canvasId ?? p.canvasId };
     if (ownerId && baseAnnotationId(ownerId) !== baseAnnotationId(dest.annotationId)) {
       linkNavigationStore.push(p.windowId, { annotationId: ownerId, canvasId: p.canvasId }, dest);
-      // Row n's badge stays beside the landed zone while "Back to..." is offered.
-      if (to.n !== undefined) canvasEmphasisStore.follow(p.windowId, ownerId, to.n);
+      // Row n's badge stays beside the landed zone while this move is current.
+      const move = linkNavigationStore.get(p.windowId).current;
+      if (to.n !== undefined && move) canvasEmphasisStore.follow(p.windowId, ownerId, to.n, move);
+      else canvasEmphasisStore.endFollow(p.windowId);
     }
     navigate(dest);
   }, [navigate]);

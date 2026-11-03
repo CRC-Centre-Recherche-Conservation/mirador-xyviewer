@@ -35,6 +35,7 @@ interface TargetProps {
   hoveredAnnotationIds?: string[];
   selectedAnnotationId?: string | null;
   highlightAllAnnotations?: boolean;
+  drawAnnotations?: boolean;
   palette?: { annotations?: Record<'default' | 'hovered' | 'selected', PaletteEntry | undefined> };
   hoverAnnotation?: (windowId: string, ids: string[]) => void;
   selectAnnotation?: (windowId: string, id: string) => void;
@@ -69,6 +70,7 @@ export const PointMarkersPluginComponent: React.FC<PluginWrapperProps> = ({
     hoveredAnnotationIds,
     selectedAnnotationId,
     highlightAllAnnotations,
+    drawAnnotations,
     palette,
   } = targetProps;
   const [version, setVersion] = useState(0);
@@ -98,10 +100,11 @@ export const PointMarkersPluginComponent: React.FC<PluginWrapperProps> = ({
         hovered: hoveredAnnotationIds ?? [],
         selected: selectedAnnotationId,
         highlightAll: !!highlightAllAnnotations,
+        drawAnnotations: drawAnnotations !== false,
         maxMarkers: config.maxMarkers,
       }),
     // `version` forces a recompute when the filter changes.
-    [split, canvasKey, windowId, hoveredAnnotationIds, selectedAnnotationId, highlightAllAnnotations, config, version],
+    [split, canvasKey, windowId, hoveredAnnotationIds, selectedAnnotationId, highlightAllAnnotations, drawAnnotations, config, version],
   );
 
   const colors: MarkerColors = {
@@ -126,6 +129,7 @@ export const PointMarkersPluginComponent: React.FC<PluginWrapperProps> = ({
       selectAnnotation={targetProps.selectAnnotation ?? noop}
       deselectAnnotation={targetProps.deselectAnnotation ?? noop}
       selectedAnnotationId={selectedAnnotationId}
+      hoveredAnnotationIds={hoveredAnnotationIds}
     />
   );
 

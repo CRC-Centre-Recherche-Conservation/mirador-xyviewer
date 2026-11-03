@@ -471,6 +471,16 @@ describe('numbered badges appear only at navigation moments', () => {
     expect(badgeNumbers()).toEqual(allNumbers);
   });
 
+  it('T4: a later move (e.g. a "Cited by" chip, no row number) drops the older followed badge', () => {
+    setup();
+    fireEvent.click(lapisCard());
+    fireEvent.click(rowButtons()[1]);
+    expect(badgeNumbers()).toEqual(['2']);
+    act(() => linkNavigationStore.push('w1', { annotationId: 'x' }, { annotationId: 'y' }));
+    expect(canvasEmphasisStore.get('w1')).toBeUndefined();
+    expect(badgeNumbers()).toEqual([]);
+  });
+
   it('T4 ends when the reader selects something else', () => {
     setup();
     fireEvent.click(lapisCard());

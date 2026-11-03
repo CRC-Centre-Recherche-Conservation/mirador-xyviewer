@@ -84,12 +84,8 @@ const MARKER_PATH = new RegExp(
   String.raw`^\s*M\s*${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*A\s*${N}${SEP}${N}\s+0\s+1\s+1\s+${N}${SEP}${N}\s*$`
 );
 
-const LONE_MOVE = new RegExp(String.raw`^\s*M\s*${N}${SEP}${N}\s*$`);
-
-/** Circle marker [x, y, w, h] when `d` is exactly the plugin's marker path (or a lone `M x y`, read as a point). */
+/** Circle marker [x, y, w, h] when `d` is exactly the plugin's marker path. */
 export function markerBounds(d: string): [number, number, number, number] | null {
-  const lone = d.length < 100 ? d.match(LONE_MOVE) : null;
-  if (lone) return [Number(lone[1]) - DEFAULT_POINT_RADIUS, Number(lone[2]), DEFAULT_POINT_RADIUS * 2, DEFAULT_POINT_RADIUS * 2];
   const m = d.length < 300 ? d.match(MARKER_PATH) : null;
   if (!m) return null;
   const [x, y, rx, ry, x1, y1, rx2, ry2, x2, y2] = m.slice(1).map(Number);
@@ -106,7 +102,7 @@ export interface PointShape {
   r: number;
 }
 
-/** Point described by one SVG value: the plugin's marker path, a lone `M x y`, or a single circle. */
+/** Point described by one SVG value: the plugin's marker path, or a single small circle. */
 function svgPoint(svg: string): (PointShape & { styled: boolean; circle: boolean }) | null {
   if (svg.length > MAX_SVG_LENGTH || svg.includes('<!') || /transform\s*=/i.test(svg)) return null;
   const shapes = [...svg.matchAll(ANY_SHAPE)];
@@ -119,7 +115,8 @@ function svgPoint(svg: string): (PointShape & { styled: boolean; circle: boolean
   }
   if (shapes[0][0].toLowerCase() !== '<circle') return null;
   const [x, y, r] = ['cx', 'cy', 'r'].map((n) => Number(svgAttr(tag, n)));
-  const ok = [x, y, r].every(Number.isFinite) && svgAttr(tag, 'r')?.trim() !== '' && r > 0;
+  // Bigger than a marker is a region the producer drew, not a point.
+  const ok = [x, y, r].every(Number.isFinite) && svgAttr(tag, 'r')?.trim() !== '' && r > 0 && r <= DEFAULT_POINT_RADIUS;
   return ok ? { x, y, r, styled, circle: true } : null;
 }
 
@@ -127,8 +124,8 @@ const asList = (selectors: unknown): Selector[] => ([selectors ?? []].flat() as 
 
 /**
  * Point described by a target's selectors, else null. Decided from the selectors alone: a
- * PointSelector, a tiny `xywh`, the plugin's marker path, a lone `M x y` or an unstyled
- * single circle. An SvgSelector decides on its own (a polygon next to a PointSelector is an area).
+ * PointSelector, a tiny `xywh`, the plugin's marker path or an unstyled
+ * single circle no bigger than a marker. An SvgSelector decides on its own (a polygon next to a PointSelector is an area).
  */
 export function pointOf(selectors: unknown): PointShape | null {
   const list = asList(selectors);
@@ -152,7 +149,7 @@ export function pointOf(selectors: unknown): PointShape | null {
   return null;
 }
 
-const COLOR = /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\(\s*[\d.%\s,/a-z-]+\)|[a-z]+)$/i;
+const COLOR = /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([\d.%\s,/a-z-]+\)|[a-z]+)$/i;
 
 /** True for a plain CSS colour token (hex, rgb(a), hsl(a), keyword): nothing that could carry `url(`, `;` or `{`. */
 export function isCssColour(value: unknown): value is string {
@@ -235,7 +232,7 @@ function normalizeSelectorList(list: unknown[], radius: number, area?: AreaStyle
     if (sel.type === 'SvgSelector' && typeof sel.value === 'string') {
       const rebuilt = rebuildPolygons(sel.value, area);
       if (rebuilt === undefined) {
-        // Unstyled producer circle / marker path: Mirador would stroke it black at 1 px.
+        // Unstyled small producer circle / marker path: Mirador would stroke it black at 1 px.
         const p = svgPoint(sel.value);
         if (p && !p.styled) {
           out.push(createCircleSvgSelector(p.x, p.y, p.r));

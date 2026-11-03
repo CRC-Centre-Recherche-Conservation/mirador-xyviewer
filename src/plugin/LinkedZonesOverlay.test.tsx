@@ -330,14 +330,17 @@ describe('LinkedZonesOverlay', () => {
     expect([el.style.left, el.style.top]).toEqual([`${200 + d}px`, `${200 - d}px`]);
   });
 
-  it('keeps clear of Mirador’s own circle when no marker size applies', () => {
+  it('caps the badge offset at the marker maximum, however large the zoom or radius', () => {
     const { viewer, canvas } = fakeViewer();
     osd.refs.w = { current: viewer };
     viewer.viewport.viewportToViewerElementCoordinates = (p) => ({ x: p.x * 10, y: p.y * 10 });
-    // At 10 px per canvas px the plain circle (240 px across) is larger than any marker.
+    // 10 px per canvas px: the plain circle would be 240 px across; the offset stays within maxSize (48 px).
     mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [88, 88, 24, 24], point: { x: 100, y: 100, r: 12 } }]);
     const el = canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!;
-    expect(parseFloat(el.style.left)).toBeGreaterThanOrEqual(1000 + 120 + 11);
+    expect(parseFloat(el.style.left)).toBe(1000 + 24 + 11 + 2);
+    cleanup();
+    mount([{ n: 1, annotationId: 'p', canvasId: 'c1', box: [0, 0, 1, 1], point: { x: 100, y: 100, r: 1e9 } }]);
+    expect(parseFloat(canvas.querySelector<HTMLElement>('.xyviewer-zone-badge')!.style.left)).toBe(1000 + 24 + 11 + 2);
   });
 
   it('hides a badge whose canvas is not in the current world instead of throwing', () => {

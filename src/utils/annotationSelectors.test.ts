@@ -3,6 +3,7 @@ import { AnnotationItem } from 'mirador';
 import {
   createCircleSvgSelector,
   isCssColour,
+  markerBounds,
   normalizeTargetSelector,
   parseXYWH,
   pointOf,
@@ -280,8 +281,29 @@ describe('pointOf', () => {
     expect(pointOf({ type: 'SvgSelector', value: CIRCLE })).toEqual({ x: 10, y: 100, r: 12 });
   });
 
-  it('reads a lone M as the top of a default marker', () => {
-    expect(pointOf(svg('<path d="M 100 188"/>'))).toEqual({ x: 100, y: 200, r: 12 });
+  it('does not read a lone M as a point, nor rewrite it', () => {
+    expect(pointOf(svg('<path d="M 100 188"/>'))).toBeNull();
+    expect(markerBounds('M 100 188')).toBeNull();
+    const lone = '<svg><path d="M 100 188"/></svg>';
+    expect(run({ type: 'SvgSelector', value: lone }).target.selector.value).toBe(lone);
+  });
+
+  it('treats a circle bigger than a marker as an area, left untouched', () => {
+    expect(pointOf(svg('<circle cx="500" cy="500" r="600"/>'))).toBeNull();
+    expect(pointOf(svg('<circle cx="5" cy="6" r="12"/>'))).toEqual({ x: 5, y: 6, r: 12 });
+    expect(pointOf(svg('<circle cx="5" cy="6" r="13"/>'))).toBeNull();
+    const big = '<svg><circle cx="500" cy="500" r="600"/></svg>';
+    expect(run({ type: 'SvgSelector', value: big }).target.selector.value).toBe(big);
+  });
+
+  it('rejects a long hostile colour quickly', () => {
+    const hostile = `rgb(${' '.repeat(60)}`;
+    const long = `rgb(${' '.repeat(50_000)}!`;
+    const t = performance.now();
+    expect(isCssColour(hostile)).toBe(false);
+    expect(isCssColour(long)).toBe(false);
+    expect(performance.now() - t).toBeLessThan(100);
+    expect(isCssColour('rgb( 1, 2, 3 )')).toBe(true);
   });
 
   it('reads an unstyled single circle but not a styled one or a lone shape among others', () => {

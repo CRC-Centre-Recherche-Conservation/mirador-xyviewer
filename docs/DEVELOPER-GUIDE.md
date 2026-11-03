@@ -84,13 +84,13 @@ Presentation 3 annotations keep every property the normalizer does not model (`b
 
 `utils/annotationSelectors.ts` (`normalizeTargetSelector`) prepares each target's selector(s) for display. It works over WADM §4.2 arrays (items select the same content), never throws and is idempotent:
 
-- an existing `SvgSelector` is preferred and a `<path>` is left as is, except an unstyled single `<circle>` or plugin marker path (no `fill`, `stroke`, `style`, `class`), which is rewritten as the plugin's marker path with the point style so Mirador does not stroke it black at 1 px;
+- an existing `SvgSelector` is preferred and a `<path>` is left as is, except an unstyled single `<circle>` (radius <= 12) or plugin marker path (no `fill`, `stroke`, `style`, `class`), which is rewritten as the plugin's marker path with the point style so Mirador does not stroke it black at 1 px;
 - a `PointSelector` (numeric `x`, `y`; a temporal-only point is ignored) without an SVG gets a circle `SvgSelector` appended;
 - a tiny `xywh` (<= 5 px, decimals allowed) becomes a circle; when the value carries other parts such as `&t=`, the circle is appended and the fragment kept;
 - `<polygon>`/`<polyline>` is rebuilt as a `<path>` from the parsed numbers only (no producer markup is kept; plain `fill`, `stroke` and `stroke-width` values carry over; a closed polygon without a `fill` is `fill="none"`, so areas never cover the points beneath them; hosts override the defaults with `areaStyle` in `createAnnotationPostprocessor`). An SVG that also holds other shapes is left untouched, a malformed or oversized one (> 256 000 characters) is dropped and the `FragmentSelector` bbox stays;
 - `xywh=pixel:` is canonicalised to `xywh=` (Mirador's `parseInt` yields `NaN` otherwise). `xywh=percent:` is left alone: it cannot be resolved without the canvas size, which the transformer does not know.
 
-`pointOf(selectors)` in the same module decides whether a target is a point, from selectors only (never motivation or producer): a `PointSelector`, a tiny `xywh`, the plugin marker path, a lone `M x y` or an unstyled single circle. `PointMarkersPlugin` uses it.
+`pointOf(selectors)` in the same module decides whether a target is a point, from selectors only (never motivation or producer): a `PointSelector`, a tiny `xywh`, the plugin marker path or an unstyled single circle of radius <= 12 (a lone `M x y` or a larger circle is not a point). `PointMarkersPlugin` uses it.
 
 The pass runs in `annotationPostprocessor` (fetched pages and, via `manifestJson`, pages embedded in manifests). `normalizeAnnotationResources` applies it too, only to keep the panel's copy of the data consistent: nothing in the panel reads `target.selector` today.
 

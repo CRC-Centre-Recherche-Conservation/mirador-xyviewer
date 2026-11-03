@@ -70,6 +70,9 @@ export interface PointResource {
   resource: OverlayResource;
 }
 
+/** Identity of a marker: ids may repeat across canvases. */
+export const markerKey = (id: string, canvasId: string): string => `${canvasId}\n${id}`;
+
 /** Point of a Mirador annotation item (`selector` is a list, or the target string). */
 function pointOfResource(res: OverlayResource & { selector?: unknown }): PointShape | null {
   const sel = res.selector;
@@ -101,6 +104,7 @@ export function splitPointResources<T extends OverlayAnnotationList>(
 ): { areas: T[]; points: PointResource[] } {
   const points: PointResource[] = [];
   if (!Array.isArray(lists)) return { areas: lists, points };
+  const seen = new Set<string>();
   let changed = false;
   const areas = lists.map((list) => {
     const resources = list?.resources;
@@ -109,7 +113,12 @@ export function splitPointResources<T extends OverlayAnnotationList>(
       const id = res?.id;
       const point = typeof id === 'string' && res.targetId ? safePointOf(res) : null;
       if (!point) return true;
-      points.push({ id: id as string, canvasId: res.targetId as string, point, resource: res });
+      // A repeated id on the same canvas is one marker.
+      const key = markerKey(id as string, res.targetId as string);
+      if (!seen.has(key)) {
+        seen.add(key);
+        points.push({ id: id as string, canvasId: res.targetId as string, point, resource: res });
+      }
       return false;
     });
     if (kept.length === resources.length) return list;
@@ -127,6 +136,8 @@ export interface PointMarker {
   point: PointShape;
   state: MarkerState;
   resource: OverlayResource;
+  /** Drawn transparent but still hit-tested, like Mirador's non-highlighted annotations. */
+  invisible?: boolean;
 }
 
 export interface PointMarkersInput {
@@ -137,27 +148,39 @@ export interface PointMarkersInput {
   hiddenFor?: HiddenLookup;
   hovered: string[];
   selected?: string | null;
-  /** Mirador's `highlightAllAnnotations`: when false, only hovered and selected markers show. */
+  /** Mirador's `highlightAllAnnotations`: when false, resting markers are invisible hit areas. */
   highlightAll: boolean;
+  /** Mirador's `drawAnnotations` (annotations panel open or forced): when false nothing is drawn. */
+  drawAnnotations?: boolean;
   maxMarkers?: number;
 }
 
-/** Markers to render: visible canvases, filter and highlight rules applied, selected one first-class. */
+/**
+ * Markers to render: visible canvases, filter and highlight rules applied, selected one
+ * first-class. Without `highlightAll` the resting ones are invisible hit areas, so canvas
+ * hover reveals them as in Mirador.
+ */
 export function computePointMarkers(input: PointMarkersInput): PointMarker[] {
   const { points, hovered, selected, highlightAll } = input;
+  if (input.drawAnnotations === false) return [];
   const visible = input.visibleCanvasIds?.length ? new Set(input.visibleCanvasIds) : undefined;
   const hoveredSet = new Set(hovered);
   const max = input.maxMarkers ?? DEFAULT_POINT_MARKER_CONFIG.maxMarkers;
 
   const active: PointMarker[] = [];
   const rest: PointMarker[] = [];
+  const seen = new Set<string>();
   for (const p of points) {
+    const key = markerKey(p.id, p.canvasId);
+    if (seen.has(key)) continue;
+    seen.add(key);
     if (visible && !visible.has(p.canvasId)) continue;
     const state: MarkerState = p.id === selected ? 'selected' : hoveredSet.has(p.id) ? 'hovered' : 'default';
     // A selected annotation stays visible whatever the filter says.
     if (state !== 'selected' && input.hiddenFor?.(p.canvasId)?.has(p.id)) continue;
-    if (state === 'default' && !highlightAll) continue;
-    (state === 'default' ? rest : active).push({ id: p.id, canvasId: p.canvasId, point: p.point, state, resource: p.resource });
+    const marker: PointMarker = { id: p.id, canvasId: p.canvasId, point: p.point, state, resource: p.resource };
+    if (state === 'default' && !highlightAll) marker.invisible = true;
+    (state === 'default' ? rest : active).push(marker);
   }
   return active.concat(rest.slice(0, Math.max(0, max - active.length)));
 }

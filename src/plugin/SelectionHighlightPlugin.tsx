@@ -233,6 +233,11 @@ export function svgBounds(svg: string): [number, number, number, number] | null 
   if (shapes.length === 1 && shapes[0][1].toLowerCase() === 'path') {
     const marker = markerBounds(attr(shapes[0][0], 'd') ?? '');
     if (marker) return marker;
+    // A lone move is not a point annotation, but the pulse still needs somewhere to go.
+    const lone = (attr(shapes[0][0], 'd') ?? '').match(/^\s*M\s*([-+]?[\d.]+)[\s,]+([-+]?[\d.]+)\s*$/);
+    if (lone && Number.isFinite(Number(lone[1])) && Number.isFinite(Number(lone[2]))) {
+      return [Number(lone[1]) - DEFAULT_POINT_RADIUS, Number(lone[2]) - DEFAULT_POINT_RADIUS, DEFAULT_POINT_RADIUS * 2, DEFAULT_POINT_RADIUS * 2];
+    }
   }
 
   const points: Point[] = [];

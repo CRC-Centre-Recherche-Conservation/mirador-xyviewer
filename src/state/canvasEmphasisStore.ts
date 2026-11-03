@@ -15,6 +15,8 @@ export interface CanvasEmphasis {
   source: EmphasisSource;
   /** Epoch ms after which the emphasis is dropped (`timed` only). */
   expiresAt?: number;
+  /** `follow` only: the link-navigation move it belongs to (it ends when that move is no longer current). */
+  move?: object;
 }
 
 export type CanvasEmphasisListener = (windowId: string) => void;
@@ -40,11 +42,12 @@ class CanvasEmphasisStore {
   }
 
   /**
-   * Pointer or focus left a card or row: only a hover emphasis ends. With `fallback` (left a
-   * row, still inside the card) the card's badges come back instead.
+   * Pointer or focus left a card or row of `ownerId`: only that card's hover emphasis ends. With
+   * `fallback` (left a row, still inside the card) the card's badges come back instead.
    */
-  release(windowId: string, fallback?: { ownerId: string; rows: 'all' | readonly number[] }): void {
-    if (this.states.get(windowId)?.source !== 'hover') return;
+  release(windowId: string, ownerId: string, fallback?: { ownerId: string; rows: 'all' | readonly number[] }): void {
+    const s = this.states.get(windowId);
+    if (s?.source !== 'hover' || s.ownerId !== ownerId) return;
     if (fallback) this.set(windowId, { ...fallback, source: 'hover' });
     else this.clear(windowId);
   }
@@ -54,9 +57,9 @@ class CanvasEmphasisStore {
     this.set(windowId, { ownerId, rows: 'all', source: 'timed', expiresAt: Date.now() + ms }, ms);
   }
 
-  /** Row `n` of `ownerId` was followed: its badge stays while the move is current. */
-  follow(windowId: string, ownerId: string, n: number): void {
-    this.set(windowId, { ownerId, rows: [n], source: 'follow' });
+  /** Row `n` of `ownerId` was followed: its badge stays while `move` is the current move. */
+  follow(windowId: string, ownerId: string, n: number, move?: object): void {
+    this.set(windowId, { ownerId, rows: [n], source: 'follow', move });
   }
 
   /** Drops a `follow` emphasis (the move is over); other sources are left alone. */

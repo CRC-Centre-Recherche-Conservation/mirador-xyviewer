@@ -144,7 +144,7 @@ export const LinkedZonesOverlay: React.FC<LinkedZonesOverlayProps> = ({ windowId
         if (point) {
           // Marker radius in its largest (hovered) state; Mirador's own circle when no marker plugin.
           const scale = pxPerCanvasPx(badge.canvasId);
-          const radius = Math.max(markerSize(point.r, scale, pointConfig, 'hovered'), scale ? 2 * point.r * scale : 0) / 2;
+          const radius = Math.max(markerSize(point.r, scale, pointConfig, 'hovered'), scale ? Math.min(pointConfig.maxSize, 2 * point.r * scale) : 0) / 2;
           dx = dy = radius + BADGE_SIZE / 2 + MARKER_GAP;
           dy = -dy;
         }
