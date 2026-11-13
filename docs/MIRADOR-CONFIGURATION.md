@@ -229,6 +229,63 @@ const viewer = Mirador.viewer({
 
 Label keys: `purposes` (caption per purpose, wins over the defaults below), `linkedAnnotations` ("Linked annotations"), for linked rows `linkOnThisPage` ("on this page"), `linkOnCanvas` ("on {canvas}"), `linkUnavailable` ("Not available in this viewer"), `linkCount` ("{n} linked annotations", the accessible name of the link icon and count in a card header) and `linkCountOne` ("1 linked annotation"), `goToPage` ("Go to page"), `hiddenByFilter` ("(hidden by filter)"), `showAll` ("Show all"), `backTo` ("Back to {title}"), `selectLinked` ("Select linked annotation {n} of {total}: {details}"), `citedBy` ("Cited by"), `linkNavigationFailed`, and for classification cards `classification` ("Classification"), `identification`, `classifiedAs` ("Classified as"), `identifiedAs` ("Identified as"), `assessment`, `overallAssessment` ("Overall assessment (see text)"), `description`, `tags`, `otherTerms`, `fullStatement`, `openReport` ("Open report"), `openVocabulary` ("Open in vocabulary"), `cardMenu`, `copyAnnotationId`, `openJson`, `zoomToZone` ("Zoom to zone", frames the annotation's own zone), `untitled`, and for the filter panel and term menu `showMore` ("Show {n} more"), `showFewer`, `expandGroup` ("Expand {name}") and `collapseGroup` ("Collapse {name}"), `allValuesIn` ("All values of {name}", the master checkbox), `selectedOf` ("{selected} of {total}"), `only` ("Only", the visible text of the button) and `onlyTerm` ("Only {term}", its accessible name, which must start with `only`), `valueCount` ("{n} annotations") and `valueCountOne` ("1 annotation"), `valueCountLinked` ("{own} carrying it, {linked} cited by them"), `valueCountVisible` ("{visible} of {n} visible"), `noneHint`, `filterNone` ("Not specified"), `showingOf` ("Showing {shown} of {total} annotations"), `annotationCount` ("{n} annotations") and `annotationCountOne` ("1 annotation"), `resetFilters` ("Reset all filters"), `filterButton` ("Filter annotations"), `shownBecauseLinked` ("shown because linked to {title}"), `filterBy` ("Filter by {term}"), `removeFilter` ("Remove filter: {term}"), `highlightTerm` ("Highlight annotations with this term"), `filterActive` ("filter active", added to a chip's accessible name while its term filters), `filtersEmpty` ("No annotation on this canvas can be filtered"). `evidence` and `evidenceUnavailable` are deprecated: they are only used as the fallback for `linkedAnnotations` and `linkUnavailable` when those are not set.
 
+### Point markers
+
+Mirador draws a point as a 1 px circle a few screen pixels wide, which is hard to see and to hit. `pointMarkersPlugin` takes the points out of Mirador's canvas drawing and renders them as markers above the image:
+
+- Look: a lens, a translucent tint of the state colour inside a thin stroke (1.5 px at rest, 2 px hovered or selected) with a faint dark shadow so it reads on any image, and the image stays visible through it. `minSize`, `hoverSize` and `maxSize` are the inner diameter; the stroke is drawn outside it. The inner diameter is the point's size on screen, kept between `minSize` and `maxSize`; the pointer target is at least `hitSize` and never smaller than the lens.
+- Hovered (from the canvas, a card, a row or a chip) markers grow to an inner diameter of at least `hoverSize`, take the theme's hovered colour and gain a soft glow. Selected markers take the theme's selected colour and a halo; the selected look wins over hovered. A click selects, or deselects when already selected.
+- State is carried by stroke width, tint strength and glow or halo as well as colour, so a host colour override stays readable; very close colours on the image still weaken the lens (magenta on vermilion, yellow on gold), so pick `colors` with contrast in mind. The tint and glow use CSS `color-mix` (Chrome 111, Firefox 113, Safari 16.2); older browsers get the stroke and a plain shadow.
+- Everything is visible by default: the plugins set `highlightAllAnnotations` and `forceDrawAnnotations` to `true` (see [Default window settings](#default-window-settings)), so markers are drawn from the start and only the metadata filters hide them (a selected marker stays). With `highlightAllAnnotations` set to `false` by the host, resting markers are invisible but keep their hit area, so hovering a point on the canvas reveals it and a click selects it, as for Mirador's own shapes. Nothing is drawn while Mirador draws no annotations (`forceDrawAnnotations` off and the annotations panel closed), not even the selected marker.
+- A drag that starts on a marker pans the image; a click without movement selects the marker and never the area under it.
+- Markers are `aria-hidden`: the annotation cards and rows remain the accessible surface.
+
+A point is recognised from its selectors only: a `PointSelector`, a tiny `xywh` (5 px or less), an unstyled single `<circle>` of radius 12 or less, or the plugin's own circle path. A larger circle, or a lone `M x y` path, is a region the producer drew and is left alone.
+
+```javascript
+scientificAnnotations: {
+  pointMarkers: {
+    minSize: 12,      // px, 4 to 64: inner diameter
+    hoverSize: 18,    // px, inner diameter of hovered and selected markers
+    maxSize: 48,      // px, inner diameter at rest
+    hitSize: 20,      // px, smallest pointer target
+    maxMarkers: 2000, // markers drawn per window (hovered and selected always are)
+    colors: { default: '#00BFFF', hovered: '#BF00FF', selected: '#ffff00' }, // default: theme.palette.annotations.*.strokeStyle
+  },
+},
+```
+
+Numbers are clamped and colours must be plain CSS colours (hex, `rgb()`, `hsl()` or a keyword); anything else falls back to the default. Without the plugin, unstyled circles are still given a visible lens (Mirador's default `#00BFFF`, faint fill, thin stroke) by the postprocessor, but they stay small on screen.
+
+### Default window settings
+
+`scientificAnnotationPlugin` and `pointMarkersPlugin` both carry a plugin `config` that Mirador merges under the host configuration (the host always wins):
+
+```javascript
+{ window: { highlightAllAnnotations: true, forceDrawAnnotations: true } }
+```
+
+At the start every annotation is drawn; only the metadata filters make annotations disappear, and the hover and selection highlight show which one is meant. A host that wants Mirador's usual behaviour (draw on hover, or only while the annotations panel is open) sets either option to `false` in its own `window` config.
+
+### Area style
+
+Closed polygons are drawn stroke-only (`fill="none"`, 2 px, `#1a73e8`) unless the producer gives colours, so a large area never hides the points under it. Hosts can change the defaults with the options form of the postprocessor factory:
+
+```javascript
+import { createAnnotationPostprocessor } from 'mirador-xyviewer';
+
+requests: {
+  postprocessors: [
+    createAnnotationPostprocessor({
+      pointRadius: 12,
+      areaStyle: { stroke: '#1a73e8', strokeWidth: 2, fill: 'rgba(26, 115, 232, 0.1)' },
+    }),
+  ],
+}
+```
+
+`createAnnotationPostprocessor(25)` (a radius) still works. Invalid colours or widths are ignored.
+
 ### Theme Customization
 
 ```javascript
@@ -335,7 +392,7 @@ window.miradorInstance = viewer;
 
 ## Plugin-Specific Options
 
-Mirador-xyviewer provides five plugins; all are optional:
+Mirador-xyviewer provides six plugins; all are optional:
 
 | Plugin | Description |
 |--------|-------------|
@@ -343,6 +400,7 @@ Mirador-xyviewer provides five plugins; all are optional:
 | `imageComparisonPlugin` | Side-by-side image comparison with synchronized zoom/pan |
 | `metadataFiltersPlugin` | Filter annotations by metadata values and by the controlled terms of their bodies (button and panel) and hide the filtered shapes on the canvas. Exported as an array of two Mirador plugins: spread it (`...metadataFiltersPlugin`) |
 | `selectionHighlightPlugin` | Pulse animation to highlight selected annotations on the image |
+| `pointMarkersPlugin` | Draws point annotations as DOM markers sized in screen pixels, with a hover and selected look (see [Point markers](#point-markers)) |
 | `searchResultFocusPlugin` | Switches the left panel to the Annotations list when a Content Search hit is selected |
 
 ### Using Only the Annotation Plugin

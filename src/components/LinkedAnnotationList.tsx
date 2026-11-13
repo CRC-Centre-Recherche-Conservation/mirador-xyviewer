@@ -123,15 +123,21 @@ export const LinkedAnnotationList: React.FC<LinkedAnnotationListProps> = ({
             .join(', ');
           const hoverIds = row.kind === 'here' && row.annotationId ? [row.annotationId] : null;
           const interactive = {
-            onMouseEnter: () => hoverIds && ctx.hover(hoverIds),
+            onMouseEnter: () => {
+              if (hoverIds) ctx.hover(hoverIds);
+            },
             onFocus: (e: React.FocusEvent) => {
               if (!hoverIds) return;
               // The card's own focus handler would light the whole group instead.
               e.stopPropagation();
               ctx.hover(hoverIds);
             },
-            onMouseLeave: () => hoverIds && restoreHover(),
-            onBlur: () => hoverIds && restoreHover(),
+            onMouseLeave: () => {
+              if (hoverIds) restoreHover();
+            },
+            onBlur: () => {
+              if (hoverIds) restoreHover();
+            },
           };
 
           const body = (

@@ -10,18 +10,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { MiradorPlugin } from '../types/mirador';
 import { filtersStore } from '../state/filtersStore';
 import { containPlugin } from './containPlugin';
-
-interface OverlayResource {
-  id?: string;
-  targetId?: string;
-}
-
-interface OverlayAnnotationList {
-  resources?: OverlayResource[];
-}
-
-/** Hidden ids of a canvas, or undefined when no filter is active for it. */
-type HiddenLookup = (canvasId: string) => ReadonlySet<string> | undefined;
+import { storeLookup, withAnnotations, type HiddenLookup, type OverlayAnnotationList } from './overlayChain';
 
 /**
  * Removes the resources hidden by the filter from Mirador's annotation lists.
@@ -64,28 +53,6 @@ interface PluginWrapperProps {
   TargetComponent: React.ComponentType<TargetProps>;
   /** Rest of Mirador's wrap chain, when other plugins wrap the same target. */
   children?: React.ReactNode;
-}
-
-/**
- * Swaps `annotations` through the rest of the wrap chain. Each nested wrap element carries
- * its own copy (props and targetProps), so every level down to the target is updated;
- * this keeps the plugin independent of the order hosts register wrap plugins in.
- */
-function withAnnotations(node: React.ReactNode, annotations: unknown): React.ReactNode {
-  if (!React.isValidElement(node)) return node;
-  const props = node.props as { targetProps?: object; children?: React.ReactNode };
-  const next: Record<string, unknown> = { annotations };
-  if (props.targetProps) next.targetProps = { ...props.targetProps, annotations };
-  if (props.children) next.children = withAnnotations(props.children, annotations);
-  return React.cloneElement(node, next);
-}
-
-/** Per-canvas lookup into filtersStore; only canvases whose filters are initialized. */
-function storeLookup(windowId: string): HiddenLookup {
-  return (canvasId) =>
-    filtersStore.hasFiltersInitialized(windowId, canvasId)
-      ? filtersStore.getHiddenAnnotationIds(windowId, canvasId)
-      : undefined;
 }
 
 export const MetadataFilterOverlayPluginComponent: React.FC<PluginWrapperProps> = ({

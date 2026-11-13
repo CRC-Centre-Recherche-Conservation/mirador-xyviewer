@@ -244,7 +244,7 @@ export function hoverGroup(index: LinkIndex, annotationId: string, canvasAnnotat
 
 export interface LinkRow {
   key: string;
-  /** Position in the list, from 1: the number the list shows and the canvas badge repeats. */
+  /** Position in the list, from 1: the number the list shows. */
   n: number;
   kind: 'here' | 'other' | 'unavailable' | 'external';
   /** Base id of the linked annotation, or the URL of an external link. */

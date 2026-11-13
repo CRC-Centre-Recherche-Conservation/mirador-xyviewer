@@ -234,6 +234,7 @@ import {
   imageComparisonPlugin,
   ...metadataFiltersPlugin,
   selectionHighlightPlugin,
+  pointMarkersPlugin,
   annotationPostprocessor
 } from 'mirador-xyviewer';
 
@@ -247,9 +248,12 @@ Mirador.viewer({
   scientificAnnotationPlugin,   // Spectrum visualization, manifest links
   imageComparisonPlugin,        // Image comparison (optional)
   ...metadataFiltersPlugin,     // Metadata filters + hides filtered shapes on the canvas (optional; an array, spread it)
-  selectionHighlightPlugin      // Selection highlight pulse (optional)
+  selectionHighlightPlugin,     // Selection highlight pulse (optional)
+  pointMarkersPlugin            // Point annotations as visible, clickable markers (optional)
 ]);
 ```
+
+Annotations are all visible at the start: the plugins set `window.highlightAllAnnotations` and `window.forceDrawAnnotations` to `true` by default, so only the metadata filters hide annotations and the hover/selection highlight shows which one is meant. Your own `window` config wins; set either to `false` to get Mirador's usual behaviour (see [docs/MIRADOR-CONFIGURATION.md](docs/MIRADOR-CONFIGURATION.md#default-window-settings)).
 
 `annotationPostprocessor` also covers annotation pages embedded in a manifest. If you inject manifests yourself with `receiveManifest` (which skips request postprocessors), pass the JSON through `transformEmbeddedAnnotationPages(json)` first.
 
