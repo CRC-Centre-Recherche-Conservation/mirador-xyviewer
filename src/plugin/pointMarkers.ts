@@ -14,11 +14,11 @@ export interface PointMarkerColors {
 
 /** Host configuration (`config.scientificAnnotations.pointMarkers`), validated. */
 export interface PointMarkerConfig {
-  /** Smallest clear-hole diameter in screen px (the ring is drawn outside it). */
+  /** Smallest inner diameter in screen px (the stroke is drawn outside it). */
   minSize: number;
-  /** Hole diameter of a hovered or selected marker. */
+  /** Inner diameter of a hovered or selected marker. */
   hoverSize: number;
-  /** Largest hole diameter at rest. */
+  /** Largest inner diameter at rest. */
   maxSize: number;
   /** Smallest pointer target. */
   hitSize: number;
@@ -185,14 +185,14 @@ export function computePointMarkers(input: PointMarkersInput): PointMarker[] {
   return active.concat(rest.slice(0, Math.max(0, max - active.length)));
 }
 
-/** Colour ring width (px) per state; the hole inside it stays clear. */
-export const RING_WIDTH: Record<MarkerState, number> = { default: 2, hovered: 3, selected: 3 };
+/** Stroke width (px) of the lens per state. */
+export const RING_WIDTH: Record<MarkerState, number> = { default: 1.5, hovered: 2, selected: 2 };
 
-/** Outer diameter of a marker: hole + colour ring + the 1px light and dark casings. */
-export const markerFootprint = (d: number, state: MarkerState): number => d + 2 * RING_WIDTH[state] + 4;
+/** Outer diameter of a marker: inner diameter + stroke on both sides. */
+export const markerFootprint = (d: number, state: MarkerState): number => d + 2 * RING_WIDTH[state];
 
 /**
- * Clear-hole diameter in screen px: the point's own size, kept between `minSize` and `maxSize`;
+ * Inner diameter in screen px: the point's own size, kept between `minSize` and `maxSize`;
  * hovered and selected markers are never smaller than `hoverSize`.
  */
 export function markerSize(

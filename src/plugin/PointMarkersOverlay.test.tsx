@@ -72,13 +72,13 @@ describe('PointMarkersOverlay', () => {
     osd.refs.w = { current: viewer };
     mount([marker('a'), marker('b', 'default', 'c2', 100, 100)]);
     const [a, b] = dots(canvas);
-    // r = 5 canvas px at 2 px each: 20 px hole, footprint 28 px (hit area), centred on pixel (20, 40).
-    expect(a.style.width).toBe('28px');
-    expect(a.style.left).toBe('6px');
-    expect(a.style.top).toBe('26px');
+    // r = 5 canvas px at 2 px each: 20 px inner diameter, footprint 23 px (hit area), centred on pixel (20, 40).
+    expect(a.style.width).toBe('23px');
+    expect(a.style.left).toBe('8.5px');
+    expect(a.style.top).toBe('28.5px');
     expect(a.style.getPropertyValue('--xyviewer-d')).toBe('20px');
     // Second canvas sits at world x = 1000.
-    expect(b.style.left).toBe(`${(1000 + 100) * 2 - 14}px`);
+    expect(b.style.left).toBe(`${(1000 + 100) * 2 - 11.5}px`);
     expect(canvas.querySelector('[data-xyviewer-point-markers]')!.getAttribute('aria-hidden')).toBe('true');
     expect((canvas.querySelector('[data-xyviewer-point-markers]') as HTMLElement).style.pointerEvents).toBe('none');
     expect(a.style.pointerEvents).toBe('auto');
@@ -92,9 +92,9 @@ describe('PointMarkersOverlay', () => {
     expect(tiny.style.getPropertyValue('--xyviewer-d')).toBe('12px');
     expect(tiny.style.width).toBe('20px');
     expect(big.style.getPropertyValue('--xyviewer-d')).toBe('48px');
-    expect(big.style.width).toBe('56px');
+    expect(big.style.width).toBe('51px');
     expect(hov.style.getPropertyValue('--xyviewer-d')).toBe('18px');
-    expect(hov.style.width).toBe('28px');
+    expect(hov.style.width).toBe('22px');
   });
 
   it('colours and titles the markers by state', () => {
@@ -142,10 +142,10 @@ describe('PointMarkersOverlay', () => {
     osd.refs.w = { current: viewer };
     const { view } = mount([marker('a')]);
     const [a] = dots(canvas);
-    expect(a.style.left).toBe('6px');
+    expect(a.style.left).toBe('8.5px');
     pan(100);
     act(() => handlers['update-viewport'].forEach((h) => h()));
-    expect(a.style.left).toBe('106px');
+    expect(a.style.left).toBe('108.5px');
     expect(Object.keys(handlers).sort()).toEqual(['flip', 'rotate', 'update-viewport']);
     view.unmount();
     for (const list of Object.values(handlers)) expect(list).toEqual([]);
@@ -156,7 +156,7 @@ describe('PointMarkersOverlay', () => {
     osd.refs.w = { current: viewer };
     const { view, props } = mount([marker('a', 'default', 'c1', 10, 20, 5)]);
     view.rerender(<PointMarkersOverlay {...props} markers={[marker('a', 'default', 'c1', 50, 20, 5)]} />);
-    expect(dots(canvas)[0].style.left).toBe('86px');
+    expect(dots(canvas)[0].style.left).toBe('88.5px');
   });
 
   it('hides a marker whose canvas is not in the world and renders nothing without markers or viewer', () => {
@@ -190,7 +190,7 @@ describe('PointMarkersOverlay', () => {
     const opacity = (el: HTMLElement) => (el.querySelector('span') as HTMLElement).style.opacity;
     expect([opacity(a), opacity(b)]).toEqual(['0', '1']);
     expect(a.style.pointerEvents).toBe('auto');
-    expect(a.style.width).toBe('28px');
+    expect(a.style.width).toBe('23px');
   });
 
   it('places by key, so a repeated id on two canvases cannot swap markers', () => {
@@ -198,8 +198,8 @@ describe('PointMarkersOverlay', () => {
     osd.refs.w = { current: viewer };
     mount([marker('a', 'default', 'c2', 100, 100), marker('a', 'default', 'c1', 10, 20)]);
     const [second, first] = dots(canvas);
-    expect(second.style.left).toBe(`${(1000 + 100) * 2 - 14}px`);
-    expect(first.style.left).toBe('6px');
+    expect(second.style.left).toBe(`${(1000 + 100) * 2 - 11.5}px`);
+    expect(first.style.left).toBe('8.5px');
   });
 
   describe('pan and click', () => {

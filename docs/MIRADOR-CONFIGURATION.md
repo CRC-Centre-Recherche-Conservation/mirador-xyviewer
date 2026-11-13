@@ -233,9 +233,9 @@ Label keys: `purposes` (caption per purpose, wins over the defaults below), `lin
 
 Mirador draws a point as a 1 px circle a few screen pixels wide, which is hard to see and to hit. `pointMarkersPlugin` takes the points out of Mirador's canvas drawing and renders them as markers above the image:
 
-- Look: a hollow ring, so the analysed spot is never covered. `minSize`, `hoverSize` and `maxSize` are the diameter of the clear hole; the ring is drawn outside it (2 px at rest, 3 px hovered or selected, between a 1 px light and a 1 px dark casing so it reads on any image). The hole is the point's size on screen, kept between `minSize` and `maxSize`; the pointer target is at least `hitSize` and never smaller than the ring.
-- Hovered (from the canvas, a card, a row or a chip) markers grow to a hole of at least `hoverSize`, take the theme's hovered colour and gain four reticle ticks on the axes. Selected markers add a second thin ring outside the first; the selected look wins over hovered. A click selects, or deselects when already selected.
-- State is carried by shape (ring width, reticle, double ring) as well as colour, so a host colour override stays readable; very close colours on the image still weaken the ring (magenta on vermilion, yellow on gold), so pick `colors` with contrast in mind.
+- Look: a lens, a translucent tint of the state colour inside a thin stroke (1.5 px at rest, 2 px hovered or selected) with a faint dark shadow so it reads on any image, and the image stays visible through it. `minSize`, `hoverSize` and `maxSize` are the inner diameter; the stroke is drawn outside it. The inner diameter is the point's size on screen, kept between `minSize` and `maxSize`; the pointer target is at least `hitSize` and never smaller than the lens.
+- Hovered (from the canvas, a card, a row or a chip) markers grow to an inner diameter of at least `hoverSize`, take the theme's hovered colour and gain a soft glow. Selected markers take the theme's selected colour and a halo; the selected look wins over hovered. A click selects, or deselects when already selected.
+- State is carried by stroke width, tint strength and glow or halo as well as colour, so a host colour override stays readable; very close colours on the image still weaken the lens (magenta on vermilion, yellow on gold), so pick `colors` with contrast in mind. The tint and glow use CSS `color-mix` (Chrome 111, Firefox 113, Safari 16.2); older browsers get the stroke and a plain shadow.
 - Everything is visible by default: the plugins set `highlightAllAnnotations` and `forceDrawAnnotations` to `true` (see [Default window settings](#default-window-settings)), so markers are drawn from the start and only the metadata filters hide them (a selected marker stays). With `highlightAllAnnotations` set to `false` by the host, resting markers are invisible but keep their hit area, so hovering a point on the canvas reveals it and a click selects it, as for Mirador's own shapes. Nothing is drawn while Mirador draws no annotations (`forceDrawAnnotations` off and the annotations panel closed), not even the selected marker.
 - A drag that starts on a marker pans the image; a click without movement selects the marker and never the area under it.
 - Markers are `aria-hidden`: the annotation cards and rows remain the accessible surface.
@@ -245,9 +245,9 @@ A point is recognised from its selectors only: a `PointSelector`, a tiny `xywh` 
 ```javascript
 scientificAnnotations: {
   pointMarkers: {
-    minSize: 12,      // px, 4 to 64: clear-hole diameter
-    hoverSize: 18,    // px, hole of hovered and selected markers
-    maxSize: 48,      // px, hole at rest
+    minSize: 12,      // px, 4 to 64: inner diameter
+    hoverSize: 18,    // px, inner diameter of hovered and selected markers
+    maxSize: 48,      // px, inner diameter at rest
     hitSize: 20,      // px, smallest pointer target
     maxMarkers: 2000, // markers drawn per window (hovered and selected always are)
     colors: { default: '#00BFFF', hovered: '#BF00FF', selected: '#ffff00' }, // default: theme.palette.annotations.*.strokeStyle
@@ -255,7 +255,7 @@ scientificAnnotations: {
 },
 ```
 
-Numbers are clamped and colours must be plain CSS colours (hex, `rgb()`, `hsl()` or a keyword); anything else falls back to the default. Without the plugin, unstyled circles are still given a visible ring (stroke, no fill) by the postprocessor, but they stay small on screen.
+Numbers are clamped and colours must be plain CSS colours (hex, `rgb()`, `hsl()` or a keyword); anything else falls back to the default. Without the plugin, unstyled circles are still given a visible lens (Mirador's default `#00BFFF`, faint fill, thin stroke) by the postprocessor, but they stay small on screen.
 
 ### Default window settings
 

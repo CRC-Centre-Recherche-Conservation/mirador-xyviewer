@@ -14,6 +14,8 @@ export const POINT_SIZE_THRESHOLD = 5;
 /** Default colours of the plugin's shapes (circle markers and rebuilt polygons) */
 const DEFAULT_STROKE = '#1a73e8';
 const DEFAULT_STROKE_WIDTH = 2;
+/** Point circle without the marker plugin: Mirador's default annotation colour, a faint tint and a thin stroke. */
+const POINT_COLOUR = '#00BFFF';
 
 /** Display style of closed areas; areas are stroke-only unless the producer styled them. */
 export interface AreaStyle {
@@ -52,7 +54,7 @@ export function parseXYWH(value: string): { x: number; y: number; w: number; h: 
 export function createCircleSvgSelector(x: number, y: number, radius: number = DEFAULT_POINT_RADIUS): Selector {
   return {
     type: 'SvgSelector',
-    value: `<svg xmlns="http://www.w3.org/2000/svg"><path d="M ${x} ${y - radius} A ${radius} ${radius} 0 1 1 ${x} ${y + radius} A ${radius} ${radius} 0 1 1 ${x} ${y - radius}" fill="none" stroke="${DEFAULT_STROKE}" stroke-width="${DEFAULT_STROKE_WIDTH}"/></svg>`,
+    value: `<svg xmlns="http://www.w3.org/2000/svg"><path d="M ${x} ${y - radius} A ${radius} ${radius} 0 1 1 ${x} ${y + radius} A ${radius} ${radius} 0 1 1 ${x} ${y - radius}" fill="${POINT_COLOUR}" fill-opacity="0.18" stroke="${POINT_COLOUR}" stroke-width="1.5"/></svg>`,
   };
 }
 

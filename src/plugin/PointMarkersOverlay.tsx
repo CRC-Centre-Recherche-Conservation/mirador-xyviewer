@@ -4,7 +4,7 @@
  * Point annotations as DOM markers above the OpenSeadragon canvas (portaled into
  * `viewer.canvas`). Mirador's canvas drawing of a point is a
  * 1 px circle a few screen pixels wide, so the markers replace it: sized in screen pixels,
- * with a hover/selected look. Decorative (aria-hidden): the cards and rows stay the
+ * as a tinted lens with a hover glow and a selected halo. Decorative (aria-hidden): the cards and rows stay the
  * accessible surface. A drag that starts on a marker pans the image; a press without movement
  * selects the marker only.
  */
@@ -19,35 +19,33 @@ export type MarkerColors = Record<MarkerState, string>;
 
 const Z: Record<MarkerState, number> = { default: 0, hovered: 2, selected: 1 };
 
-/** Hollow ring (hole = `--xyviewer-d`, colour = `--xyviewer-c`); reticle on hovered, double ring on selected. */
+/**
+ * Lens look: translucent tint inside a thin stroke (colour = `--xyviewer-c`, inner diameter =
+ * `--xyviewer-d`); hovered grows slightly with a soft glow, selected adds a halo. Browsers
+ * without `color-mix` keep a visible untinted stroke with a plain shadow.
+ */
 const STYLE = `
-[data-xyviewer-point-marker]{--xyviewer-ring:2px;--xyviewer-dark:rgba(0,0,0,.6);--xyviewer-light:rgba(255,255,255,.9);--xyviewer-tick:0px;--xyviewer-tick-start:2px}
-[data-xyviewer-point-marker="hovered"]{--xyviewer-ring:3px;--xyviewer-tick:6px}
-[data-xyviewer-point-marker="selected"]{--xyviewer-ring:3px;--xyviewer-tick:6px;--xyviewer-tick-start:7px}
-
-.xyviewer-point-marker__dot{position:relative;display:block;box-sizing:border-box;border-radius:50%;background:transparent;
-  width:calc(var(--xyviewer-d) + 2px + 2*var(--xyviewer-ring));height:calc(var(--xyviewer-d) + 2px + 2*var(--xyviewer-ring));
-  border:var(--xyviewer-ring) solid var(--xyviewer-c);
-  box-shadow:0 0 0 1px var(--xyviewer-dark),inset 0 0 0 1px var(--xyviewer-light)}
-.xyviewer-point-marker__dot::before,.xyviewer-point-marker__dot::after{content:'';position:absolute;display:none;pointer-events:none}
-
-[data-xyviewer-point-marker="hovered"] .xyviewer-point-marker__dot::before,
-[data-xyviewer-point-marker="selected"] .xyviewer-point-marker__dot::before{display:block;
-  inset:calc(-1*(var(--xyviewer-tick-start) + var(--xyviewer-tick) + 1px));
-  background:
-    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) center 1px/2px var(--xyviewer-tick) no-repeat,
-    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) center calc(100% - 1px)/2px var(--xyviewer-tick) no-repeat,
-    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) 1px center/var(--xyviewer-tick) 2px no-repeat,
-    linear-gradient(var(--xyviewer-c),var(--xyviewer-c)) calc(100% - 1px) center/var(--xyviewer-tick) 2px no-repeat,
-    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) center 0/4px calc(var(--xyviewer-tick) + 2px) no-repeat,
-    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) center 100%/4px calc(var(--xyviewer-tick) + 2px) no-repeat,
-    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) 0 center/calc(var(--xyviewer-tick) + 2px) 4px no-repeat,
-    linear-gradient(var(--xyviewer-dark),var(--xyviewer-dark)) 100% center/calc(var(--xyviewer-tick) + 2px) 4px no-repeat}
-
-[data-xyviewer-point-marker="selected"] .xyviewer-point-marker__dot::after{display:block;inset:-5px;border-radius:50%;
-  border:1px solid var(--xyviewer-c);box-shadow:0 0 0 1px var(--xyviewer-dark),inset 0 0 0 1px var(--xyviewer-dark)}
-
-@media (prefers-reduced-motion:no-preference){.xyviewer-point-marker__dot{transition:width .12s,height .12s,border-width .12s,border-color .12s}}
+[data-xyviewer-point-marker]{--xyviewer-sw:1.5px;--xyviewer-tint:18%}
+[data-xyviewer-point-marker="hovered"],
+[data-xyviewer-point-marker="selected"]{--xyviewer-sw:2px;--xyviewer-tint:22%}
+.xyviewer-point-marker__dot{position:relative;display:block;box-sizing:content-box;border-radius:50%;
+  width:var(--xyviewer-d);height:var(--xyviewer-d);
+  border:var(--xyviewer-sw) solid var(--xyviewer-c);
+  background:transparent;background-clip:padding-box;
+  box-shadow:0 0 2px rgba(0,0,0,.5)}
+[data-xyviewer-point-marker="hovered"] .xyviewer-point-marker__dot{
+  box-shadow:0 0 6px 1px var(--xyviewer-c),0 0 2px 3px rgba(0,0,0,.25)}
+[data-xyviewer-point-marker="selected"] .xyviewer-point-marker__dot{
+  box-shadow:0 0 0 3px var(--xyviewer-c),0 0 2px 3px rgba(0,0,0,.3)}
+@supports (background:color-mix(in srgb,red 10%,transparent)){
+.xyviewer-point-marker__dot{
+  background:color-mix(in srgb,var(--xyviewer-c) var(--xyviewer-tint),transparent);background-clip:padding-box}
+[data-xyviewer-point-marker="hovered"] .xyviewer-point-marker__dot{
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--xyviewer-c) 28%,transparent),0 0 8px 1px color-mix(in srgb,var(--xyviewer-c) 70%,transparent),0 0 2px 3px rgba(0,0,0,.25)}
+[data-xyviewer-point-marker="selected"] .xyviewer-point-marker__dot{
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--xyviewer-c) 45%,transparent),0 0 6px 3px color-mix(in srgb,var(--xyviewer-c) 55%,transparent),0 0 2px 3px rgba(0,0,0,.3)}
+}
+@media (prefers-reduced-motion:no-preference){.xyviewer-point-marker__dot{transition:width .15s,height .15s,border-color .15s,border-width .15s,background-color .15s,box-shadow .15s}}
 `;
 
 /** Movement (px) before a press on a marker becomes a pan instead of a click. */

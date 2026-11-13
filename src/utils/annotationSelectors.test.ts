@@ -195,7 +195,7 @@ describe('normalizeTargetSelector', () => {
       const original = before.find((b: { id: string }) => b.id === p.id);
       expect(p.target.selector[0]).toEqual(original.target.selector[0]);
       // Same circle as the producer's, now with the plugin's point style.
-      expect(p.target.selector[1].value).toContain('stroke="#1a73e8"');
+      expect(p.target.selector[1].value).toContain('stroke="#00BFFF"');
       expect(pointOf(p.target.selector)).toEqual(pointOf(original.target.selector));
     }
   });
@@ -328,8 +328,10 @@ describe('point restyle (fallback without the marker plugin)', () => {
   it('gives an unstyled circle the plugin point style, as a marker path', () => {
     const a = run({ type: 'SvgSelector', value: '<svg><circle cx="5" cy="6" r="7"/></svg>' });
     const value = a.target.selector.value as string;
-    expect(value).toContain('stroke="#1a73e8"');
-    expect(value).toContain('fill="none"');
+    expect(value).toContain('stroke="#00BFFF"');
+    expect(value).toContain('stroke-width="1.5"');
+    expect(value).toContain('fill="#00BFFF"');
+    expect(value).toContain('fill-opacity="0.18"');
     expect(pointOf(a.target.selector)).toEqual({ x: 5, y: 6, r: 7 });
   });
 

@@ -167,10 +167,10 @@ describe('resolvePointMarkerConfig', () => {
 });
 
 describe('markerFootprint', () => {
-  it('adds the colour ring and the two 1px casings around the hole', () => {
-    expect(RING_WIDTH).toEqual({ default: 2, hovered: 3, selected: 3 });
-    expect(markerFootprint(12, 'default')).toBe(20);
-    expect(markerFootprint(18, 'hovered')).toBe(28);
-    expect(markerFootprint(48, 'selected')).toBe(58);
+  it('adds the stroke on both sides of the inner diameter', () => {
+    expect(RING_WIDTH).toEqual({ default: 1.5, hovered: 2, selected: 2 });
+    expect(markerFootprint(12, 'default')).toBe(15);
+    expect(markerFootprint(18, 'hovered')).toBe(22);
+    expect(markerFootprint(48, 'selected')).toBe(52);
   });
 });
